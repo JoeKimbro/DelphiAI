@@ -12,15 +12,23 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 # Looks for .env in project root (3 levels up from this file)
 env_path = Path(__file__).resolve().parents[3] / ".env"
+if not env_path.exists():
+    raise FileNotFoundError(f".env file not found at {env_path}")
 load_dotenv(env_path)
 
-# Database configuration - uses environment variables with defaults for local dev
+# Required environment variables
+REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+if missing:
+    raise EnvironmentError(f"Missing required environment variables: {', '.join(missing)}")
+
+# Database configuration - requires .env file
 DB_CONFIG = {
-    "host": os.getenv("DB_HOST", "localhost"),
-    "port": os.getenv("DB_PORT", "5432"),
-    "database": os.getenv("DB_NAME", "delphi_db"),
-    "user": os.getenv("DB_USER", "delphi_user"),
-    "password": os.getenv("DB_PASSWORD", "delphi_password"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT"),
+    "database": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
 }
 
 # Connection pool (initialized lazily)
