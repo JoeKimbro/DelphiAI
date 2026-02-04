@@ -1,0 +1,19 @@
+The Correct Order to Build:Phase 1: Database First ✅ (You're here!)
+
+Design schema ✅ Done!
+Create database and tables ← Next step
+Populate with initial data (scrape/import UFC stats)
+Phase 2: Model Layer
+
+Data access layer (CRUD operations)
+Feature engineering functions
+ML model training pipeline
+Prediction functions
+Phase 3: Controller Layer
+
+Business logic (orchestrate model predictions)
+API endpoints or service functions
+Phase 4: View Layer
+
+User interface (web app, CLI, or API responses)
+Visualization dashboards
