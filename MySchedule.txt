@@ -1,0 +1,243 @@
+Day 1–2: data loader
+Day 3: feature engineering
+Day 4: baseline model
+Day 5: evaluation
+Day 6: FastAPI endpoint
+Day 7: simple UI or CLI output
+
+Step 1: Define Your Market
+Start with:
+Fight winner (moneyline) → “Which fighter will win?”
+This keeps your MVP simple. Once you succeed, you can expand to:
+Method of victory (KO, submission, decision)
+Round of finish
+Betting spreads (odds-based EV calculations)
+
+Step 2: Identify Your Features
+Start with fighter-level stats (for the last 3–5 fights ideally):
+
+Feature Category	Examples
+Striking	Significant strikes landed, accuracy
+Grappling	Takedowns, submission attempts
+Fight history	Wins, losses, streaks
+Physical	Height, reach, weight class
+Experience	Total fights, fights in last 12 months
+Opponent stats	Opponent’s fighting style, record
+These will be your input features for the ML model.
+
+Step 3: Data Sources
+UFC Stats API / FightMetric / Kaggle datasets / web scraping
+Data is usually small enough to keep in PostgreSQL or even CSVs for MVP
+
+Step 4: Start Small – Your First Pipeline
+Data loader: Pull fight stats + historical results
+Clean/Feature engineer: Average last 3 fights, win streak, finishing %, reach advantage, etc.
+Train a simple model: Logistic regression or XGBoost
+Predict fight winner: Probability for each fighter
+Compare vs odds: EV calculation (optional)
+Controller/endpoint: FastAPI route returns probability + explanation
+View: Minimal table or CLI output
+
+Step 5: Evaluation Metrics
+Accuracy → basic check
+Log loss → probability calibration
+EV comparison → potential profitability
+Small sample testing → live fight predictions
+
+Recommended MVP Tech Stack Mapping
+Layer	Tools in Your Stack	Notes
+Model	Pandas, NumPy, Scikit-learn/XGBoost, PostgreSQL, FAISS (optional)	Features, predictions, historical data
+Controller	FastAPI	Expose /predict_fight endpoint
+Services	LLM, Odds math	Explain model output, EV calc
+View	CLI / Streamlit / minimal frontend	Display probability & explanation
+
+🔹 Key Advice
+Start with a single weight class (e.g., lightweight) → reduces variability
+Stick to winner prediction first → keep the model simple
+Ignore LLM explanations for Day 1 → focus on model + data
+If you want, I can make a concrete “Day 1 → Day 7” UFC MVP blueprint with:
+Exact files to create
+Minimal feature set to start
+Sample workflow for predictions
+
+For an MVP (first working system):
+Do all fighters, but keep features simple
+For example:
+Fighter win %, last 3 fights stats, reach/height, experience
+Include weight class as a feature in your model
+This lets the model learn class-specific patterns without building separate models
+Ignore fancy interactions at first
+Start with XGBoost (can handle heterogeneous data well)
+This way you get all fighters, but the project remains manageable.
+
+
+One-Sentence Rule
+Include all fighters from the start, but let weight class be a feature — don’t try to model each class separately at first.
+
+How It Works in Practice
+✅ Step 1 (MVP)
+All fighters included
+Weight class is just a feature, like height, reach, or win streak
+The model sees patterns across classes without you having to build separate models
+
+Example: XGBoost can automatically learn “heavyweights behave differently from lightweights” through this feature
+
+❌ What you don’t do at first
+Don’t split your dataset by weight class
+Don’t build one model per weight class
+Don’t create class-specific feature engineering yet
+
+✅ Step 2 (Later / Optional)
+
+Once your MVP is working and predictions are reasonable, you can experiment with:
+Separate models per weight class (if performance improves)
+Class-specific features or engineered metrics
+One-Sentence Clarification
+From the start, include weight class as a feature — later you can decide if separate models per class are worth it.
+This way you get a working all-fighter model quickly while leaving room to improve.
+
+
+Why Opponent-Based Features Matter
+
+In MMA, a fighter’s record is context-dependent:
+5 wins vs weak opponents → different signal than 5 wins vs top-level opponents
+Styles matter: wrestler vs striker, striker vs striker, etc.
+Comparing fighters relative to the opponents they faced is powerful:
+Average strikes landed vs the same opponent’s previous fights
+Strength of schedule, finish rates vs quality of opponents
+Basically, it’s like giving the model a “who did they beat?” lens, not just raw stats.
+How to Do It Without Overcomplicating
+Instead of making a huge opponent table with all possible permutations, you can calculate derived features during feature engineering:
+Opponent-Weighted Averages
+Example: Fighter A last 3 fights
+Average opponent win %
+Average opponent finish rate
+These are single numbers per fight → easy for ML
+Style Matchups
+Encode opponent style (wrestler, striker, jiu-jitsu)
+Compare to fighter’s style → create features like “style advantage”
+Rolling Metrics
+Last 3 fights of the opponent, averaged
+Combine with fighter’s performance → gives context
+You don’t need a separate “opponents table” for the MVP. Just compute these features on the fly from your Fights + FighterStats tables.
+
+Example Feature Pipeline
+Feature	How to Compute
+avg_opponent_win_pct	Average of last N opponents’ win %
+avg_opponent_finish_rate	Average of last N opponents’ finishes
+style_advantage	Fighter style vs opponent style encoded as number
+reach_diff_vs_opponent	Fighter reach minus opponent reach
+age_diff	Fighter age minus opponent age
+
+AI does not handle relationships. Flatten your tables into one ML-ready dataset with all features, including opponent stats and differences.
+
+
+1️⃣ Why weekly refresh works
+
+UFC fights mostly happen on Saturdays, so stats only change once a week.
+No point in refreshing multiple times a day — the data won’t change.
+Keeps your CareerStats aggregates (win streaks, KO/Sub counts, last N fights) up-to-date without wasting compute.
+
+2️⃣ Suggested workflow
+
+Saturday night / Sunday morning:
+Check for new fights in the last 24 hours (Fights table)
+Add them if missing
+Update CareerStats:
+Recompute rolling aggregates (WinStreak_Last3, WinsByKO_Last5, etc.)
+Could be a full recompute or just incremental update
+Update ML features:
+If you precompute flattened ML table, refresh derived columns (reach_diff, win_pct_diff, KO/Sub differences, style matchups)
+
+3️⃣ Optional: Automate
+Use cron job (Linux/macOS) or Windows Task Scheduler
+Example cron: run every Sunday at 3 AM
+0 3 * * 0 /usr/bin/python3 /path/to/ingest.py
+Or in Python with APScheduler if you want the schedule inside your code
+
+4️⃣ Benefits
+Your database stays current without constant polling
+ML model can train or make predictions weekly with fresh data
+Easy to track fighter trends and streaks for betting predictions
+
+💡 Pro tip: Also keep a timestamp column in your Fights table like UpdatedAt — that way your ingest script can easily detect which fights are new since the last refresh.
+If you want, I can sketch a weekly update pipeline diagram showing: ingest → Fights → CareerStats → ML features, which makes this refresh flow clear.
+
+NEED TO ADD A FLUKE FLAG FOR MAJOR UPSETS OR BUMS
+
+
+Ah — that’s a really important concern, and it’s why plain Elo alone can mislead in UFC/MMA. Fighters with a long hiatus could have a high Elo from past wins, but that doesn’t reflect current form. Here’s how you can handle it:
+
+1️⃣ Introduce time decay
+
+Reduce the impact of older fights when calculating Elo.
+
+Example:
+
+Effective Elo Change = EloChange×𝑒−𝜆⋅DaysSinceFight/365 Effective Elo Change=EloChange×e−λ⋅DaysSinceFight/365 λ = decay rate (tunable, e.g., 0.1–0.3)
+Fights from years ago contribute less to current Elo
+
+✅ This ensures inactive fighters’ Elo naturally declines over time.
+
+2️⃣ Combine Elo with recent form features
+
+Even with decay, you can add short-term features from CareerStats:
+WinStreak_Last3 → last 3 fights win/loss
+WinsByKO_Last5 → finishing tendency in recent fights
+KO/Sub percentages by round → recent performance patterns
+The ML model can then weigh recent form + Elo to avoid overestimating inactive fighters.
+
+3️⃣ Optional: rolling Elo
+Instead of using all fights, calculate Elo based on last N fights (e.g., last 10).
+This automatically caps influence from very old wins and reflects recent performance better.
+
+4️⃣ Optional: activity flag
+
+Add a LastFightDays feature: number of days since last fight
+Use it in ML features or to penalize Elo:
+e.g., reduce Elo slightly if fighter hasn’t fought in 2+ years
+
+✅ TL;DR Strategy
+
+Use a decayed or rolling Elo, not plain cumulative Elo.
+Include short-term performance features in CareerStats.
+Optional activity features to let the model “know” a fighter is rusty.
+This way, your Elo remains useful, but doesn’t unfairly favor inactive fighters.
+
+
++----------------+       +----------------+       +----------------+
+|  FighterStats  |       |  CareerStats   |       |     Fights     |
++----------------+       +----------------+       +----------------+
+| FighterID (PK) |<----->| FighterID (FK) |       | FightID (PK)   |
+| Name           |       | CSID (PK)      |       | FighterID (FK) |
+| Height         |       | SLpM           |       | OpponentID (FK)|
+| Weight         |       | StrAcc         |       | WinnerID (FK)  |
+| Reach          |       | SApM           |       | Date           |
+| Stance         |       | StrDef         |       | Method         |
+| DOB (Age)      |       | TDAvg          |       | FlukeFlag      |
+| WeightClass    |       | TDDef          |       | SampleWeight   |
+| Style          |       | SubAvg         |       +----------------+
+| DaysSinceLastFight|    | WinStreak_Last3|
+| UpdatedAt      |       | WinsByKO_Last5 |
++----------------+       | WinsBySub_Last5 |
+                         | KO_Round1_Pct   |
+                         | KO_Round2_Pct   |
+                         | KO_Round3_Pct   |
+                         | Sub_Round1_Pct  |
+                         | Sub_Round2_Pct  |
+                         | Sub_Round3_Pct  |
+                         | EloRating       |
+                         | UpdatedAt       |
+                         +----------------+
+
+ML Feature Derivation (computed dynamically):
+------------------------------------------------
+For each fight in Fights:
+- Join FighterStats + CareerStats for FighterID
+- Join FighterStats + CareerStats for OpponentID
+- Compute derived features:
+    * ReachDiff = Fighter.Reach - Opponent.Reach
+    * EloDiff = Fighter.EloRating - Opponent.EloRating
+    * WinStreakDiff = Fighter.WinStreak_Last3 - Opponent.WinStreak_Last3
+    * StyleMatchup = Fighter.Style vs Opponent.Style
+    * KO_RoundX_Pct_Diff, Sub_RoundX_Pct_Diff, etc.
