@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:
@@ -10,7 +8,9 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      # 127.0.0.1 = localhost only (not exposed to internet)
+      # For production: remove this ports section entirely
+      - "127.0.0.1:${DB_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Automatically run schema on first startup
@@ -21,6 +21,8 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    networks:
+      - delphi_network
 
   # pgAdmin - Web-based PostgreSQL Admin Tool
   pgadmin:
@@ -30,13 +32,21 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
-      - "5050:80"
+      # localhost only - not exposed to internet
+      # For production: remove pgAdmin or put behind auth proxy
+      - "127.0.0.1:5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - delphi_network
+
+networks:
+  delphi_network:
+    driver: bridge
 
 volumes:
   postgres_data:
