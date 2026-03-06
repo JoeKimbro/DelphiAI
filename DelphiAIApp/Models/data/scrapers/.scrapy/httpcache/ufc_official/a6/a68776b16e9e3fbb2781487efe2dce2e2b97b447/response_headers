@@ -1,0 +1,26 @@
+Content-Length: 28957
+Cache-Control: max-age=86400, public
+Content-Encoding: gzip
+Content-Language: en
+Content-Type: text/html; charset=UTF-8
+Etag: W/"1770337748"
+Expires: Sun, 19 Nov 1978 05:00:00 GMT
+Last-Modified: Fri, 06 Feb 2026 00:29:08 GMT
+Server: nginx
+X-Content-Type-Options: nosniff
+X-Drupal-Dynamic-Cache: MISS
+X-Frame-Options: SAMEORIGIN
+X-Generator: Drupal 10 (https://www.drupal.org)
+X-Pantheon-Styx-Hostname: styx-fe1-a-6c5bdb56b8-ggj7q
+X-Styx-Req-Id: d9f4fc06-02f2-11f1-8677-269aa7597bb7
+Age: 0
+Accept-Ranges: bytes
+Via: 1.1 varnish, 1.1 varnish, 1.1 varnish
+Date: Fri, 06 Feb 2026 00:29:09 GMT
+Strict-Transport-Security: max-age=300; includeSubDomains;
+X-Served-By: cache-chi-klot8100134-CHI, cache-dfw-kdfw8210124-DFW, cache-dfw-ktki8620025-DFW
+X-Cache: MISS, MISS, MISS
+X-Cache-Hits: 0, 0, 0
+X-Timer: S1770337749.651771,VS0,VE600
+Vary: Accept-Encoding, x-zone-langcode, Cookie, Cookie
+Set-Cookie: STYXKEY_region=USA.US.en.Default; path=/; expires=Sun, 08 Feb 2026 00:29:09 GMT

@@ -1,0 +1,482 @@
+{
+  "model_version": "v3_20260305_213252",
+  "model_filename": "model_v3_20260305_213252.pkl",
+  "feature_columns": [
+    "elo_diff",
+    "age_diff",
+    "height_diff",
+    "reach_diff",
+    "slpm_diff",
+    "stracc_diff",
+    "tdavg_diff",
+    "subavg_diff",
+    "kd_rate_diff",
+    "win_rate_diff",
+    "recent_form_diff",
+    "finish_rate_diff",
+    "experience_diff",
+    "avg_fight_time_diff",
+    "opp_elo_last3_diff",
+    "elo_velocity_diff",
+    "win_streak_diff",
+    "finish_trending_diff",
+    "opp_quality_trending_diff",
+    "opponent_elo",
+    "opponent_recent_form",
+    "opponent_finish_rate",
+    "style_advantage",
+    "southpaw_advantage",
+    "undefeated_prospect_diff",
+    "rising_prospect_diff",
+    "declining_veteran_diff",
+    "striker_vs_grappler",
+    "finisher_vs_decision",
+    "form_velocity_diff",
+    "offensive_pressure_diff",
+    "elo_prime_interaction",
+    "reach_striking_interaction",
+    "is_title_fight",
+    "debut_diff"
+  ],
+  "n_features": 35,
+  "min_year_filter": 2020,
+  "dropped_features": [
+    "avg_elo_level",
+    "age_diff_sq",
+    "elo_diff_sq"
+  ],
+  "winsorize_bounds": {
+    "elo_diff": {
+      "lower": -115.32200000000009,
+      "upper": 115.32200000000022
+    },
+    "age_diff": {
+      "lower": -12.026584531143055,
+      "upper": 12.026584531143037
+    },
+    "height_diff": {
+      "lower": -4.43,
+      "upper": 4.43
+    },
+    "reach_diff": {
+      "lower": -8.0,
+      "upper": 8.0
+    },
+    "slpm_diff": {
+      "lower": -7.439900000000001,
+      "upper": 7.439899999999998
+    },
+    "stracc_diff": {
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "tdavg_diff": {
+      "lower": -5.398300000000001,
+      "upper": 5.3982999999999635
+    },
+    "subavg_diff": {
+      "lower": -2.6696,
+      "upper": 2.669599999999991
+    },
+    "kd_rate_diff": {
+      "lower": -0.17898999999999998,
+      "upper": 0.17898999999999976
+    },
+    "win_rate_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "recent_form_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "finish_rate_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "experience_diff": {
+      "lower": -22.0,
+      "upper": 22.0
+    },
+    "avg_fight_time_diff": {
+      "lower": -10.65,
+      "upper": 10.65
+    },
+    "opp_elo_last3_diff": {
+      "lower": -142.67300000000017,
+      "upper": 142.6730000000005
+    },
+    "elo_velocity_diff": {
+      "lower": -59.587999999999994,
+      "upper": 59.58800000000001
+    },
+    "win_streak_diff": {
+      "lower": -9.0,
+      "upper": 9.0
+    },
+    "finish_trending_diff": {
+      "lower": -0.8,
+      "upper": 0.8
+    },
+    "opp_quality_trending_diff": {
+      "lower": -157.1543,
+      "upper": 157.15429999999998
+    },
+    "avg_elo_level": {
+      "lower": 1432.20275,
+      "upper": 1674.013500000001
+    },
+    "opponent_elo": {
+      "lower": 1415.045,
+      "upper": 1689.6260000000002
+    },
+    "opponent_recent_form": {
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    "opponent_finish_rate": {
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    "style_advantage": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "southpaw_advantage": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "undefeated_prospect_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "rising_prospect_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "declining_veteran_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "striker_vs_grappler": {
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "finisher_vs_decision": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "form_velocity_diff": {
+      "lower": -0.6029399999999999,
+      "upper": 0.6029399999999986
+    },
+    "offensive_pressure_diff": {
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "elo_diff_sq": {
+      "lower": -13299.17674000002,
+      "upper": 13299.176740000048
+    },
+    "age_diff_sq": {
+      "lower": -144.63879789423487,
+      "upper": 144.63879789423444
+    },
+    "elo_prime_interaction": {
+      "lower": -18.67209999999997,
+      "upper": 20.44715999999998
+    },
+    "reach_striking_interaction": {
+      "lower": -2.79396,
+      "upper": 2.793959999999992
+    },
+    "is_title_fight": {
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    "debut_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    }
+  },
+  "median_values": {
+    "elo_diff": 0.0,
+    "age_diff": 0.0,
+    "height_diff": 0.0,
+    "reach_diff": 0.0,
+    "slpm_diff": 0.0,
+    "stracc_diff": 0.0,
+    "tdavg_diff": 0.0,
+    "subavg_diff": 0.0,
+    "kd_rate_diff": 0.0,
+    "win_rate_diff": 0.0,
+    "recent_form_diff": 0.0,
+    "finish_rate_diff": 0.0,
+    "experience_diff": 0.0,
+    "avg_fight_time_diff": 0.0,
+    "opp_elo_last3_diff": 0.0,
+    "elo_velocity_diff": 0.0,
+    "win_streak_diff": 0.0,
+    "finish_trending_diff": 0.0,
+    "opp_quality_trending_diff": 0.0,
+    "opponent_elo": 1520.895,
+    "opponent_recent_form": 0.67,
+    "opponent_finish_rate": 0.44,
+    "style_advantage": 0.0,
+    "southpaw_advantage": 0.0,
+    "undefeated_prospect_diff": 0.0,
+    "rising_prospect_diff": 0.0,
+    "declining_veteran_diff": 0.0,
+    "striker_vs_grappler": 0.0,
+    "finisher_vs_decision": 0.0,
+    "form_velocity_diff": 0.0,
+    "offensive_pressure_diff": 0.0,
+    "elo_prime_interaction": 0.0,
+    "reach_striking_interaction": 0.0,
+    "is_title_fight": 0.0,
+    "debut_diff": 0.0
+  },
+  "metrics": {
+    "best_model": "XGBoost (EarlyStopping + Calibrated)",
+    "baseline_accuracy": 0.534020618556701,
+    "validation": {
+      "accuracy": 0.7902892561983471,
+      "auc": 0.8876868464384235,
+      "brier": 0.13462936878204346
+    },
+    "holdout": {
+      "accuracy": 0.7855670103092783,
+      "row_accuracy": 0.8082474226804124,
+      "auc": 0.8832035693970421,
+      "log_loss": 0.42847056264963446,
+      "brier": 0.13655944475233062,
+      "confidence_intervals": {
+        "accuracy": {
+          "mean": 0.7865608247422681,
+          "lower": 0.7484536082474227,
+          "upper": 0.8206185567010309
+        },
+        "auc": {
+          "mean": 0.8836615571689858,
+          "lower": 0.8532423769059961,
+          "upper": 0.9113840388578838
+        },
+        "brier": {
+          "mean": 0.1363285247289905,
+          "lower": 0.12040307445789174,
+          "upper": 0.153293703004175
+        }
+      },
+      "roi": 0.6502015113350101,
+      "bets": 397,
+      "holdout_size": 485,
+      "holdout_row_count": 970,
+      "sample_predictions": [
+        {
+          "fight_id": 15132,
+          "fight_date": "2025-03-01 00:00:00",
+          "p_fighter1": 0.8999999761581421,
+          "pred": 1,
+          "y_true": 1
+        },
+        {
+          "fight_id": 15830,
+          "fight_date": "2025-03-01 00:00:00",
+          "p_fighter1": 0.40568023920059204,
+          "pred": 0,
+          "y_true": 0
+        },
+        {
+          "fight_id": 16231,
+          "fight_date": "2025-03-01 00:00:00",
+          "p_fighter1": 0.7063567638397217,
+          "pred": 1,
+          "y_true": 1
+        },
+        {
+          "fight_id": 18011,
+          "fight_date": "2025-03-01 00:00:00",
+          "p_fighter1": 0.8999999761581421,
+          "pred": 1,
+          "y_true": 1
+        },
+        {
+          "fight_id": 18919,
+          "fight_date": "2025-03-01 00:00:00",
+          "p_fighter1": 0.8999999761581421,
+          "pred": 1,
+          "y_true": 1
+        }
+      ]
+    },
+    "holdout_production": {
+      "accuracy": 0.597051597051597,
+      "fight_count": 407,
+      "skipped": 78,
+      "samples": [
+        {
+          "fight_id": 15132,
+          "fight_date": "2025-03-01 00:00:00",
+          "fighter1_name": "Cody Brundage",
+          "fighter2_name": "Julian Marquez",
+          "p_fighter1": 0.5735309581407615,
+          "y_true": 1,
+          "pred": 1,
+          "pick": "Cody Brundage",
+          "prob_source": "ELO"
+        },
+        {
+          "fight_id": 20884,
+          "fight_date": "2025-03-01 00:00:00",
+          "fighter1_name": "Mario Pinto",
+          "fighter2_name": "Austen Lane",
+          "p_fighter1": 0.597455649092933,
+          "y_true": 1,
+          "pred": 1,
+          "pick": "Mario Pinto",
+          "prob_source": "ELO"
+        },
+        {
+          "fight_id": 18011,
+          "fight_date": "2025-03-01 00:00:00",
+          "fighter1_name": "Ramazan Temirov",
+          "fighter2_name": "Charles Johnson",
+          "p_fighter1": 0.4130149375856649,
+          "y_true": 1,
+          "pred": 0,
+          "pick": "Charles Johnson",
+          "prob_source": "ELO"
+        },
+        {
+          "fight_id": 15830,
+          "fight_date": "2025-03-01 00:00:00",
+          "fighter1_name": "Danny Barlow",
+          "fighter2_name": "Sam Patterson",
+          "p_fighter1": 0.5579987209919158,
+          "y_true": 0,
+          "pred": 1,
+          "pick": "Danny Barlow",
+          "prob_source": "ELO"
+        },
+        {
+          "fight_id": 16231,
+          "fight_date": "2025-03-01 00:00:00",
+          "fighter1_name": "Hyder Amil",
+          "fighter2_name": "William Gomis",
+          "p_fighter1": 0.4838735727363076,
+          "y_true": 1,
+          "pred": 0,
+          "pick": "William Gomis",
+          "prob_source": "ELO"
+        }
+      ]
+    },
+    "split_diagnostics": {
+      "train_fights": 2258,
+      "val_fights": 484,
+      "holdout_fights": 485,
+      "overlap_train_val": 0,
+      "overlap_train_holdout": 0,
+      "overlap_val_holdout": 0,
+      "holdout_year_counts": {
+        "2025": 465,
+        "2026": 20
+      }
+    },
+    "cv_auc_mean": 0.8304542948536037,
+    "cv_auc_std": 0.03846282577496806,
+    "feature_importance": {
+      "elo_velocity_diff": 0.1147649809718132,
+      "opponent_recent_form": 0.10256296396255493,
+      "win_streak_diff": 0.09359379857778549,
+      "slpm_diff": 0.05535810440778732,
+      "age_diff": 0.048780445009469986,
+      "opponent_finish_rate": 0.03935792297124863,
+      "debut_diff": 0.035700611770153046,
+      "recent_form_diff": 0.03197072073817253,
+      "elo_diff": 0.031872425228357315,
+      "reach_diff": 0.03174010291695595,
+      "reach_striking_interaction": 0.0309805478900671,
+      "kd_rate_diff": 0.030954351648688316,
+      "experience_diff": 0.02864908240735531,
+      "opponent_elo": 0.027274012565612793,
+      "subavg_diff": 0.02704264037311077,
+      "opp_elo_last3_diff": 0.026620743796229362,
+      "finish_trending_diff": 0.024411534890532494,
+      "win_rate_diff": 0.024133147671818733,
+      "form_velocity_diff": 0.022539887577295303,
+      "avg_fight_time_diff": 0.0217277891933918,
+      "elo_prime_interaction": 0.02158414013683796,
+      "finish_rate_diff": 0.021551799029111862,
+      "tdavg_diff": 0.020981360226869583,
+      "rising_prospect_diff": 0.020378587767481804,
+      "southpaw_advantage": 0.018461255356669426,
+      "finisher_vs_decision": 0.016613144427537918,
+      "style_advantage": 0.016154082491993904,
+      "opp_quality_trending_diff": 0.014239789918065071,
+      "is_title_fight": 0.0,
+      "declining_veteran_diff": 0.0,
+      "undefeated_prospect_diff": 0.0,
+      "offensive_pressure_diff": 0.0,
+      "striker_vs_grappler": 0.0,
+      "stracc_diff": 0.0,
+      "height_diff": 0.0
+    },
+    "all_models": [
+      {
+        "name": "Logistic Regression (Calibrated)",
+        "val_acc": 0.6818181818181818,
+        "val_auc": 0.7589525907234352,
+        "gap": 0.012271816697234761
+      },
+      {
+        "name": "Random Forest (Calibrated)",
+        "val_acc": 0.7066115702479339,
+        "val_auc": 0.7911404315377542,
+        "gap": 0.009938516739949277
+      },
+      {
+        "name": "XGBoost (EarlyStopping + Calibrated)",
+        "val_acc": 0.7902892561983471,
+        "val_auc": 0.8876868464384235,
+        "gap": 0.02162057941455764
+      },
+      {
+        "name": "Stacking Ensemble",
+        "val_acc": 0.7200413223140496,
+        "val_auc": 0.7931142142291983,
+        "gap": 0.007985347893470163
+      }
+    ]
+  },
+  "trained_at": "2026-03-05T21:32:52.483639",
+  "python_version": "3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]",
+  "xgboost_version": "3.1.3",
+  "sklearn_version": "1.8.0",
+  "numpy_version": "2.4.2",
+  "pandas_version": "3.0.0",
+  "hyperparameters": {
+    "xgboost": {
+      "n_estimators": 500,
+      "max_depth": 4,
+      "learning_rate": 0.03,
+      "min_child_weight": 10,
+      "reg_alpha": 0.5,
+      "reg_lambda": 2.0,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7,
+      "early_stopping_rounds": 20
+    },
+    "logistic_regression": {
+      "C": 0.05,
+      "max_iter": 1000
+    },
+    "random_forest": {
+      "n_estimators": 100,
+      "max_depth": 5,
+      "min_samples_leaf": 30,
+      "min_samples_split": 60,
+      "max_features": "sqrt"
+    }
+  }
+}
