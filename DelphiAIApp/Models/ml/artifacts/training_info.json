@@ -1,0 +1,32 @@
+{
+  "total_samples": 10961,
+  "date_range": {
+    "start": "1993-11-12T00:00:00",
+    "end": "2026-01-31T00:00:00"
+  },
+  "feature_columns": [
+    "elo_diff",
+    "height_diff",
+    "reach_diff",
+    "age_diff",
+    "slpm_diff",
+    "tdavg_diff",
+    "subavg_diff",
+    "kd_rate_diff",
+    "win_rate_diff",
+    "recent_form_diff",
+    "finish_rate_diff",
+    "experience_diff",
+    "southpaw_advantage",
+    "is_title_fight"
+  ],
+  "model_name": "XGBoost",
+  "metrics": {
+    "train_acc": 0.7177235401459854,
+    "test_acc": 0.6557227542179662,
+    "train_auc": 0.8060705897518041,
+    "test_auc": 0.7206890854557471,
+    "test_logloss": 0.5952854682753239
+  },
+  "trained_at": "2026-02-05T23:15:55.274325"
+}

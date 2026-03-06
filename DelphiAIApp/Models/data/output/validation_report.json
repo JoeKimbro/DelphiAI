@@ -1,0 +1,2903 @@
+{
+  "spider": "ufc_official",
+  "generated_at": "2026-02-06T00:30:51.130998",
+  "stats": {
+    "total_validated": 25288,
+    "warnings_count": 482,
+    "items_with_warnings": 474
+  },
+  "warnings": [
+    {
+      "item_type": "FightItem",
+      "item_id": "Akihiro Gono",
+      "warning": "Time exceeds round length: 9:00",
+      "timestamp": "2026-02-05T23:57:28.107495"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Akihiro Gono",
+      "warning": "Time exceeds round length: 7:58",
+      "timestamp": "2026-02-05T23:57:28.107996"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Akihiro Gono",
+      "warning": "Time exceeds round length: 9:04",
+      "timestamp": "2026-02-05T23:57:28.108995"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Tebaris Gordon",
+      "warning": "Unusually high rate for sapm: 49.41",
+      "timestamp": "2026-02-05T23:57:30.596996"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hall",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:02.848896"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hall",
+      "warning": "Time exceeds round length: 10:21",
+      "timestamp": "2026-02-05T23:58:02.848896"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hall",
+      "warning": "Time exceeds round length: 5:29",
+      "timestamp": "2026-02-05T23:58:02.849826"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hall",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:02.849826"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Harry Moskowitz",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:06.273711"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Harry Moskowitz",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-05T23:58:06.274711"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazuhiro Nakamura",
+      "warning": "Time exceeds round length: 8:10",
+      "timestamp": "2026-02-05T23:58:10.343847"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazuhiro Nakamura",
+      "warning": "Time exceeds round length: 5:24",
+      "timestamp": "2026-02-05T23:58:10.344847"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Steve Nelmark",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:11.856238"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Steve Nelmark",
+      "warning": "Time exceeds round length: 7:25",
+      "timestamp": "2026-02-05T23:58:11.857239"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Carlos Newton",
+      "warning": "Time exceeds round length: 6:27",
+      "timestamp": "2026-02-05T23:58:12.656103"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Carlos Newton",
+      "warning": "Time exceeds round length: 7:16",
+      "timestamp": "2026-02-05T23:58:12.656103"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Carlos Newton",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:58:12.657102"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Carlos Newton",
+      "warning": "Time exceeds round length: 5:19",
+      "timestamp": "2026-02-05T23:58:12.657102"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tito Ortiz",
+      "warning": "Time exceeds round length: 9:56",
+      "timestamp": "2026-02-05T23:58:19.044895"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Michihiro Omigawa",
+      "warning": "Time exceeds round length: 7:31",
+      "timestamp": "2026-02-05T23:58:19.065897"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Michihiro Omigawa",
+      "warning": "Time exceeds round length: 6:00",
+      "timestamp": "2026-02-05T23:58:19.066897"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dustin Ortiz",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:19.133033"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dustin Ortiz",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:19.133033"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alistair Overeem",
+      "warning": "Time exceeds round length: 6:09",
+      "timestamp": "2026-02-05T23:58:20.143202"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alistair Overeem",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:20.144716"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alistair Overeem",
+      "warning": "Time exceeds round length: 5:13",
+      "timestamp": "2026-02-05T23:58:20.146716"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alistair Overeem",
+      "warning": "Time exceeds round length: 6:42",
+      "timestamp": "2026-02-05T23:58:20.146716"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alistair Overeem",
+      "warning": "Time exceeds round length: 9:36",
+      "timestamp": "2026-02-05T23:58:20.147717"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Remco Pardoel",
+      "warning": "Time exceeds round length: 12:27",
+      "timestamp": "2026-02-05T23:58:21.566895"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Remco Pardoel",
+      "warning": "Time exceeds round length: 9:51",
+      "timestamp": "2026-02-05T23:58:21.567946"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joe Pardo",
+      "warning": "Time exceeds round length: 11:01",
+      "timestamp": "2026-02-05T23:58:21.960931"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Onassis Parungao",
+      "warning": "Time exceeds round length: 5:26",
+      "timestamp": "2026-02-05T23:58:22.700853"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Onassis Parungao",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:22.700853"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kurt Pellegrino",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:33.985046"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Estevan Payan",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:34.567282"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tulio Palhares",
+      "warning": "Time exceeds round length: 9:00",
+      "timestamp": "2026-02-05T23:58:36.110853"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Antonio Rogerio Nogueira",
+      "warning": "Time exceeds round length: 8:38",
+      "timestamp": "2026-02-05T23:58:38.063446"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Antonio Rogerio Nogueira",
+      "warning": "Time exceeds round length: 6:36",
+      "timestamp": "2026-02-05T23:58:38.064446"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Antonio Rogerio Nogueira",
+      "warning": "Time exceeds round length: 6:17",
+      "timestamp": "2026-02-05T23:58:38.065446"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Antonio Rogerio Nogueira",
+      "warning": "Time exceeds round length: 6:10",
+      "timestamp": "2026-02-05T23:58:38.065446"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dustin Neace",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:40.833760"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jack Nilsson",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:40.928998"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gegard Mousasi",
+      "warning": "Time exceeds round length: 6:10",
+      "timestamp": "2026-02-05T23:58:42.423549"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gegard Mousasi",
+      "warning": "Time exceeds round length: 5:34",
+      "timestamp": "2026-02-05T23:58:42.425547"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Quinn Mulhern",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:42.862269"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Quinn Mulhern",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:42.862269"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Quinn Mulhern",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:42.863269"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jim Mullen",
+      "warning": "Time exceeds round length: 8:02",
+      "timestamp": "2026-02-05T23:58:45.838306"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jorge Gurgel",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:48.293516"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jorge Gurgel",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:48.293516"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jorge Gurgel",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:48.294516"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jorge Gurgel",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:48.294516"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Fabio Gurgel",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-05T23:58:51.534748"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dennis Hallman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:51.818054"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dennis Hallman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:51.818054"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dennis Hallman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:51.819320"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jens Pulver",
+      "warning": "Time exceeds round length: 8:56",
+      "timestamp": "2026-02-05T23:58:53.537638"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jens Pulver",
+      "warning": "Time exceeds round length: 6:21",
+      "timestamp": "2026-02-05T23:58:53.538638"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Felix Lee Mitchell",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:58.094767"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Felix Lee Mitchell",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:58.095769"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jeff Monson",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:58:58.130768"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jeff Monson",
+      "warning": "Time exceeds round length: 6:37",
+      "timestamp": "2026-02-05T23:58:58.131768"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Julie Kedzie",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:03.242143"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazuo Misaki",
+      "warning": "Time exceeds round length: 7:48",
+      "timestamp": "2026-02-05T23:59:05.153352"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazuo Misaki",
+      "warning": "Time exceeds round length: 9:43",
+      "timestamp": "2026-02-05T23:59:05.153352"
+    },
+    {
+      "item_type": "FighterItem",
+      "item_id": "Ikuhisa Minowa",
+      "warning": "Unusually high total fights: 110",
+      "timestamp": "2026-02-05T23:59:06.623042"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ikuhisa Minowa",
+      "warning": "Time exceeds round length: 9:59",
+      "timestamp": "2026-02-05T23:59:06.626039"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ikuhisa Minowa",
+      "warning": "Time exceeds round length: 9:51",
+      "timestamp": "2026-02-05T23:59:06.627043"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sinae Kikuta",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:59:08.463526"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sinae Kikuta",
+      "warning": "Unusual round number: 6",
+      "timestamp": "2026-02-05T23:59:08.463526"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason Miller",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:09.830981"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason Miller",
+      "warning": "Time exceeds round length: 6:57",
+      "timestamp": "2026-02-05T23:59:09.831981"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Keith Mielke",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:10.095814"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Guy Mezger",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:59:10.131375"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Guy Mezger",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-05T23:59:10.132375"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Guy Mezger",
+      "warning": "Time exceeds round length: 9:56",
+      "timestamp": "2026-02-05T23:59:10.132375"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Pat Miletich",
+      "warning": "Time exceeds round length: 9:02",
+      "timestamp": "2026-02-05T23:59:10.256654"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jack McGlaughlin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:11.817907"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eddie Mendez",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:12.354730"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Yancy Medeiros",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:15.840170"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Brian Melancon",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:16.892816"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Brian Melancon",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:16.893815"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gilbert Melendez",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:16.967549"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Antonio McKee",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:17.286461"
+    },
+    {
+      "item_type": "FighterItem",
+      "item_id": "Yuki Kondo",
+      "warning": "Unusually high total fights: 102",
+      "timestamp": "2026-02-05T23:59:19.027400"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Brad Kohler",
+      "warning": "Time exceeds round length: 10:05",
+      "timestamp": "2026-02-05T23:59:19.514081"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tsuyoshi Kosaka",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:59:19.524081"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gan McGee",
+      "warning": "Time exceeds round length: 5:02",
+      "timestamp": "2026-02-05T23:59:23.845434"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Adriano Martins",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:26.576711"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sione Latu",
+      "warning": "Time exceeds round length: 10:01",
+      "timestamp": "2026-02-05T23:59:27.037388"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Francesco Maturi",
+      "warning": "Time exceeds round length: 5:26",
+      "timestamp": "2026-02-05T23:59:27.059973"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Francesco Maturi",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:27.059973"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kimo Leopoldo",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:30.927395"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kimo Leopoldo",
+      "warning": "Time exceeds round length: 30:00",
+      "timestamp": "2026-02-05T23:59:30.928395"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kimo Leopoldo",
+      "warning": "Time exceeds round length: 9:08",
+      "timestamp": "2026-02-05T23:59:30.928395"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "John Marsh",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:59:31.040906"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Cesar Marscucci",
+      "warning": "Time exceeds round length: 10:27",
+      "timestamp": "2026-02-05T23:59:31.077880"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Cesar Marscucci",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:31.077880"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eric Martin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:34.265642"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Justin Martin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:35.431258"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ricco Rodriguez",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:38.120267"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ricco Rodriguez",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:59:38.121269"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ricco Rodriguez",
+      "warning": "Time exceeds round length: 6:04",
+      "timestamp": "2026-02-05T23:59:38.122268"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ricco Rodriguez",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-05T23:59:38.122268"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anthony Macias",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:46.006005"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Duane Ludwig",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:46.583119"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "John Lober",
+      "warning": "Time exceeds round length: 7:40",
+      "timestamp": "2026-02-05T23:59:52.032415"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chuck Liddell",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-05T23:59:54.832213"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chuck Liddell",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-05T23:59:54.833213"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "David Levicki",
+      "warning": "Time exceeds round length: 12:13",
+      "timestamp": "2026-02-05T23:59:56.156504"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jackie Lee",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:57.835058"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tim Lajcik",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:59.781229"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Justin Lawrence",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-05T23:59:59.811048"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mike Kyle",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:00.159277"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "John Kolosci",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:01.968543"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Kerr",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:04.592492"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Kerr",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:00:04.592492"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Kerr",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:00:04.593492"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Hayder Hassan",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:06.122320"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tatsuya Kawajiri",
+      "warning": "Time exceeds round length: 7:35",
+      "timestamp": "2026-02-06T00:00:06.471945"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tatsuya Kawajiri",
+      "warning": "Time exceeds round length: 7:42",
+      "timestamp": "2026-02-06T00:00:06.472944"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Henderson",
+      "warning": "Time exceeds round length: 7:58",
+      "timestamp": "2026-02-06T00:00:08.123606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Henderson",
+      "warning": "Time exceeds round length: 8:05",
+      "timestamp": "2026-02-06T00:00:08.123606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Henderson",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:08.125606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Henderson",
+      "warning": "Time exceeds round length: 5:25",
+      "timestamp": "2026-02-06T00:00:08.125606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Heath Herring",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:13.656732"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Heath Herring",
+      "warning": "Time exceeds round length: 7:31",
+      "timestamp": "2026-02-06T00:00:13.657733"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Heath Herring",
+      "warning": "Time exceeds round length: 6:17",
+      "timestamp": "2026-02-06T00:00:13.658733"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason High",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:17.805215"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason High",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:17.805215"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tony Johnson",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:19.019255"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Antonio Jones",
+      "warning": "Unusually high rate for sapm: 30.0",
+      "timestamp": "2026-02-06T00:00:19.026209"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Brian Johnston",
+      "warning": "Time exceeds round length: 5:48",
+      "timestamp": "2026-02-06T00:00:19.128581"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ronald Jhun",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:23.379149"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Trent Jenkins",
+      "warning": "Time exceeds round length: 5:29",
+      "timestamp": "2026-02-06T00:00:31.295442"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Trent Jenkins",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:31.295442"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kevin Jackson",
+      "warning": "Time exceeds round length: 10:23",
+      "timestamp": "2026-02-06T00:00:31.353811"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Enson Inoue",
+      "warning": "Time exceeds round length: 6:17",
+      "timestamp": "2026-02-06T00:00:31.363809"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Enson Inoue",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:31.363809"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Enson Inoue",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:00:31.363809"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hunt",
+      "warning": "Time exceeds round length: 8:16",
+      "timestamp": "2026-02-06T00:00:33.384410"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hunt",
+      "warning": "Time exceeds round length: 6:23",
+      "timestamp": "2026-02-06T00:00:33.385412"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Hunt",
+      "warning": "Time exceeds round length: 5:25",
+      "timestamp": "2026-02-06T00:00:33.386440"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Collin Huckbody",
+      "warning": "Unusually high rate for sub_avg: 20.4",
+      "timestamp": "2026-02-06T00:00:33.944503"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alex Hunter",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-06T00:00:35.724953"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Minoki Ichihara",
+      "warning": "Time exceeds round length: 5:08",
+      "timestamp": "2026-02-06T00:00:35.827148"
+    },
+    {
+      "item_type": "FighterItem",
+      "item_id": "Jeremy Horn",
+      "warning": "Unusually high total fights: 118",
+      "timestamp": "2026-02-06T00:00:36.664730"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jeremy Horn",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-06T00:00:36.667730"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Satoshi Honma",
+      "warning": "Time exceeds round length: 9:25",
+      "timestamp": "2026-02-06T00:00:37.569167"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sabah Homasi",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:38.987481"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kuniyoshi Hironaka",
+      "warning": "Time exceeds round length: 8:57",
+      "timestamp": "2026-02-06T00:00:39.682157"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jay Hieron",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:40.677131"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jay Hieron",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:40.678131"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Noe Hernandez",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-06T00:00:40.684132"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Haseman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:42.091785"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Keith Hackney",
+      "warning": "Time exceeds round length: 5:32",
+      "timestamp": "2026-02-06T00:00:43.608880"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Renzo Gracie",
+      "warning": "Time exceeds round length: 9:43",
+      "timestamp": "2026-02-06T00:00:46.070095"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Renzo Gracie",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:46.071093"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Renzo Gracie",
+      "warning": "Unusual round number: 6",
+      "timestamp": "2026-02-06T00:00:46.071093"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Renzo Gracie",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:46.071093"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Gruetzemacher",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:47.463691"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "King Green",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:48.517459"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "King Green",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:48.518459"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "King Green",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:48.518459"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "King Green",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:48.518459"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:49.105449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 8:58",
+      "timestamp": "2026-02-06T00:00:49.108449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:49.108449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 10:14",
+      "timestamp": "2026-02-06T00:00:49.109448"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:49.109448"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 5:58",
+      "timestamp": "2026-02-06T00:00:49.110448"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 7:22",
+      "timestamp": "2026-02-06T00:00:49.111449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 9:09",
+      "timestamp": "2026-02-06T00:00:49.111449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 11:19",
+      "timestamp": "2026-02-06T00:00:49.111449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 7:00",
+      "timestamp": "2026-02-06T00:00:49.112449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-06T00:00:49.112449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gary Goodridge",
+      "warning": "Time exceeds round length: 5:31",
+      "timestamp": "2026-02-06T00:00:49.112449"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Takanori Gomi",
+      "warning": "Time exceeds round length: 7:10",
+      "timestamp": "2026-02-06T00:00:50.093272"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Takanori Gomi",
+      "warning": "Time exceeds round length: 7:42",
+      "timestamp": "2026-02-06T00:00:50.093787"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Takanori Gomi",
+      "warning": "Time exceeds round length: 6:21",
+      "timestamp": "2026-02-06T00:00:50.094786"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Takanori Gomi",
+      "warning": "Time exceeds round length: 5:52",
+      "timestamp": "2026-02-06T00:00:50.094786"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Takanori Gomi",
+      "warning": "Time exceeds round length: 8:07",
+      "timestamp": "2026-02-06T00:00:50.094786"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:50.235035"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Unusual round number: 6",
+      "timestamp": "2026-02-06T00:00:50.235035"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:00:50.235035"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:00:50.235035"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Time exceeds round length: 15:49",
+      "timestamp": "2026-02-06T00:00:50.236036"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Time exceeds round length: 5:32",
+      "timestamp": "2026-02-06T00:00:50.236036"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Royce Gracie",
+      "warning": "Time exceeds round length: 5:08",
+      "timestamp": "2026-02-06T00:00:50.239555"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "He-Man Gipson",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:51.919609"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Darrel Gholar",
+      "warning": "Time exceeds round length: 7:57",
+      "timestamp": "2026-02-06T00:00:51.967292"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Allan Goes",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:51.985392"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Allan Goes",
+      "warning": "Time exceeds round length: 9:16",
+      "timestamp": "2026-02-06T00:00:51.985392"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Allan Goes",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:00:51.985392"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tiki Ghosn",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:53.019194"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tiki Ghosn",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:53.021193"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tiki Ghosn",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:53.022193"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sam Fulton",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:00:59.117219"
+    },
+    {
+      "item_type": "FighterItem",
+      "item_id": "Travis Fulton",
+      "warning": "Unusually high total fights: 316",
+      "timestamp": "2026-02-06T00:01:04.434722"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Travis Fulton",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:04.435234"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Travis Fulton",
+      "warning": "Time exceeds round length: 6:28",
+      "timestamp": "2026-02-06T00:01:04.435747"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 6:23",
+      "timestamp": "2026-02-06T00:01:04.922008"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 5:32",
+      "timestamp": "2026-02-06T00:01:04.922008"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 6:10",
+      "timestamp": "2026-02-06T00:01:04.923007"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 7:27",
+      "timestamp": "2026-02-06T00:01:04.923007"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 11:19",
+      "timestamp": "2026-02-06T00:01:04.924007"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 11:34",
+      "timestamp": "2026-02-06T00:01:04.924007"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 10:21",
+      "timestamp": "2026-02-06T00:01:04.924007"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Don Frye",
+      "warning": "Time exceeds round length: 9:30",
+      "timestamp": "2026-02-06T00:01:04.925007"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Schultz",
+      "warning": "Time exceeds round length: 12:00",
+      "timestamp": "2026-02-06T00:01:10.043693"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ricardo Almeida",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:01:14.090609"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Scott Ferrozzo",
+      "warning": "Time exceeds round length: 8:02",
+      "timestamp": "2026-02-06T00:01:16.430628"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Scott Ferrozzo",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:16.430628"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Scott Ferrozzo",
+      "warning": "Time exceeds round length: 9:03",
+      "timestamp": "2026-02-06T00:01:16.430628"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Luke Fernandez",
+      "warning": "Unusually high rate for slpm: 32.0",
+      "timestamp": "2026-02-06T00:01:16.653268"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jerry Bohlander",
+      "warning": "Time exceeds round length: 10:23",
+      "timestamp": "2026-02-06T00:01:18.219505"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jerry Bohlander",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:01:18.220505"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jerry Bohlander",
+      "warning": "Time exceeds round length: 5:31",
+      "timestamp": "2026-02-06T00:01:18.220505"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jerry Bohlander",
+      "warning": "Time exceeds round length: 9:03",
+      "timestamp": "2026-02-06T00:01:18.220505"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Nah-Shon Burrell",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:21.586184"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Nah-Shon Burrell",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:21.586184"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Cole Escovedo",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:24.866473"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Murilo Bustamante",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:25.653717"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Murilo Bustamante",
+      "warning": "Time exceeds round length: 9:51",
+      "timestamp": "2026-02-06T00:01:25.654752"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Fabricio Camoes",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:30.316293"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marvin Eastman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:33.080183"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marvin Eastman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:33.081182"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marvin Eastman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:33.081182"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Cariaso",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:36.695969"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Bryan Caraway",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:37.978098"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Kurtis Campbell",
+      "warning": "Unusually high rate for td_avg: 22.5",
+      "timestamp": "2026-02-06T00:01:38.045910"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Roan Carneiro",
+      "warning": "Time exceeds round length: 5:33",
+      "timestamp": "2026-02-06T00:01:38.980895"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Robert Drysdale",
+      "warning": "Unusually high rate for sub_avg: 21.9",
+      "timestamp": "2026-02-06T00:01:40.962197"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Drew Dober",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:42.815401"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Nick Diaz",
+      "warning": "Time exceeds round length: 6:45",
+      "timestamp": "2026-02-06T00:01:45.954277"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tony DeSouza",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:48.161950"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Cyrille Diabate",
+      "warning": "Time exceeds round length: 5:29",
+      "timestamp": "2026-02-06T00:01:50.185463"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason DeLucia",
+      "warning": "Time exceeds round length: 6:41",
+      "timestamp": "2026-02-06T00:01:50.197554"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eldo Xavier Dias",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:50.210105"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jorge de Oliveira",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:52.541539"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Trevor Smith",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:52.644058"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Patrick Cummins",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:57.028965"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Alexis Davis",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:01:57.070736"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mac Danzig",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:00.920597"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mike Davis",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:00.939707"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jeff Curran",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:03.245866"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jeff Curran",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:03.246868"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Randy Couture",
+      "warning": "Time exceeds round length: 8:16",
+      "timestamp": "2026-02-06T00:02:05.019943"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Nathan Coy",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:05.039518"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Cope",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:05.802233"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kit Cope",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:06.215496"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kevin Casey",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:07.999457"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Coleman",
+      "warning": "Time exceeds round length: 6:10",
+      "timestamp": "2026-02-06T00:02:08.032094"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Coleman",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:02:08.033095"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Coleman",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:02:08.033095"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Coleman",
+      "warning": "Time exceeds round length: 11:34",
+      "timestamp": "2026-02-06T00:02:08.034094"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mark Coleman",
+      "warning": "Time exceeds round length: 7:00",
+      "timestamp": "2026-02-06T00:02:08.035094"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Andreas Spang",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:10.087768"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Laverne Clark",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:10.096768"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Laverne Clark",
+      "warning": "Time exceeds round length: 6:52",
+      "timestamp": "2026-02-06T00:02:10.097768"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Laverne Clark",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:10.098769"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Coltin Cole",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:11.198864"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Michael Chandler",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:13.114894"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Michael Chandler",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:13.114894"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joe Charles",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:13.266184"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joe Charles",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:13.267183"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Shonie Carter",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:18.896575"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Rafael Cavalcante",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:18.932912"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Frank Caracci",
+      "warning": "Time exceeds round length: 6:52",
+      "timestamp": "2026-02-06T00:02:21.965817"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Rafael Carino",
+      "warning": "Time exceeds round length: 5:32",
+      "timestamp": "2026-02-06T00:02:21.972335"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mikey Burnett",
+      "warning": "Time exceeds round length: 9:45",
+      "timestamp": "2026-02-06T00:02:24.187439"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paul Buentello",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:26.091439"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Derek Brunson",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:27.996633"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Derek Brunson",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:27.997634"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Antwain Britt",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:28.006148"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marcus Bossett",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:29.709001"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marcus Bossett",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:29.709001"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Brennan",
+      "warning": "Time exceeds round length: 9:02",
+      "timestamp": "2026-02-06T00:02:31.570866"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Brennan",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:31.570866"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Aaron Brink",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:31.995445"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tai Bowden",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:33.365390"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tai Bowden",
+      "warning": "Time exceeds round length: 7:25",
+      "timestamp": "2026-02-06T00:02:33.365390"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ebenezer Braga",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:02:33.607461"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ebenezer Braga",
+      "warning": "Time exceeds round length: 9:23",
+      "timestamp": "2026-02-06T00:02:33.607461"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paul Bradley",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:33.655495"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Roger Bowling",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:35.311081"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Roger Bowling",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:35.311081"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Roger Bowling",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:35.312082"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Daniel Bobish",
+      "warning": "Time exceeds round length: 6:23",
+      "timestamp": "2026-02-06T00:02:35.325357"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Dashawn Boatwright",
+      "warning": "Unusually high rate for sapm: 52.5",
+      "timestamp": "2026-02-06T00:02:37.013786"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Scott Bessac",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:37.275705"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason Black",
+      "warning": "Time exceeds round length: 6:25",
+      "timestamp": "2026-02-06T00:02:37.285220"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason Black",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:37.285220"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jason Black",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:37.286219"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dave Berry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:39.654169"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dieusel Berto",
+      "warning": "Time exceeds round length: 5:57",
+      "timestamp": "2026-02-06T00:02:39.929033"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vitor Belfort",
+      "warning": "Time exceeds round length: 9:36",
+      "timestamp": "2026-02-06T00:02:41.924128"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vitor Belfort",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:02:41.926127"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vitor Belfort",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:02:41.926127"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vitor Belfort",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:02:41.926127"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vitor Belfort",
+      "warning": "Time exceeds round length: 8:16",
+      "timestamp": "2026-02-06T00:02:41.927128"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joey Beltran",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:45.572088"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Amaury Bitetti",
+      "warning": "Time exceeds round length: 9:30",
+      "timestamp": "2026-02-06T00:02:45.662489"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Shamar Bailey",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:51.718412"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Scott Baker",
+      "warning": "Time exceeds round length: 6:41",
+      "timestamp": "2026-02-06T00:02:52.006452"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "David Baron",
+      "warning": "Time exceeds round length: 7:10",
+      "timestamp": "2026-02-06T00:02:53.263650"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Carlos Baretto",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:02:53.270167"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Josh Barnett",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:53.349688"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Josh Barnett",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:02:53.349688"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Josh Barnett",
+      "warning": "Time exceeds round length: 7:25",
+      "timestamp": "2026-02-06T00:02:53.350687"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Josh Barnett",
+      "warning": "Time exceeds round length: 8:10",
+      "timestamp": "2026-02-06T00:02:53.351686"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Adam Antolin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:03.026148"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Adam Antolin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:03.026148"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Adam Antolin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:03.026148"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Yoji Anjo",
+      "warning": "Time exceeds round length: 8:33",
+      "timestamp": "2026-02-06T00:03:04.193380"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Matt Andersen",
+      "warning": "Time exceeds round length: 5:32",
+      "timestamp": "2026-02-06T00:03:04.312282"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Adlan Amagov",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:06.364516"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jermaine Andre",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:06.679624"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jermaine Andre",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:06.679624"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eddie Alvarez",
+      "warning": "Time exceeds round length: 7:35",
+      "timestamp": "2026-02-06T00:03:07.716867"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eddie Alvarez",
+      "warning": "Time exceeds round length: 6:47",
+      "timestamp": "2026-02-06T00:03:07.717389"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "John Alessio",
+      "warning": "Time exceeds round length: 7:34",
+      "timestamp": "2026-02-06T00:03:09.755135"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Yoshihiro Akiyama",
+      "warning": "Time exceeds round length: 6:26",
+      "timestamp": "2026-02-06T00:03:11.643108"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Yoshihiro Akiyama",
+      "warning": "Time exceeds round length: 6:34",
+      "timestamp": "2026-02-06T00:03:11.644107"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Yoshihiro Akiyama",
+      "warning": "Time exceeds round length: 7:48",
+      "timestamp": "2026-02-06T00:03:11.644107"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Yoshihiro Akiyama",
+      "warning": "Time exceeds round length: 5:37",
+      "timestamp": "2026-02-06T00:03:11.644107"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sam Adkins",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:12.914068"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Sam Adkins",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:12.915067"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Courtney Turner",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:03:34.467345"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Justin Wilcox",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:04:39.578968"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Justin Wilcox",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:04:39.579967"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Justin Wilcox",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:04:39.579967"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Justin Wilcox",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:04:39.580967"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gilbert Yvel",
+      "warning": "Time exceeds round length: 7:27",
+      "timestamp": "2026-02-06T00:06:09.786023"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gilbert Yvel",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:06:09.787023"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gilbert Yvel",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:06:09.787023"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Cale Yarbrough",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:06:27.621320"
+    },
+    {
+      "item_type": "CareerStatsItem",
+      "item_id": "Abdul Rakhman Yakhyaev",
+      "warning": "Unusually high rate for slpm: 20.95",
+      "timestamp": "2026-02-06T00:06:49.366381"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eddie Yagin",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:06:52.712802"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tyron Woodley",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:07:06.952281"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Pete Williams",
+      "warning": "Time exceeds round length: 6:28",
+      "timestamp": "2026-02-06T00:07:57.176261"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vernon White",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:08:43.806422"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vernon White",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:08:43.807422"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vernon White",
+      "warning": "Time exceeds round length: 6:53",
+      "timestamp": "2026-02-06T00:08:43.808422"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Fabricio Werdum",
+      "warning": "Time exceeds round length: 5:11",
+      "timestamp": "2026-02-06T00:08:57.648922"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ron Waterman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:09:38.240534"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ron Waterman",
+      "warning": "Time exceeds round length: 7:44",
+      "timestamp": "2026-02-06T00:09:38.240534"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Bobby Voelker",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:10.940607"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Bobby Voelker",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:10.941606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Bobby Voelker",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:10.941606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Bobby Voelker",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:10.941606"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Danillo Villefort",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:23.368769"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Gian Villante",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:36.355064"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Milton Vieira",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:10:46.099411"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kerry Vera",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:11:13.828272"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paul Varelans",
+      "warning": "Time exceeds round length: 9:08",
+      "timestamp": "2026-02-06T00:11:34.643380"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paul Varelans",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:11:34.643380"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paul Varelans",
+      "warning": "Time exceeds round length: 13:17",
+      "timestamp": "2026-02-06T00:11:34.643380"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Isaac Vallie-Flagg",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:11:51.853742"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Darren Uyenoyama",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:12:08.315867"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Darren Uyenoyama",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:12:08.315867"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Darren Uyenoyama",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:12:08.316866"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Frank Trigg",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:12:59.177979"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Frank Trigg",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:12:59.177979"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Frank Trigg",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:12:59.177979"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Roberto Traven",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:13:07.041830"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.903140"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.903140"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.903140"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.903140"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.904138"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.904138"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "James Terry",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:09.904138"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Brandon Thatch",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:16.805282"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tra Telligman",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:14:23.046039"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Tra Telligman",
+      "warning": "Time exceeds round length: 10:05",
+      "timestamp": "2026-02-06T00:14:23.046039"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Glover Teixeira",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:25.118553"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Jesse Taylor",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:14:27.039091"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Evan Tanner",
+      "warning": "Time exceeds round length: 7:57",
+      "timestamp": "2026-02-06T00:14:49.870142"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Daiju Takase",
+      "warning": "Time exceeds round length: 8:33",
+      "timestamp": "2026-02-06T00:15:04.672069"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Eugenio Tadeu",
+      "warning": "Time exceeds round length: 9:45",
+      "timestamp": "2026-02-06T00:15:15.168325"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Oleg Taktarov",
+      "warning": "Time exceeds round length: 18:00",
+      "timestamp": "2026-02-06T00:15:16.239728"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Oleg Taktarov",
+      "warning": "Time exceeds round length: 17:45",
+      "timestamp": "2026-02-06T00:15:16.240728"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mike Swick",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:15:32.709724"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joel Sutton",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:15:55.636202"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joel Sutton",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:15:55.636202"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Josh Stuart",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:16:03.777737"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Brian Stann",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:16:59.801628"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ron Stallings",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:17:17.910772"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Chris Spang",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:17:44.314200"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Bobby Southworth",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:17:57.549291"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anthony Smith",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:18:46.671483"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Maurice Smith",
+      "warning": "Time exceeds round length: 7:33",
+      "timestamp": "2026-02-06T00:18:54.730514"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Maurice Smith",
+      "warning": "Time exceeds round length: 8:08",
+      "timestamp": "2026-02-06T00:18:54.730514"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 5:26",
+      "timestamp": "2026-02-06T00:19:47.806236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 9:21",
+      "timestamp": "2026-02-06T00:19:47.806236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 5:24",
+      "timestamp": "2026-02-06T00:19:47.807236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 6:28",
+      "timestamp": "2026-02-06T00:19:47.808237"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 5:01",
+      "timestamp": "2026-02-06T00:19:47.808237"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:19:47.809236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:19:47.809236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:19:47.810236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Wanderlei Silva",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:19:47.810236"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anderson Silva",
+      "warning": "Time exceeds round length: 8:33",
+      "timestamp": "2026-02-06T00:19:57.579603"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anderson Silva",
+      "warning": "Time exceeds round length: 6:27",
+      "timestamp": "2026-02-06T00:19:57.579603"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anderson Silva",
+      "warning": "Time exceeds round length: 5:33",
+      "timestamp": "2026-02-06T00:19:57.580594"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anderson Silva",
+      "warning": "Time exceeds round length: 6:17",
+      "timestamp": "2026-02-06T00:19:57.584129"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Anderson Silva",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:19:57.584129"
+    },
+    {
+      "item_type": "FighterItem",
+      "item_id": "Dan Severn",
+      "warning": "Unusually high total fights: 121",
+      "timestamp": "2026-02-06T00:20:46.605787"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Severn",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:20:46.606779"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Severn",
+      "warning": "Time exceeds round length: 30:00",
+      "timestamp": "2026-02-06T00:20:46.606779"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Severn",
+      "warning": "Time exceeds round length: 18:00",
+      "timestamp": "2026-02-06T00:20:46.607779"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Dan Severn",
+      "warning": "Time exceeds round length: 15:49",
+      "timestamp": "2026-02-06T00:20:46.608779"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ken Shamrock",
+      "warning": "Time exceeds round length: 6:46",
+      "timestamp": "2026-02-06T00:20:51.879458"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ken Shamrock",
+      "warning": "Time exceeds round length: 9:43",
+      "timestamp": "2026-02-06T00:20:51.880577"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Ken Shamrock",
+      "warning": "Time exceeds round length: 5:48",
+      "timestamp": "2026-02-06T00:20:51.881259"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Frank Shamrock",
+      "warning": "Time exceeds round length: 7:40",
+      "timestamp": "2026-02-06T00:20:53.987673"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Semmy Schilt",
+      "warning": "Time exceeds round length: 5:31",
+      "timestamp": "2026-02-06T00:21:44.550376"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Semmy Schilt",
+      "warning": "Time exceeds round length: 9:19",
+      "timestamp": "2026-02-06T00:21:44.550900"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Semmy Schilt",
+      "warning": "Time exceeds round length: 5:02",
+      "timestamp": "2026-02-06T00:21:44.550900"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Semmy Schilt",
+      "warning": "Time exceeds round length: 6:36",
+      "timestamp": "2026-02-06T00:21:44.550900"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Semmy Schilt",
+      "warning": "Time exceeds round length: 8:19",
+      "timestamp": "2026-02-06T00:21:44.551935"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Josh Schockman",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:21:47.839309"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Nick Sanzo",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:22:28.088092"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paulo Santos",
+      "warning": "Time exceeds round length: 10:27",
+      "timestamp": "2026-02-06T00:22:36.639225"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paulo Santos",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:22:36.639225"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Art Santore",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:22:38.089810"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Adriano Santos",
+      "warning": "Time exceeds round length: 9:00",
+      "timestamp": "2026-02-06T00:22:48.487084"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Luke Sanders",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:23:20.951708"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "John Salter",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:23:41.491590"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 8:20",
+      "timestamp": "2026-02-06T00:23:56.695942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 6:25",
+      "timestamp": "2026-02-06T00:23:56.696942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 6:20",
+      "timestamp": "2026-02-06T00:23:56.696942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 5:37",
+      "timestamp": "2026-02-06T00:23:56.697942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 6:41",
+      "timestamp": "2026-02-06T00:23:56.697942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 9:59",
+      "timestamp": "2026-02-06T00:23:56.697942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 5:01",
+      "timestamp": "2026-02-06T00:23:56.698942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 6:15",
+      "timestamp": "2026-02-06T00:23:56.699942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:23:56.699942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 5:41",
+      "timestamp": "2026-02-06T00:23:56.700942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:23:56.700942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 9:43",
+      "timestamp": "2026-02-06T00:23:56.700942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:23:56.701942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Unusual round number: 6",
+      "timestamp": "2026-02-06T00:23:56.701942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:23:56.701942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 15:00",
+      "timestamp": "2026-02-06T00:23:56.701942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 13:16",
+      "timestamp": "2026-02-06T00:23:56.701942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 9:23",
+      "timestamp": "2026-02-06T00:23:56.702942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:23:56.702942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:23:56.702942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 5:19",
+      "timestamp": "2026-02-06T00:23:56.702942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kazushi Sakuraba",
+      "warning": "Time exceeds round length: 6:53",
+      "timestamp": "2026-02-06T00:23:56.702942"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Hayato Sakurai",
+      "warning": "Time exceeds round length: 7:01",
+      "timestamp": "2026-02-06T00:24:03.217654"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Hayato Sakurai",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:24:03.218653"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Hayato Sakurai",
+      "warning": "Time exceeds round length: 6:35",
+      "timestamp": "2026-02-06T00:24:03.218653"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Hayato Sakurai",
+      "warning": "Time exceeds round length: 8:56",
+      "timestamp": "2026-02-06T00:24:03.219653"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marco Ruas",
+      "warning": "Time exceeds round length: 10:00",
+      "timestamp": "2026-02-06T00:24:28.400099"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marco Ruas",
+      "warning": "Time exceeds round length: 9:09",
+      "timestamp": "2026-02-06T00:24:28.400099"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marco Ruas",
+      "warning": "Time exceeds round length: 18:00",
+      "timestamp": "2026-02-06T00:24:28.400099"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marco Ruas",
+      "warning": "Time exceeds round length: 13:17",
+      "timestamp": "2026-02-06T00:24:28.401100"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Marco Ruas",
+      "warning": "Time exceeds round length: 12:27",
+      "timestamp": "2026-02-06T00:24:28.401100"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mike Russow",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:24:34.911028"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mauricio Rua",
+      "warning": "Time exceeds round length: 5:29",
+      "timestamp": "2026-02-06T00:25:09.382563"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mauricio Rua",
+      "warning": "Time exceeds round length: 6:42",
+      "timestamp": "2026-02-06T00:25:09.382563"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mauricio Rua",
+      "warning": "Time exceeds round length: 6:02",
+      "timestamp": "2026-02-06T00:25:09.383562"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mauricio Rua",
+      "warning": "Time exceeds round length: 9:04",
+      "timestamp": "2026-02-06T00:25:09.383562"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joao Roque",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:25:15.694614"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kevin Rosier",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:25:21.533637"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Paul Rodriguez",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:26:19.988289"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Vagner Rocha",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:26:26.215878"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Luke Rockhold",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:26:41.640318"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Luke Rockhold",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:26:41.640318"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Andre Roberts",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:26:45.684209"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Joey Roberts",
+      "warning": "Time exceeds round length: 10:01",
+      "timestamp": "2026-02-06T00:26:49.074600"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Pedro Rizzo",
+      "warning": "Time exceeds round length: 8:07",
+      "timestamp": "2026-02-06T00:27:10.057357"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Aaron Riley",
+      "warning": "Time exceeds round length: 6:00",
+      "timestamp": "2026-02-06T00:27:39.694223"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Johnny Rhodes",
+      "warning": "Time exceeds round length: 12:13",
+      "timestamp": "2026-02-06T00:27:54.998638"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kevin Randleman",
+      "warning": "Time exceeds round length: 7:44",
+      "timestamp": "2026-02-06T00:28:41.154017"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Kevin Randleman",
+      "warning": "Time exceeds round length: 6:58",
+      "timestamp": "2026-02-06T00:28:41.156018"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Mike Pyle",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:29:42.461815"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Carlo Prater",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:29:54.461177"
+    },
+    {
+      "item_type": "FightItem",
+      "item_id": "Trevor Prangley",
+      "warning": "Invalid knockdowns value: --",
+      "timestamp": "2026-02-06T00:30:05.304065"
+    }
+  ]
+}

@@ -1,3 +1,8 @@
 # Database
 psycopg2-binary>=2.9.9
 python-dotenv>=1.0.0
+
+# Web Scraping
+scrapy>=2.11.0
+scrapy-playwright>=0.0.40  # For JavaScript-rendered pages (optional)
+# After installing, run: playwright install chromium

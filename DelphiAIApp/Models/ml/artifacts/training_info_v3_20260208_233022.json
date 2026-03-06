@@ -1,0 +1,259 @@
+{
+  "model_version": "v3_20260208_233022",
+  "model_filename": "model_v3_20260208_233022.pkl",
+  "feature_columns": [
+    "elo_diff",
+    "age_diff",
+    "height_diff",
+    "reach_diff",
+    "slpm_diff",
+    "stracc_diff",
+    "tdavg_diff",
+    "subavg_diff",
+    "kd_rate_diff",
+    "win_rate_diff",
+    "recent_form_diff",
+    "finish_rate_diff",
+    "experience_diff",
+    "avg_fight_time_diff",
+    "style_advantage",
+    "southpaw_advantage",
+    "elo_prime_interaction",
+    "reach_striking_interaction",
+    "is_title_fight",
+    "debut_diff"
+  ],
+  "n_features": 20,
+  "min_year_filter": 2019,
+  "dropped_features": [
+    "elo_diff_sq",
+    "age_diff_sq"
+  ],
+  "winsorize_bounds": {
+    "elo_diff": {
+      "lower": -116.08200000000004,
+      "upper": 115.40100000000022
+    },
+    "age_diff": {
+      "lower": -12.260561259411363,
+      "upper": 11.957234770704984
+    },
+    "height_diff": {
+      "lower": -4.35,
+      "upper": 4.0
+    },
+    "reach_diff": {
+      "lower": -7.5,
+      "upper": 7.724999999999909
+    },
+    "slpm_diff": {
+      "lower": -6.7780000000000005,
+      "upper": 7.253399999999992
+    },
+    "stracc_diff": {
+      "lower": 0.0,
+      "upper": 0.0
+    },
+    "tdavg_diff": {
+      "lower": -5.2139,
+      "upper": 5.0
+    },
+    "subavg_diff": {
+      "lower": -3.0468,
+      "upper": 2.3494999999999937
+    },
+    "kd_rate_diff": {
+      "lower": -0.16178,
+      "upper": 0.16677999999999976
+    },
+    "win_rate_diff": {
+      "lower": -0.7695000000000001,
+      "upper": 1.0
+    },
+    "recent_form_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "finish_rate_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "experience_diff": {
+      "lower": -22.39,
+      "upper": 23.389999999999873
+    },
+    "avg_fight_time_diff": {
+      "lower": -10.54,
+      "upper": 10.195599999999994
+    },
+    "style_advantage": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "southpaw_advantage": {
+      "lower": -1.0,
+      "upper": 1.0
+    },
+    "elo_diff_sq": {
+      "lower": -13475.228400000007,
+      "upper": 13317.409060000053
+    },
+    "age_diff_sq": {
+      "lower": -150.32137844509379,
+      "upper": 142.97860902750514
+    },
+    "elo_prime_interaction": {
+      "lower": -18.07953999999999,
+      "upper": 18.927819999999944
+    },
+    "reach_striking_interaction": {
+      "lower": -2.4,
+      "upper": 2.750599999999988
+    },
+    "is_title_fight": {
+      "lower": 0.0,
+      "upper": 1.0
+    },
+    "debut_diff": {
+      "lower": -1.0,
+      "upper": 1.0
+    }
+  },
+  "median_values": {
+    "elo_diff": 0.0,
+    "age_diff": 0.0,
+    "height_diff": 0.0,
+    "reach_diff": 0.0,
+    "slpm_diff": 0.0,
+    "stracc_diff": 0.0,
+    "tdavg_diff": 0.0,
+    "subavg_diff": 0.0,
+    "kd_rate_diff": 0.0,
+    "win_rate_diff": 0.0,
+    "recent_form_diff": 0.0,
+    "finish_rate_diff": 0.0,
+    "experience_diff": 0.0,
+    "avg_fight_time_diff": 0.0,
+    "style_advantage": 0.0,
+    "southpaw_advantage": 0.0,
+    "elo_prime_interaction": 0.0,
+    "reach_striking_interaction": 0.0,
+    "is_title_fight": 0.0,
+    "debut_diff": 0.0
+  },
+  "metrics": {
+    "best_model": "XGBoost (EarlyStopping + Calibrated)",
+    "baseline_accuracy": 0.5169082125603864,
+    "validation": {
+      "accuracy": 0.677938808373591,
+      "auc": 0.7472995603935524,
+      "brier": 0.19629520177841187
+    },
+    "holdout": {
+      "accuracy": 0.7278582930756844,
+      "auc": 0.7924294955815823,
+      "log_loss": 0.5533164092353838,
+      "brier": 0.18373706936836243,
+      "confidence_intervals": {
+        "accuracy": {
+          "mean": 0.726914653784219,
+          "lower": 0.692391304347826,
+          "upper": 0.7633252818035425
+        },
+        "auc": {
+          "mean": 0.7913856547415409,
+          "lower": 0.7576616106395656,
+          "upper": 0.8259693792750861
+        },
+        "brier": {
+          "mean": 0.18421928444504737,
+          "lower": 0.16780611723661423,
+          "upper": 0.2000466287136078
+        }
+      },
+      "roi": 0.49142553191489136,
+      "bets": 470,
+      "holdout_size": 621
+    },
+    "cv_auc_mean": 0.696385028071702,
+    "cv_auc_std": 0.04772290223004977,
+    "feature_importance": {
+      "age_diff": 0.17054471373558044,
+      "elo_diff": 0.0961846113204956,
+      "reach_diff": 0.08309569954872131,
+      "debut_diff": 0.06752126663923264,
+      "win_rate_diff": 0.06497296690940857,
+      "elo_prime_interaction": 0.05299504101276398,
+      "avg_fight_time_diff": 0.04943385720252991,
+      "tdavg_diff": 0.04730166494846344,
+      "slpm_diff": 0.04664979130029678,
+      "southpaw_advantage": 0.04641622677445412,
+      "subavg_diff": 0.04582633450627327,
+      "experience_diff": 0.04155236482620239,
+      "finish_rate_diff": 0.04138693958520889,
+      "kd_rate_diff": 0.04100474715232849,
+      "reach_striking_interaction": 0.04097771272063255,
+      "recent_form_diff": 0.03802620247006416,
+      "is_title_fight": 0.026109909638762474,
+      "style_advantage": 0.0,
+      "stracc_diff": 0.0,
+      "height_diff": 0.0
+    },
+    "all_models": [
+      {
+        "name": "Logistic Regression (Calibrated)",
+        "val_acc": 0.6409017713365539,
+        "val_auc": 0.6623770148628847,
+        "gap": 0.01737643999217786
+      },
+      {
+        "name": "Random Forest (Calibrated)",
+        "val_acc": 0.6634460547504025,
+        "val_auc": 0.7195153862256647,
+        "gap": 0.040021676001108286
+      },
+      {
+        "name": "XGBoost (EarlyStopping + Calibrated)",
+        "val_acc": 0.677938808373591,
+        "val_auc": 0.7472995603935524,
+        "gap": 0.07314800152903789
+      },
+      {
+        "name": "Stacking Ensemble",
+        "val_acc": 0.6473429951690821,
+        "val_auc": 0.7077140464726817,
+        "gap": 0.046350623910540456
+      }
+    ]
+  },
+  "trained_at": "2026-02-08T23:30:22.946808",
+  "python_version": "3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]",
+  "xgboost_version": "3.1.3",
+  "sklearn_version": "1.8.0",
+  "numpy_version": "2.4.2",
+  "pandas_version": "3.0.0",
+  "hyperparameters": {
+    "xgboost": {
+      "n_estimators": 500,
+      "max_depth": 4,
+      "learning_rate": 0.03,
+      "min_child_weight": 10,
+      "reg_alpha": 0.5,
+      "reg_lambda": 2.0,
+      "subsample": 0.7,
+      "colsample_bytree": 0.7,
+      "early_stopping_rounds": 20
+    },
+    "logistic_regression": {
+      "C": 0.05,
+      "max_iter": 1000
+    },
+    "random_forest": {
+      "n_estimators": 100,
+      "max_depth": 5,
+      "min_samples_leaf": 30,
+      "min_samples_split": 60,
+      "max_features": "sqrt"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "completed_at": "2026-02-05T18:30:51.532743",
+  "duration_seconds": 2048.628747,
+  "reason": "finished",
+  "fighters": {
+    "total": 3090,
+    "active": 935,
+    "inactive": 2155
+  },
+  "career_stats": {
+    "total": 2956
+  },
+  "fights": {
+    "total": 19186,
+    "wins": 9705,
+    "losses": 9138,
+    "draws": 142,
+    "nc": 201
+  },
+  "duplicates_filtered": 56,
+  "validation_drops": 0,
+  "missing_data": {
+    "no_dob": 273,
+    "no_height": 58,
+    "no_reach": 664,
+    "no_stats": 248
+  },
+  "requests": 12303,
+  "responses": 12303,
+  "errors": 0,
+  "top_methods": {
+    "U-DEC": 6653,
+    "KO/TKO": 6406,
+    "SUB": 3862,
+    "S-DEC": 1777,
+    "M-DEC": 203,
+    "Overturned": 125,
+    "CNC": 79,
+    "DQ": 61,
+    "Other": 17,
+    "Decision": 3
+  }
+}

@@ -1,0 +1,30 @@
+======================================================================
+UFC DATA VALIDATION REPORT
+Generated: 2026-02-05 19:49:27
+======================================================================
+
+[SUMMARY]
+----------------------------------------
+[X] Critical Errors: 0
+[!] Warnings: 7
+[i] Info: 3
+
+[!] WARNINGS (Review Recommended)
+----------------------------------------
+  [fighters] Missing weight_class (count: 110)
+  [fighters] Wins out of expected range (0-100) (count: 2)
+  [career_stats] slpm unusually high (>20) (count: 2)
+  [career_stats] sapm unusually high (>20) (count: 3)
+  [career_stats] td_avg unusually high (>20) (count: 1)
+  [career_stats] sub_avg unusually high (>20) (count: 2)
+  [fights] Round outside 1-5 range (count: 2)
+
+[i] INFO
+----------------------------------------
+  [fighters] Total records: 3090
+  [career_stats] Total records: 2934
+  [fights] Total records: 10482
+
+======================================================================
+[OK] RECOMMENDATION: Data is ready for database upload
+======================================================================
