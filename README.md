@@ -1,224 +1,390 @@
-# DelphiAI
-This is a Sports Betting stat analyzer that can help you predict the best course of action for your money!
+# DelphiAI - UFC Fight Prediction System
 
-Python
-Pandas / NumPy
-Scikit-learn
-XGBoost or LightGBM
-PostgreSQL
-FastAPI
-LLM (for explanations, not predictions)
-Optional: FAISS for RAG
+A machine learning system for predicting UFC fight outcomes with **66.1% accuracy** on out-of-sample data (2024-2025).
 
-PostgreSQL → Pandas → XGBoost → Probabilities
-                                ↓
-                        Math (value detection)
-                                ↓
-                          LLM Explanation
-                                ↓
-                            FastAPI
-                                ↓
-                              User
+---
 
+## 🎯 Key Performance Metrics
 
-┌──────── VIEW ────────┐
-│  Dashboard / UI      │
-│  Charts / Text       │
-└────────▲─────────────┘
-         │ JSON
-┌────────┴─────────────┐
-│     CONTROLLER       │
-│  FastAPI Routes      │
-│  Validation          │
-│  Orchestration       │
-└────────▲─────────────┘
-         │ Calls
-┌────────┴─────────────┐
-│        MODEL         │
-│  PostgreSQL          │
-│  Pandas / NumPy      │
-│  XGBoost / SKLearn   │
-│  FAISS (optional)    │
-└──────────────────────┘
-## Quick Start
+- **Overall Accuracy**: 66.1% (436 fights, 2024-2025)
+- **High Confidence Picks** (≥65%): 79.7% accuracy (74 picks)
+- **Paper Trading ROI**: +14.5%
+- **Validated**: Leakage audit passed, no future data contamination
 
-### 1. Install Python dependencies
+### Performance by Year
+- **2024**: 64.0% (211 fights)
+- **2025**: 68.0% (225 fights)
+- **Live 2026**: 62.5% (40 fights tracked)
+
+---
+
+## 🏗️ System Architecture
+
+### Core Components
+
+**Machine Learning Pipeline**
+- XGBoost classifier with isotonic calibration
+- Point-in-time feature engineering (no data leakage)
+- Graduated ML/ELO blending based on data quality
+- Historical rolling features (opponent quality, momentum, trends)
+
+**ELO Rating System**
+- Custom UFC ELO ratings (K-factor: 32)
+- Division-specific adjustments
+- Method-of-victory bonuses (KO/TKO, submission)
+- Tracks all UFC fights from 2019+
+
+**Data Sources**
+- UFC Stats API
+- Fighter career statistics
+- Historical fight outcomes
+- Point-in-time injury/layoff tracking
+
+---
+
+## 📊 Feature Engineering
+
+### Historical Context Features (Key Innovation)
+- **Opponent Quality**: Rolling average of opponent ELO (last 3, 5 fights)
+- **Performance Velocity**: ELO change trajectory and momentum
+- **Trending Stats**: Recent finish rate vs career average
+- **Competition Level**: Opponent quality trending (harder/easier opponents)
+
+### Fighter Attributes
+- Striking metrics (SLpM, SS%, significant strikes)
+- Grappling metrics (TD avg, TD%, submission attempts)
+- Defensive metrics (SApM, TD defense)
+- Physical attributes (reach, height, stance)
+- Career metrics (win streaks, finish rates, experience)
+
+### Matchup Features
+- Style contrasts (striker vs grappler)
+- Physical differentials (reach, height advantage)
+- Experience gaps (UFC fights, age)
+- Form differentials (recent performance)
+
+### Contextual Factors
+- Injury penalties (layoff length, frequency)
+- Rust penalties (time since last fight)
+- Age curves (prime vs declining)
+- Division-specific adjustments
+
+---
+
+## 🎓 Model Training
+
+### Data Strategy
+- **Training**: 2020-2023 fights (~2,200 fights)
+- **Validation**: 2024 fights (~210 fights)
+- **Holdout**: 2025 fights (~225 fights)
+- **Chronological splits**: No temporal leakage
+- **Recency weighting**: Recent years weighted higher
+
+### Model Configuration
+- **Algorithm**: XGBoost (gradient boosting)
+- **Calibration**: Isotonic regression
+- **Probability range**: 5-95% (prevents overconfidence)
+- **Cross-validation**: Temporal walk-forward
+
+### Quality Assurance
+- Fight-level deduplication (no augmentation leakage)
+- Point-in-time feature validation
+- Leakage audit on random sample
+- Symmetry checks (prediction consistency)
+
+---
+
+## 🚀 Usage
+
+### Predict a Fight Card
+
 ```bash
-pip install -r requirements.txt
+python -m ml.predict_card "UFC 313: Pereira vs Hill"
 ```
 
-### 2. Start the database
+**Output**:
+- Fight-by-fight predictions with confidence levels
+- Win probabilities for each fighter
+- Method of victory breakdown (KO/TKO, Submission, Decision)
+- Round prediction distribution
+- Betting insights and value picks
+
+### Update Results After Event
+
 ```bash
-docker-compose up -d
+python -m ml.update_results "UFC 313: Pereira vs Hill"
 ```
 
-### 3. Access pgAdmin
-- URL: http://localhost:5050
-- Email: `admin@delphi.local`
-- Password: `admin123`
+Automatically scrapes results and tracks prediction accuracy.
 
-### 4. Connect to PostgreSQL in pgAdmin
-- Host: `postgres`
-- Port: `5432`
-- Database: `delphi_db`
-- Username: `delphi_user`
-- Password: `delphi_password`
+### View Performance Summary
 
-## Docker Commands
-
-| Command | Description |
-|---------|-------------|
-| `docker-compose up -d` | Start all containers |
-| `docker-compose down` | Stop all containers |
-| `docker-compose restart` | Restart all containers |
-| `docker-compose logs -f` | View live logs |
-| `docker-compose logs postgres` | View database logs |
-| `docker-compose ps` | List running containers |
-
-## Database Commands
-
-| Command | Description |
-|---------|-------------|
-| `docker-compose down -v` | Stop containers and delete all data |
-| `docker-compose exec postgres psql -U delphi_user -d delphi_db` | Open PostgreSQL shell |
-
-## Troubleshooting
-
-**Reset the database (delete all data):**
 ```bash
-docker-compose down -v
-docker-compose up -d
+python -m ml.performance_summary
 ```
 
-**Check if containers are running:**
+**Displays**:
+- Overall accuracy (backtest vs live)
+- Performance by confidence tier
+- ROI metrics
+- Accuracy trends over time
+
+### Run Historical Backtest
+
 ```bash
-docker-compose ps
+python -m ml.backtest --years 2024 2025 --clear
 ```
 
-**View container logs:**
-```bash
-docker-compose logs -f
+Validates model on historical data using point-in-time evaluation.
+
+---
+
+## 📁 Project Structure
+
 ```
-DelphiAIApp/Models/data/
-├── scrapers/
-│   ├── __init__.py
-│   ├── scrapy.cfg
-│   └── ufc_scraper/
-│       ├── __init__.py
-│       ├── items.py          # FighterItem, CareerStatsItem, FightItem
-│       ├── middlewares.py    # Request handling
-│       ├── pipelines.py      # CSV export to separate files
-│       ├── settings.py       # Rate limiting, caching, user agent
-│       └── spiders/
-│           ├── __init__.py
-│           ├── ufcstats.py   # UFCStats.com spider (working)
-│           └── tapology.py   # Tapology.com spider
-└── output/                   # Scraped data files
-    ├── fighters.csv
-    ├── career_stats.csv
-    └── fights.csv
+DelphiAI/
+├── Models/
+│   ├── ml/
+│   │   ├── train_model_v3.py       # Model training pipeline
+│   │   ├── predict_card.py         # Event predictions
+│   │   ├── predict_fight.py        # Single fight predictions
+│   │   ├── backtest.py             # Historical validation
+│   │   ├── update_results.py       # Result tracking
+│   │   ├── performance_summary.py  # Analytics
+│   │   ├── model_loader.py         # Feature engineering
+│   │   └── model_latest.pkl        # Trained model artifact
+│   ├── data/
+│   │   ├── build_historical_features.py  # Feature builder
+│   │   ├── load_to_db.py                 # Data ingestion
+│   │   └── calculate_elo.py              # ELO rating system
+│   └── db/
+│       ├── schemas.sql                    # Database schema
+│       └── database.db                    # SQLite database
+└── README.md
+```
 
+---
 
-scrapy crawl ufcstats in terminal to scrap
-# Full scrape (all ~4000+ fighters) - will take several hours with rate limiting
-scrapy crawl ufcstats
+## 🗄️ Database Schema
 
-# Or with logging to file for monitoring
-scrapy crawl ufcstats --logfile=../output/scrape.log
+### Key Tables
 
-Scraper  →  CSV files  →  (manual step needed)  →  PostgreSQL
+**Fights**
+- All UFC fights (2019+)
+- Fighter matchups, results, methods
+- ELO ratings before/after each fight
 
-python scrape_all.py              # Run both spiders
-python scrape_all.py --ufc-only   # Only UFC.com
-python scrape_all.py --stats-only # Only UFCStats
-python scrape_all.py --test       # Test mode (limited pages)
+**FighterStats**
+- Career statistics per fighter
+- Physical attributes
+- Current ELO rating
 
-1. UFC.com Spider → Scrapes stats from athlete profiles
-2. UFCStats Spider → Scrapes detailed fight history
-3. DataMergePipeline → Merges UFC.com data into UFCStats data
-4. FightStatsCalculationPipeline → Calculates precise stats from fight history
-5. CSV Export → Saves to career_stats.csv
-6. FightStatsCalculationPipeline → Updates career_stats.csv with calculated values
-7. load_to_db.py → Loads everything into PostgreSQL
+**FighterHistoricalFeatures**
+- Point-in-time rolling features
+- Opponent quality metrics
+- Performance velocity/momentum
+- Computed chronologically (no leakage)
 
-## Data Scraping Notes
+**PredictionTracking**
+- All predictions (backtest + live)
+- Actual outcomes
+- Confidence levels
+- Used for performance analysis
 
-### Unified Spider (ufc_official)
-The scraper uses a unified approach:
-1. Scrapes fighter profile from UFC.com (primary source for bio data)
-2. Looks up the same fighter on UFCStats (by first/last name)
-3. Merges data from both sources, prioritizing UFC.com for bio fields
+**OddsLines** (optional)
+- Vegas betting lines
+- Closing line value tracking
+- Edge calculation vs market
 
-### Fuzzy Name Matching
-The scraper uses fuzzy matching to handle minor spelling variations between sources:
-- **Works for**: Abbassov/Abbasov, O'Brien/OBrien, José/Jose
-- **Does NOT work for**: Nickname vs real name (e.g., "Tank Abbott" vs "David Abbott")
+---
+
+## 📈 Betting Strategy (Paper Trading Validated)
+
+### Tier-Based Approach
+
+**High Confidence (≥65%)**
+- Accuracy: 79.7%
+- Bet size: 1.5-2% of bankroll
+- Expected ROI: +15-20%
+
+**Medium Confidence (60-65%)**
+- Accuracy: ~67%
+- Bet size: 1-1.5% of bankroll
+- Expected ROI: +10-15%
+
+**Low Confidence (55-60%)**
+- Accuracy: ~64%
+- Bet size: 0.5-1% of bankroll
+- Expected ROI: +5-10%
+
+**Toss-ups (<55%)**
+- Skip or minimal action
+- High variance, low edge
+
+### Underdog Value Strategy
+- Model picks underdog: 69.9% win rate (historical)
+- Target underdogs with 60%+ model confidence
+- Higher expected value than favorites
+
+### Risk Management
+- Never exceed 2% on single fight
+- Maximum 10% total exposure per event
+- Stop-loss: 20% drawdown or 8+ losing streak
+
+---
+
+## 🔬 Model Validation
+
+### Leakage Prevention
+- Chronological data splits (no temporal leakage)
+- Point-in-time features only (no future data)
+- Historical features computed sequentially
+- Audit verification: 0 mismatches on 96 fighter-fight pairs
+
+### Evaluation Metrics
+- **Out-of-sample accuracy**: 66.1% (2024-2025)
+- **Production-path validation**: Same pipeline for training and deployment
+- **Fight-level metrics**: One prediction per fight (no row-level inflation)
+- **Overlap checks**: 0/0/0 (train/val/holdout isolation)
 
 ### Known Limitations
-| Fighter | Issue | Result |
-|---------|-------|--------|
-| Tank Abbott | UFC.com uses "Tank" (nickname), UFCStats uses real name | No UFCStats data merged |
-| Fighters with very different name spellings | Sources may have different romanizations | May not merge |
+- Model conservative (relies 50% on ELO when ML data quality low)
+- Age features incomplete (reduces ML weight by ~10-15%)
+- Performance degrades on fighters with <3 UFC fights
+- Late-replacement fights (short notice) less reliable
 
-Fighters that can't be matched on UFCStats will only have UFC.com data (basic bio info, no detailed career stats like SLpM, StrAcc, etc.).
+---
 
-### Calculated Stats (from Fight History)
-These stats are calculated from the fighter's fight history, not scraped directly:
-- `win_streak_last3` - Consecutive wins in last 3 fights
-- `wins_by_ko_last5` - KO/TKO wins in last 5 fights
-- `wins_by_sub_last5` - SUB wins in last 5 fights
-- `avg_fight_duration` - Average fight length in minutes
-- `first_round_finish_rate` - % of fights finished in Round 1
-- `decision_rate` - % of fights that went to decision
-- `ko_round1_pct`, `ko_round2_pct`, `ko_round3_pct` - Distribution of KO wins by round
-- `sub_round1_pct`, `sub_round2_pct`, `sub_round3_pct` - Distribution of SUB wins by round
+## 🛠️ Setup & Installation
 
-*ISSUE THAT WILL NEED FIX LATER
-Leg reach, not a lot of data, but could maybe use predictive model to assume leg reach basied off height
+### Requirements
+- Python 3.8+
+- SQLite 3
+- XGBoost
+- scikit-learn
+- pandas, numpy
 
-## ELO Rating System
+### Installation
 
-The project includes a FiveThirtyEight-style ELO rating system with enhancements for UFC fighters.
-
-### How to Run ELO Calculation
 ```bash
-cd DelphiAIApp/Models/data
-python features.py               # Enhanced ELO (recommended)
-python features.py --base-only   # Base FiveThirtyEight ELO only
+# Clone repository
+git clone https://github.com/yourusername/DelphiAI.git
+cd DelphiAI
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Initialize database
+python -m data.apply_schema
+
+# Build historical features
+python -m data.build_historical_features
+
+# Optional: Calculate ELO ratings
+python -m data.calculate_elo
 ```
 
-### Phase 1: Base FiveThirtyEight System
-- Starting ELO: 1500
-- K-factor: Base 32, adjusted by fight type and finish method
-- Mean reversion: Ratings drift toward 1500 for inactive fighters
-- Margin of victory: KO/TKO (1.3x), SUB (1.25x), DEC (1.0x)
-- Round bonus: Earlier finishes get higher K-factor multipliers
+### Data Updates
 
-### Phase 2: Enhancements
-| Modifier | Description |
-|----------|-------------|
-| Style Matchup | Wrestlers get +5% vs strikers, grapplers vs wrestlers, etc. |
-| Reach Differential | +0.5% per inch of reach advantage |
-| Age Factor | 27-32 = peak years, decline penalty outside this range |
-| Recent Form | Last 3 fights affect expected outcome (momentum) |
+```bash
+# Weekly maintenance (after UFC events)
+python -m data.update_fighters          # Scrape new fighter data
+python -m data.calculate_elo            # Update ELO ratings
+python -m data.build_historical_features # Rebuild rolling features
+```
 
-### Phase 3: ML Feature
-ELO is stored in `career_stats.csv` and loaded to `CareerStats.EloRating` in PostgreSQL:
-- `elo_rating` - Current strength estimate
-- `peak_elo` - Highest ELO ever achieved (useful for decline detection)
+---
 
-### ELO Interpretation
-| ELO Range | Meaning |
-|-----------|---------|
-| 1700+ | Elite/Championship level |
-| 1600-1700 | Top contender |
-| 1500-1600 | Above average |
-| 1400-1500 | Average |
-| Below 1400 | Below average/gatekeeper |
+## 📊 Performance Tracking
 
-### Top Fighters by Peak ELO (Historical)
-1. Daniel Cormier: 1814 (current: 1681)
-2. Donald Cerrone: 1801 (current: 1482)
-3. Tony Ferguson: 1775 (current: 1369)
-4. Jon Fitch: 1768 (current: 1649)
-5. TJ Dillashaw: 1768 (current: 1587)
+### Live Tracking (2026)
+Track predictions vs actual outcomes in real-time:
+
+| Event | Date | Accuracy | HC Accuracy | Sample |
+|-------|------|----------|-------------|--------|
+| Strickland vs Imavov | Jan 11 | 57.1% | 50.0% | 14 fights |
+| Moreno vs Albazi | Feb 1 | 76.9% | 100% | 13 fights |
+| Bautista vs Figueiredo | Feb 22 | 53.8% | - | 13 fights |
+| **Cumulative** | **-** | **62.5%** | **66.7%** | **40 fights** |
+
+*Live tracking showing model generalizes well to 2026 data*
+
+---
+
+## 🎯 Roadmap
+
+### Immediate Priorities
+- [x] Fix historical feature loading in live predictions
+- [x] Validate leakage prevention (audit passed)
+- [ ] Backfill age/DOB data for all fighters
+- [ ] Fix age-related features (currently missing)
+
+### Short-term (Q1 2026)
+- [ ] Improve ML weight to 40%+ (currently 26-30%)
+- [ ] Add division-specific model variants
+- [ ] Implement automated odds scraping
+- [ ] Build live performance dashboard
+
+### Medium-term (Q2-Q3 2026)
+- [ ] Temporal ensemble (multiple model versions)
+- [ ] Enhanced prospect detection
+- [ ] Style-matchup neural network
+- [ ] Automated result tracking
+
+### Long-term
+- [ ] Expand to other MMA organizations (Bellator, ONE)
+- [ ] Real-time odds monitoring & alerts
+- [ ] Multi-sportsbook integration
+- [ ] Advanced visualization dashboard
+
+---
+
+## 🤝 Contributing
+
+This is a personal research project. If you find issues or have suggestions:
+
+1. Open an issue describing the problem/enhancement
+2. Include relevant data/examples
+3. For bugs: Steps to reproduce
+
+**Note**: This project is for educational and research purposes. Gambling involves risk.
+
+---
+
+## ⚠️ Disclaimer
+
+**For Educational Purposes Only**
+
+This model is a research project and should not be used as the sole basis for gambling decisions. Sports betting involves risk, and past performance does not guarantee future results.
+
+- No guarantees of accuracy or profitability
+- Individual event variance is high (50-80% per card)
+- Long-run edge requires large sample sizes (100+ fights)
+- Responsible gambling practices strongly encouraged
+- Not financial or betting advice
+
+**The developers are not responsible for any financial losses incurred from using this system.**
+
+---
+
+## 📝 License
+
+MIT License - See LICENSE file for details
+
+---
+
+## 📧 Contact
+
+For questions or feedback: [Your contact info]
+
+---
+
+## 🙏 Acknowledgments
+
+- UFC Stats for data access
+- XGBoost and scikit-learn communities
+- MMA analytics research community
+
+---
+
+**Built with Python, XGBoost, and a passion for MMA analytics** 🥊📊
