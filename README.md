@@ -375,7 +375,7 @@ MIT License - See LICENSE file for details
 
 ## 📧 Contact
 
-For questions or feedback: [Your contact info]
+For questions or feedback: joseph.dkimbrough@gmail.com
 
 ---
 
