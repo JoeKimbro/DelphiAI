@@ -797,8 +797,12 @@ def predict_full_card(conn, fights, event_name='', event_date='',
             features = ml_result.get('features', {})
             nan_count = sum(1 for v in features.values()
                            if v is None or (isinstance(v, float) and math.isnan(v)))
-            
-            if nan_count <= 6:
+            total_features = max(len(features), 1)
+            # Allow proportional missingness as feature set grows.
+            # Fixed threshold (<=6) became too strict after adding historical features.
+            max_allowed_nan = max(6, int(total_features * 0.45))
+
+            if nan_count <= max_allowed_nan:
                 # Symmetry check: predict with swapped fighters
                 f2_for_swap = dict(f1)
                 f1_for_swap = dict(f2)
@@ -820,8 +824,10 @@ def predict_full_card(conn, fights, event_name='', event_date='',
                     
                     # Graduated blending: allow moderate symmetry drift with lower ML weight.
                     if sym_error <= 0.60:
-                        # Start from feature-quality weight, then discount for symmetry error.
-                        ml_weight = 0.50 - nan_count * 0.08 - max(0.0, sym_error - 0.20) * 0.60
+                        # Start from feature-quality weight (by missing ratio), then discount for symmetry error.
+                        missing_ratio = nan_count / total_features
+                        missing_penalty = min(0.35, missing_ratio * 0.50)
+                        ml_weight = 0.50 - missing_penalty - max(0.0, sym_error - 0.20) * 0.60
                         ml_weight = max(0.15, min(0.50, ml_weight))
                         blended = ml_weight * corrected + (1 - ml_weight) * elo_prob_f1
                         

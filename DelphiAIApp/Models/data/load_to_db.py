@@ -141,6 +141,40 @@ def normalize_name(name):
     return name
 
 
+def build_fighter_name_to_id(conn):
+    """Build normalized fighter name -> FighterID lookup."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT FighterID, Name FROM FighterStats WHERE Name IS NOT NULL")
+    name_to_id = {}
+
+    for fighter_id, name in cursor.fetchall():
+        key = normalize_name(name)
+        if key and key not in name_to_id:
+            name_to_id[key] = fighter_id
+
+    cursor.close()
+    return name_to_id
+
+
+def resolve_fighter_id(url, name, fighter_url_to_id, fighter_name_to_id):
+    """Resolve FighterID from URL first, then normalized name fallback."""
+    fighter_id = None
+    resolved_by_name = False
+
+    if pd.notna(url):
+        fighter_id = fighter_url_to_id.get(url)
+
+    if not fighter_id and pd.notna(name):
+        key = normalize_name(name)
+        fighter_id = fighter_name_to_id.get(key) if key else None
+        resolved_by_name = fighter_id is not None
+
+    if fighter_id and pd.notna(url):
+        fighter_url_to_id[url] = fighter_id
+
+    return fighter_id, resolved_by_name
+
+
 def merge_fighter_records(df):
     """
     Merge fighter records from UFC.com and UFCStats by normalized name.
@@ -539,22 +573,53 @@ def load_fights(conn, fighter_url_to_id, dry_run=False):
     inserted = 0
     updated = 0
     skipped = 0
+    resolved_name_fighter = 0
+    resolved_name_opponent = 0
+    unresolved_examples = []
     
-    # First, make sure we have all fighter URLs mapped
-    cursor.execute("SELECT FighterID, FighterURL FROM FighterStats WHERE FighterURL IS NOT NULL")
-    for row in cursor.fetchall():
-        fighter_url_to_id[row[1]] = row[0]
+    # First, make sure we have all fighter URLs mapped (both UFCStats and UFC.com URLs)
+    cursor.execute("""
+        SELECT FighterID, FighterURL, UFCUrl
+        FROM FighterStats
+        WHERE FighterURL IS NOT NULL OR UFCUrl IS NOT NULL
+    """)
+    for fighter_id, fighter_url, ufc_url in cursor.fetchall():
+        if fighter_url:
+            fighter_url_to_id[fighter_url] = fighter_id
+        if ufc_url:
+            fighter_url_to_id[ufc_url] = fighter_id
+
+    fighter_name_to_id = build_fighter_name_to_id(conn)
     
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
         opponent_url = row.get('opponent_url')
         fight_url = row.get('fight_url')
-        
-        fighter_id = fighter_url_to_id.get(fighter_url)
-        opponent_id = fighter_url_to_id.get(opponent_url) if pd.notna(opponent_url) else None
+
+        fighter_name = row.get('fighter_name')
+        opponent_name = row.get('opponent_name')
+
+        fighter_id, fighter_by_name = resolve_fighter_id(
+            fighter_url, fighter_name, fighter_url_to_id, fighter_name_to_id
+        )
+        opponent_id, opponent_by_name = resolve_fighter_id(
+            opponent_url, opponent_name, fighter_url_to_id, fighter_name_to_id
+        )
+        if fighter_by_name:
+            resolved_name_fighter += 1
+        if opponent_by_name:
+            resolved_name_opponent += 1
         
         if not fighter_id:
             skipped += 1
+            if len(unresolved_examples) < 10:
+                unresolved_examples.append({
+                    'fighter_name': fighter_name,
+                    'fighter_url': fighter_url,
+                    'opponent_name': opponent_name,
+                    'opponent_url': opponent_url,
+                    'fight_url': fight_url,
+                })
             continue
         
         # Determine winner_id
@@ -670,6 +735,14 @@ def load_fights(conn, fighter_url_to_id, dry_run=False):
     conn.commit()
     cursor.close()
     print(f"   [OK] Fights: {inserted} inserted, {updated} updated, {skipped} skipped")
+    print(f"   [RESOLVE] Name fallback used -> fighter: {resolved_name_fighter}, opponent: {resolved_name_opponent}")
+    if unresolved_examples:
+        print("   [WARN] Sample unresolved fights (showing up to 10):")
+        for ex in unresolved_examples:
+            print(
+                f"      fighter='{ex['fighter_name']}' ({ex['fighter_url']}) vs "
+                f"opponent='{ex['opponent_name']}' ({ex['opponent_url']}) fight_url={ex['fight_url']}"
+            )
 
 
 def load_elo_history(conn, fighter_url_to_id, dry_run=False):
