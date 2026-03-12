@@ -229,6 +229,11 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
     else:
         a_age = calc_age(fighter_a.get('dob'))
         b_age = calc_age(fighter_b.get('dob'))
+        # Live fallback when DOB is missing but scraped age exists.
+        if np.isnan(a_age):
+            a_age = get_f(fighter_a, 'age')
+        if np.isnan(b_age):
+            b_age = get_f(fighter_b, 'age')
 
     # === PHYSICAL ===
     a_height = parse_height(fighter_a.get('height'))

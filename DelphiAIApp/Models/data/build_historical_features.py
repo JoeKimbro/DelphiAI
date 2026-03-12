@@ -148,6 +148,7 @@ def _load_previous_fights_for_fighter(cur, fighter_id, fight_date, fight_id):
                 f.fightid,
                 f.date,
                 f.winnerid,
+                f.result,
                 f.method,
                 CASE WHEN f.fighterid = %s THEN f.opponentid ELSE f.fighterid END AS opponent_id,
                 eh.elobeforefight AS fighter_elo_before,
@@ -161,12 +162,12 @@ def _load_previous_fights_for_fighter(cur, fighter_id, fight_date, fight_id):
                AND eh_opp.fightid = f.fightid
             WHERE (f.fighterid = %s OR f.opponentid = %s)
               AND f.fighterid IS NOT NULL
-              AND f.opponentid IS NOT NULL
-              AND f.result = 'win'
-              AND f.winnerid IS NOT NULL
+              AND (f.winnerid IS NOT NULL OR f.result IN ('win', 'loss'))
               AND f.date IS NOT NULL
               AND (f.date < %s OR (f.date = %s AND f.fightid < %s))
-            ORDER BY f.fightid, f.date
+            ORDER BY f.fightid,
+                     CASE WHEN f.fighterid = f.winnerid THEN 0 ELSE 1 END,
+                     f.date
         ) x
         ORDER BY x.date ASC, x.fightid ASC
     """, (fighter_id, fighter_id, fighter_id, fighter_id, fighter_id, fight_date, fight_date, fight_id))
@@ -191,8 +192,19 @@ def _recompute_features_for_pair(cur, fighter_id, fight_id, fight_date):
 
     max_seen = None
     for pf in prev_fights:
-        pf_id, pf_date, pf_winner_id, pf_method, _opp_id, pf_elo_before, pf_elo_after, pf_opp_elo_before = pf
-        won = int(pf_winner_id) == int(fighter_id)
+        pf_id, pf_date, pf_winner_id, pf_result, pf_method, _opp_id, pf_elo_before, pf_elo_after, pf_opp_elo_before = pf
+        if pf_winner_id is not None:
+            winner_id = int(pf_winner_id)
+        else:
+            result_s = str(pf_result or "").strip().lower()
+            # In this query's canonical row, fighter_id is always in f.fighterid OR f.opponentid.
+            if result_s == 'win':
+                winner_id = int(fighter_id)
+            elif result_s == 'loss':
+                winner_id = -1  # any non-matching id means fighter lost
+            else:
+                winner_id = None
+        won = winner_id is not None and int(winner_id) == int(fighter_id)
         method_u = str(pf_method or "").upper()
         finish_win = won and (("KO" in method_u) or ("SUB" in method_u))
         elo_before = float(pf_elo_before) if pf_elo_before is not None else 1500.0
@@ -227,14 +239,14 @@ def run_leakage_audit(sample_fights=50, tolerance=0.02):
     # Recompute expected features for all fight-fighter pairs in builder order.
     cur.execute("""
         SELECT DISTINCT ON (f.fightid)
-            f.fightid, f.date, f.fighterid, f.opponentid, f.winnerid, f.method
+            f.fightid, f.date, f.fighterid, f.opponentid, f.winnerid, f.result, f.method
         FROM fights f
         WHERE f.date IS NOT NULL
           AND f.fighterid IS NOT NULL
-          AND f.opponentid IS NOT NULL
-          AND f.winnerid IS NOT NULL
-          AND f.result = 'win'
-        ORDER BY f.fightid, f.date
+          AND (f.winnerid IS NOT NULL OR f.result IN ('win', 'loss'))
+        ORDER BY f.fightid,
+                 CASE WHEN f.fighterid = f.winnerid THEN 0 ELSE 1 END,
+                 f.date
     """)
     fights = cur.fetchall()
     fights.sort(key=lambda r: (r[1], r[0]))
@@ -269,12 +281,21 @@ def run_leakage_audit(sample_fights=50, tolerance=0.02):
     })
 
     expected = {}
-    for fight_id, fight_date, f1_id, f2_id, winner_id, method in fights:
+    for fight_id, fight_date, f1_id, f2_id, winner_id, result, method in fights:
         f1_id = int(f1_id)
-        f2_id = int(f2_id)
-        winner_id = int(winner_id)
+        f2_id = int(f2_id) if f2_id is not None else None
+        if winner_id is not None:
+            winner_id = int(winner_id)
+        else:
+            result_s = str(result or "").strip().lower()
+            if result_s == 'win':
+                winner_id = f1_id
+            elif result_s == 'loss' and f2_id is not None:
+                winner_id = f2_id
+            else:
+                winner_id = None
 
-        fighter_ids = [f1_id] if f1_id == f2_id else [f1_id, f2_id]
+        fighter_ids = [f1_id] if (f2_id is None or f1_id == f2_id) else [f1_id, f2_id]
         for fighter_id in fighter_ids:
             expected[(fighter_id, int(fight_id))] = _calc_pre_fight_features(state[fighter_id])
 
@@ -282,17 +303,20 @@ def run_leakage_audit(sample_fights=50, tolerance=0.02):
             (f1_id, int(fight_id)),
             elo_map_by_date.get((f1_id, fight_date), (1500.0, 1500.0)),
         )
-        f2_before, f2_after = elo_map_by_fight.get(
-            (f2_id, int(fight_id)),
-            elo_map_by_date.get((f2_id, fight_date), (1500.0, 1500.0)),
-        )
+        if f2_id is not None:
+            f2_before, f2_after = elo_map_by_fight.get(
+                (f2_id, int(fight_id)),
+                elo_map_by_date.get((f2_id, fight_date), (1500.0, 1500.0)),
+            )
+        else:
+            f2_before, f2_after = (1500.0, 1500.0)
         method_u = str(method or "").upper()
-        f1_won = winner_id == f1_id
-        f2_won = winner_id == f2_id
+        f1_won = winner_id is not None and winner_id == f1_id
+        f2_won = winner_id is not None and winner_id == f2_id
         f1_finish_win = f1_won and (("KO" in method_u) or ("SUB" in method_u))
         f2_finish_win = f2_won and (("KO" in method_u) or ("SUB" in method_u))
         _update_state_after_fight(state[f1_id], f1_won, f2_before, f1_after - f1_before, f1_finish_win)
-        if f1_id != f2_id:
+        if f2_id is not None and f1_id != f2_id:
             _update_state_after_fight(state[f2_id], f2_won, f1_before, f2_after - f2_before, f2_finish_win)
 
     if not expected:
@@ -403,17 +427,18 @@ def build_historical_features(rebuild=True, batch_size=4000):
         cur.execute("TRUNCATE TABLE FighterHistoricalFeatures")
         conn.commit()
 
-    # One canonical row per fight (winner perspective) sorted by date.
+    # One canonical row per fight sorted by date.
+    # Prefer winner-perspective rows when both directions exist, but do not require them.
     cur.execute("""
         SELECT DISTINCT ON (f.fightid)
-            f.fightid, f.date, f.fighterid, f.opponentid, f.winnerid, f.method
+            f.fightid, f.date, f.fighterid, f.opponentid, f.winnerid, f.result, f.method
         FROM fights f
         WHERE f.date IS NOT NULL
           AND f.fighterid IS NOT NULL
-          AND f.opponentid IS NOT NULL
-          AND f.winnerid IS NOT NULL
-          AND f.result = 'win'
-        ORDER BY f.fightid, f.date
+          AND (f.winnerid IS NOT NULL OR f.result IN ('win', 'loss'))
+        ORDER BY f.fightid,
+                 CASE WHEN f.fighterid = f.winnerid THEN 0 ELSE 1 END,
+                 f.date
     """)
     fights = cur.fetchall()
     fights.sort(key=lambda r: (r[1], r[0]))
@@ -482,14 +507,23 @@ def build_historical_features(rebuild=True, batch_size=4000):
         conn.commit()
         records.clear()
 
-    for idx, (fight_id, fight_date, f1_id, f2_id, winner_id, method) in enumerate(fights, 1):
+    for idx, (fight_id, fight_date, f1_id, f2_id, winner_id, result, method) in enumerate(fights, 1):
         f1_id = int(f1_id)
-        f2_id = int(f2_id)
-        winner_id = int(winner_id)
+        f2_id = int(f2_id) if f2_id is not None else None
+        if winner_id is not None:
+            winner_id = int(winner_id)
+        else:
+            result_s = str(result or "").strip().lower()
+            if result_s == 'win':
+                winner_id = f1_id
+            elif result_s == 'loss' and f2_id is not None:
+                winner_id = f2_id
+            else:
+                winner_id = None
 
         # Compute pre-fight features for both sides before state update.
         # Guard against malformed rows where fighter_id == opponent_id.
-        fighter_ids = [f1_id] if f1_id == f2_id else [f1_id, f2_id]
+        fighter_ids = [f1_id] if (f2_id is None or f1_id == f2_id) else [f1_id, f2_id]
         for fighter_id in fighter_ids:
             feats = _calc_pre_fight_features(state[fighter_id])
             records.append((
@@ -507,20 +541,23 @@ def build_historical_features(rebuild=True, batch_size=4000):
             (f1_id, int(fight_id)),
             elo_map_by_date.get((f1_id, fight_date), (1500.0, 1500.0)),
         )
-        f2_before, f2_after = elo_map_by_fight.get(
-            (f2_id, int(fight_id)),
-            elo_map_by_date.get((f2_id, fight_date), (1500.0, 1500.0)),
-        )
+        if f2_id is not None:
+            f2_before, f2_after = elo_map_by_fight.get(
+                (f2_id, int(fight_id)),
+                elo_map_by_date.get((f2_id, fight_date), (1500.0, 1500.0)),
+            )
+        else:
+            f2_before, f2_after = (1500.0, 1500.0)
         f1_elo_change = f1_after - f1_before
         f2_elo_change = f2_after - f2_before
-        f1_won = winner_id == f1_id
-        f2_won = winner_id == f2_id
+        f1_won = winner_id is not None and winner_id == f1_id
+        f2_won = winner_id is not None and winner_id == f2_id
         method_u = str(method or "").upper()
         f1_finish_win = f1_won and (("KO" in method_u) or ("SUB" in method_u))
         f2_finish_win = f2_won and (("KO" in method_u) or ("SUB" in method_u))
 
         _update_state_after_fight(state[f1_id], f1_won, f2_before, f1_elo_change, f1_finish_win)
-        if f1_id != f2_id:
+        if f2_id is not None and f1_id != f2_id:
             _update_state_after_fight(state[f2_id], f2_won, f1_before, f2_elo_change, f2_finish_win)
 
         if idx % batch_size == 0:

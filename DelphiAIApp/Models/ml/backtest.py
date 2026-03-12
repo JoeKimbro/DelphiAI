@@ -429,8 +429,10 @@ def _predict_single_fight(conn, f1_data, f2_data, is_title=False):
             features = ml_result.get('features', {})
             nan_count = sum(1 for v in features.values()
                            if v is None or (isinstance(v, float) and math.isnan(v)))
+            total_features = max(len(features), 1)
+            max_allowed_nan = max(6, int(total_features * 0.45))
 
-            if nan_count <= 6:
+            if nan_count <= max_allowed_nan:
                 f1_swap = dict(f2_data)
                 f2_swap = dict(f1_data)
                 f1_swap['final_elo'] = f2_elo
@@ -451,7 +453,9 @@ def _predict_single_fight(conn, f1_data, f2_data, is_title=False):
 
                     # Mirror predict_card: tolerate moderate drift with reduced ML weight.
                     if sym_error <= 0.60:
-                        ml_weight = 0.50 - nan_count * 0.08 - max(0.0, sym_error - 0.20) * 0.60
+                        missing_ratio = nan_count / total_features
+                        missing_penalty = min(0.35, missing_ratio * 0.50)
+                        ml_weight = 0.50 - missing_penalty - max(0.0, sym_error - 0.20) * 0.60
                         ml_weight = max(0.15, min(0.50, ml_weight))
                         blended = ml_weight * corrected + (1 - ml_weight) * elo_prob_f1
                         blended = max(0.10, min(0.90, blended))

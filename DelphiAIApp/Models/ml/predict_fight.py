@@ -117,7 +117,11 @@ def get_fighter_data(conn, name):
             hf.elovelocity,
             hf.currentwinstreak,
             hf.finishratetrending,
-            hf.opponentqualitytrending
+            hf.opponentqualitytrending,
+            fs.dob,
+            fs.age,
+            livef.finish_rate,
+            livef.recent_form
         FROM fighterstats fs
         LEFT JOIN careerstats cs ON fs.fighterid = cs.fighterid
         LEFT JOIN LATERAL (
@@ -132,6 +136,51 @@ def get_fighter_data(conn, name):
             ORDER BY h.fightdate DESC, h.fightid DESC
             LIMIT 1
         ) hf ON TRUE
+        LEFT JOIN LATERAL (
+            WITH fighter_fights AS (
+                SELECT DISTINCT ON (f.fightid)
+                    f.fightid,
+                    f.date,
+                    (f.winnerid = fs.fighterid) AS won,
+                    CASE
+                        WHEN f.winnerid = fs.fighterid
+                             AND (
+                                 UPPER(COALESCE(f.method, '')) LIKE '%%KO%%'
+                                 OR UPPER(COALESCE(f.method, '')) LIKE '%%SUB%%'
+                             )
+                        THEN 1
+                        ELSE 0
+                    END AS finish_win
+                FROM fights f
+                WHERE (f.fighterid = fs.fighterid OR f.opponentid = fs.fighterid)
+                  AND f.date IS NOT NULL
+                  AND f.winnerid IS NOT NULL
+                ORDER BY f.fightid,
+                         CASE WHEN f.fighterid = fs.fighterid THEN 0 ELSE 1 END,
+                         f.date DESC
+            )
+            SELECT
+                CASE
+                    WHEN SUM(CASE WHEN won THEN 1 ELSE 0 END) > 0
+                    THEN SUM(finish_win)::float / SUM(CASE WHEN won THEN 1 ELSE 0 END)
+                    ELSE NULL
+                END AS finish_rate,
+                (
+                    SELECT
+                        CASE
+                            WHEN COUNT(*) > 0
+                            THEN AVG(CASE WHEN won THEN 1.0 ELSE 0.0 END)
+                            ELSE NULL
+                        END
+                    FROM (
+                        SELECT won
+                        FROM fighter_fights
+                        ORDER BY date DESC, fightid DESC
+                        LIMIT 5
+                    ) recent5
+                ) AS recent_form
+            FROM fighter_fights
+        ) livef ON TRUE
         WHERE fs.name ILIKE %s
            OR fs.name ILIKE %s
            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(fs.name),
@@ -192,6 +241,10 @@ def get_fighter_data(conn, name):
         'current_win_streak': int(row[37]) if row[37] is not None else 0,
         'finish_rate_trending': float(row[38]) if row[38] is not None else float('nan'),
         'opponent_quality_trending': float(row[39]) if row[39] is not None else float('nan'),
+        'dob': row[40],
+        'age': float(row[41]) if row[41] is not None else float('nan'),
+        'finish_rate': float(row[42]) if row[42] is not None else max(0.0, min(1.0, 1.0 - (float(row[21]) if row[21] is not None else 50.0) / 100.0)),
+        'recent_form': float(row[43]) if row[43] is not None else float('nan'),
     }
 
 
