@@ -82,12 +82,12 @@ ARTIFACTS_DIR = Path(__file__).parent / 'artifacts'
 # All 22 possible features V3 can produce (before correlation dropping).
 # The model's actual feature_cols may be a subset if correlation analysis dropped some.
 ALL_V3_FEATURES = [
-    'elo_diff', 'age_diff', 'height_diff', 'reach_diff',
+    'elo_diff', 'age_diff', 'height_diff', 'reach_diff', 'reach_relative_diff',
     'slpm_diff', 'stracc_diff', 'tdavg_diff', 'subavg_diff',
     'kd_rate_diff', 'win_rate_diff', 'recent_form_diff',
     'finish_rate_diff', 'experience_diff', 'avg_fight_time_diff',
     'opp_elo_last3_diff', 'elo_velocity_diff', 'win_streak_diff',
-    'finish_trending_diff', 'opp_quality_trending_diff',
+    'days_inactive_diff', 'finish_trending_diff', 'opp_quality_trending_diff',
     'avg_elo_level', 'opponent_elo', 'opponent_recent_form', 'opponent_finish_rate',
     'style_advantage', 'southpaw_advantage',
     'undefeated_prospect_diff', 'rising_prospect_diff', 'declining_veteran_diff',
@@ -231,8 +231,14 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
         b_age = calc_age(fighter_b.get('dob'))
         # Live fallback when DOB is missing but scraped age exists.
         if np.isnan(a_age):
+            if fighter_a.get('dob') is None:
+                print(f"[ML WARNING] Fighter '{fighter_a.get('name', '?')}' has no DOB; "
+                      f"falling back to stale age field — age_diff confidence reduced")
             a_age = get_f(fighter_a, 'age')
         if np.isnan(b_age):
+            if fighter_b.get('dob') is None:
+                print(f"[ML WARNING] Fighter '{fighter_b.get('name', '?')}' has no DOB; "
+                      f"falling back to stale age field — age_diff confidence reduced")
             b_age = get_f(fighter_b, 'age')
 
     # === PHYSICAL ===
@@ -276,6 +282,8 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
     b_finish_trending = get_f(fighter_b, 'finish_rate_trending')
     a_opp_quality_trending = get_f(fighter_a, 'opponent_quality_trending')
     b_opp_quality_trending = get_f(fighter_b, 'opponent_quality_trending')
+    a_days_inactive = get_f(fighter_a, 'days_since_last_fight', 0)
+    b_days_inactive = get_f(fighter_b, 'days_since_last_fight', 0)
 
     # If win_rate not provided, compute from wins/losses
     if np.isnan(a_win_rate):
@@ -317,6 +325,12 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
     age_diff = a_age - b_age if (not np.isnan(a_age) and not np.isnan(b_age)) else np.nan
     height_diff = a_height - b_height
     reach_diff = a_reach - b_reach
+    # Relative reach: (reach - height) differential — captures ape index advantage
+    reach_relative_diff = (
+        (a_reach - a_height) - (b_reach - b_height)
+        if not any(np.isnan(x) for x in [a_reach, a_height, b_reach, b_height])
+        else np.nan
+    )
     slpm_diff = a_slpm - b_slpm
     stracc_diff = a_stracc - b_stracc
     tdavg_diff = a_tdavg - b_tdavg
@@ -332,6 +346,7 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
     win_streak_diff = a_win_streak - b_win_streak
     finish_trending_diff = a_finish_trending - b_finish_trending
     opp_quality_trending_diff = a_opp_quality_trending - b_opp_quality_trending
+    days_inactive_diff = a_days_inactive - b_days_inactive
 
     # === NEW CONTEXT FEATURES (V3.1) ===
     avg_elo_level = (a_elo + b_elo) / 2.0
@@ -382,21 +397,13 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
         ) else 0
     )
 
-    if not np.isnan(a_recent) and not np.isnan(a_win_rate) and not np.isnan(b_recent) and not np.isnan(b_win_rate):
-        form_velocity_diff = (a_recent - a_win_rate) - (b_recent - b_win_rate)
-    else:
-        form_velocity_diff = np.nan
+    a_form_vel = (a_recent - a_win_rate) if (not np.isnan(a_recent) and not np.isnan(a_win_rate)) else 0.0
+    b_form_vel = (b_recent - b_win_rate) if (not np.isnan(b_recent) and not np.isnan(b_win_rate)) else 0.0
+    form_velocity_diff = a_form_vel - b_form_vel
 
-    a_offense = (
-        (a_slpm * max(a_stracc, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else np.nan
-    )
-    b_offense = (
-        (b_slpm * max(b_stracc, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else np.nan
-    )
-    if not np.isnan(a_offense) and not np.isnan(b_offense):
-        offensive_pressure_diff = a_offense - b_offense
-    else:
-        offensive_pressure_diff = np.nan
+    a_offense = (a_slpm * max(a_stracc, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else 0.0
+    b_offense = (b_slpm * max(b_stracc, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else 0.0
+    offensive_pressure_diff = a_offense - b_offense
 
     # === POLYNOMIAL ===
     elo_diff_sq = elo_diff ** 2 * np.sign(elo_diff)
@@ -444,6 +451,7 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
         'win_streak_diff': win_streak_diff,
         'finish_trending_diff': finish_trending_diff,
         'opp_quality_trending_diff': opp_quality_trending_diff,
+        'days_inactive_diff': days_inactive_diff,
         'avg_elo_level': avg_elo_level,
         'opponent_elo': opponent_elo,
         'opponent_recent_form': opponent_recent_form,
@@ -463,6 +471,7 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
         'reach_striking_interaction': reach_striking_interaction,
         'is_title_fight': is_title,
         'debut_diff': debut_diff,
+        'reach_relative_diff': reach_relative_diff,
     }
 
 
@@ -561,6 +570,8 @@ class MLPredictor:
 
             # Impute NaN with training median
             if np.isnan(val):
+                if col not in self.median_values:
+                    print(f"[ML WARNING] Feature '{col}' not in median_values; falling back to 0.0")
                 val = self.median_values.get(col, 0.0)
 
             values.append(val)

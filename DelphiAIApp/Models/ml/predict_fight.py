@@ -121,7 +121,16 @@ def get_fighter_data(conn, name):
             fs.dob,
             fs.age,
             livef.finish_rate,
-            livef.recent_form
+            livef.recent_form,
+            -- Point-in-time stats (most recent PIT entry = training distribution)
+            pitf.pit_slpm,
+            pitf.pit_stracc,
+            pitf.pit_tdavg,
+            pitf.pit_subavg,
+            pitf.pit_kdrate,
+            pitf.recentwinrate   AS pit_recent_win_rate,
+            pitf.avgfighttime    AS pit_avg_fight_time,
+            pitf.finishrate      AS pit_finish_rate
         FROM fighterstats fs
         LEFT JOIN careerstats cs ON fs.fighterid = cs.fighterid
         LEFT JOIN LATERAL (
@@ -181,6 +190,21 @@ def get_fighter_data(conn, name):
                 ) AS recent_form
             FROM fighter_fights
         ) livef ON TRUE
+        LEFT JOIN LATERAL (
+            SELECT
+                PIT_SLpM    AS pit_slpm,
+                PIT_StrAcc  AS pit_stracc,
+                PIT_TDAvg   AS pit_tdavg,
+                PIT_SubAvg  AS pit_subavg,
+                PIT_KDRate  AS pit_kdrate,
+                RecentWinRate,
+                AvgFightTime,
+                FinishRate
+            FROM PointInTimeStats pit
+            WHERE pit.FighterURL = fs.fighterurl
+            ORDER BY pit.FightDate DESC
+            LIMIT 1
+        ) pitf ON TRUE
         WHERE fs.name ILIKE %s
            OR fs.name ILIKE %s
            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(fs.name),
@@ -200,7 +224,7 @@ def get_fighter_data(conn, name):
     if not row:
         return None
     
-    return {
+    fighter_dict = {
         'id': row[0],
         'name': row[1],
         'nickname': row[2],
@@ -247,6 +271,26 @@ def get_fighter_data(conn, name):
         'recent_form': float(row[43]) if row[43] is not None else float('nan'),
     }
 
+    # Override career stats with most-recent PointInTimeStats when available.
+    # This ensures live predictions use the same feature distribution as training,
+    # which was built on point-in-time stats (stats before each fight), not
+    # the cumulative career stats that include post-fight updates.
+    pit_overrides = {
+        'slpm':              row[44],
+        'str_acc':           row[45],
+        'td_avg':            row[46],
+        'sub_avg':           row[47],
+        'kd_rate':           row[48],
+        'recent_form':       row[49],
+        'avg_fight_duration': row[50],
+        'finish_rate':       row[51],
+    }
+    for key, val in pit_overrides.items():
+        if val is not None:
+            fighter_dict[key] = float(val)
+
+    return fighter_dict
+
 
 def elo_to_probability(elo_a, elo_b):
     """Convert ELO ratings to win probability."""
@@ -292,13 +336,21 @@ def calculate_elo_adjustments(fighter_data, force_injury_refresh=False):
     raw_elo = float(fighter_data.get('elo', 1500.0) or 1500.0)
     name = fighter_data.get('name', '')
 
-    # Inactivity decay (ring rust): only decay ratings above baseline.
+    # Inactivity decay (ring rust): bracketed decay matching update_adjusted_elos.py.
     days_since = fighter_data.get('days_since_last_fight', 0) or 0
     inactivity_penalty = 0
     if days_since > 180:
         years_inactive = days_since / 365.0
-        decay_rate = min(0.05 * years_inactive, 0.25)
-        inactivity_penalty = int(max(raw_elo - 1500.0, 0.0) * decay_rate)
+        if days_since <= 365:       # 6-12 months
+            decay_rate, flat_penalty = 0.08, 10
+        elif days_since <= 540:     # 12-18 months
+            decay_rate, flat_penalty = 0.12, 20
+        elif days_since <= 730:     # 18-24 months
+            decay_rate, flat_penalty = 0.18, 30
+        else:                       # 24+ months
+            decay_rate, flat_penalty = 0.25, 40
+        effective_decay = min(decay_rate * years_inactive, 0.35)
+        inactivity_penalty = int(max(raw_elo - 1500.0, 0.0) * effective_decay) + flat_penalty
 
     # Injury penalty, prefer cached value unless stale/forced.
     injury_penalty = 0

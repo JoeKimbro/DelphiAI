@@ -665,6 +665,12 @@ def run_backtest(conn, start_date, end_date, event_filter=None, clear=False):
             pred['event_name'] = event_name
             pred['event_date'] = str(event_date)
 
+            # Tag coverage quality: 'full' only when both fighters had historical
+            # ELO and point-in-time stats (no current-data fallbacks).
+            _elo_full = (hist_elo_f1 is not None) and (hist_elo_f2 is not None)
+            _pit_full = (pit_f1 is not None) and (pit_f2 is not None)
+            pred['_coverage_quality'] = 'full' if (_elo_full and _pit_full) else 'partial'
+
             event_preds.append(pred)
             all_results.append(pred)
 
@@ -804,6 +810,21 @@ def _print_backtest_report(results, event_summaries, start_date, end_date,
     print(f"    Total Predictions: {total}")
     print(f"    Correct:           {correct}")
     print(f"    Accuracy:          {accuracy:.1f}%")
+
+    # ---------- COVERAGE-SPLIT ACCURACY ----------
+    full_results    = [r for r in results if r.get('_coverage_quality') == 'full']
+    partial_results = [r for r in results if r.get('_coverage_quality') != 'full']
+
+    if full_results or partial_results:
+        print(f"\n  BY COVERAGE QUALITY:")
+        for label, subset in [('Full (ELO+PIT historical)', full_results),
+                               ('Partial (any fallback)',    partial_results)]:
+            if not subset:
+                continue
+            s_correct = sum(1 for r in subset if r['was_correct'])
+            s_acc = s_correct / len(subset) * 100
+            icon = "\u2705" if s_acc >= 60 else "\u26a0\ufe0f" if s_acc >= 50 else "\u274c"
+            print(f"    {icon} {label:<36}: {s_correct}/{len(subset)} ({s_acc:.1f}%)")
 
     # ---------- LEAKAGE DETECTION ----------
     if accuracy > LEAKAGE_THRESHOLD:
