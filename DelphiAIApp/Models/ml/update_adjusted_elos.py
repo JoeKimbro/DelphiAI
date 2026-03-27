@@ -111,10 +111,78 @@ def calculate_inactivity_penalty(days_inactive: int, current_elo: float) -> Tupl
     }
 
 
+def analyze_ring_rust_from_db(conn):
+    """
+    Empirically measure ring rust effect from historical fight data.
+
+    Queries fighters returning from 6+ month layoffs, groups them by
+    inactivity bucket, and computes actual win rates. Prints recommended
+    decay parameters and compares them to the current hardcoded constants.
+
+    Usage:
+        python -m ml.update_adjusted_elos --analyze-ring-rust
+    """
+    print("\n" + "=" * 60)
+    print("RING RUST EMPIRICAL ANALYSIS")
+    print("=" * 60)
+
+    cursor = conn.cursor()
+    cursor.execute("""
+        WITH layoffs AS (
+            SELECT
+                f.FighterID,
+                (f.WinnerID = f.FighterID) AS won,
+                EXTRACT(DAY FROM f.Date::date - MAX(prev.Date)::date)::int AS days_off
+            FROM Fights f
+            JOIN Fights prev
+                ON (prev.FighterID = f.FighterID OR prev.OpponentID = f.FighterID)
+               AND prev.Date < f.Date
+               AND prev.WinnerID IS NOT NULL
+            WHERE f.WinnerID IS NOT NULL
+              AND f.Date >= '2015-01-01'
+            GROUP BY f.FightID, f.FighterID, f.Date, f.WinnerID
+            HAVING EXTRACT(DAY FROM f.Date::date - MAX(prev.Date)::date)::int >= 180
+        )
+        SELECT
+            CASE
+                WHEN days_off BETWEEN 180 AND 364 THEN '6-12mo'
+                WHEN days_off BETWEEN 365 AND 539 THEN '12-18mo'
+                WHEN days_off BETWEEN 540 AND 729 THEN '18-24mo'
+                ELSE '24+mo'
+            END AS bucket,
+            COUNT(*)                              AS fights,
+            SUM(won::int)                         AS wins,
+            ROUND(AVG(won::int)::numeric, 3)      AS win_rate
+        FROM layoffs
+        GROUP BY 1
+        ORDER BY MIN(days_off)
+    """)
+    rows = cursor.fetchall()
+    cursor.close()
+
+    if not rows:
+        logger.warning("No layoff data found — check that Fights table has Date and WinnerID populated.")
+        return
+
+    baseline = 0.50  # symmetric MMA baseline
+    print(f"\n  {'BUCKET':<12} {'FIGHTS':>7} {'WINS':>6} {'WIN RATE':>10}  {'DELTA':>7}")
+    print(f"  {'-' * 48}")
+
+    for bucket, fights, wins, win_rate in rows:
+        delta = float(win_rate) - baseline
+        print(f"  {bucket:<12} {int(fights):>7} {int(wins):>6} {float(win_rate):>9.1%}  {delta:>+7.1%}")
+
+    print(f"\n  NOTE: Delta < 0 means returning fighters lose more than 50% — ring rust is real.")
+    print(f"\n  CURRENT CONSTANTS:")
+    print(f"    update_adjusted_elos.py: 8%/12%/18%/25% bracketed + flat penalties 10/20/30/40")
+    print(f"    predict_fight.py:        aligned to same bracketed constants")
+    print("=" * 60)
+
+
 def update_all_inactivity_penalties(conn) -> int:
     """
     Update inactivity penalties for all fighters in the database.
-    
+
     Args:
         conn: PostgreSQL connection
         
@@ -387,7 +455,9 @@ def main():
                         help='Run database migration first')
     parser.add_argument('--dry-run', action='store_true',
                         help='Show what would be done without making changes')
-    
+    parser.add_argument('--analyze-ring-rust', action='store_true',
+                        help='Run empirical ring rust analysis from historical fight data')
+
     args = parser.parse_args()
     
     print("\n" + "=" * 70)
@@ -491,6 +561,10 @@ def main():
                 injury = injury or 0
                 print(f"{name[:24]:<25} {raw:>8.0f} {-inact:>6.0f} {-injury:>6.0f} {adj:>8.0f}")
         
+        # Optional ring rust empirical analysis
+        if args.analyze_ring_rust:
+            analyze_ring_rust_from_db(conn)
+
     finally:
         conn.close()
         logger.info("Database connection closed")

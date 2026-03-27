@@ -148,7 +148,21 @@ def load_training_data(min_year=None):
         hf2.EloVelocity as f2_elo_velocity,
         hf2.CurrentWinStreak as f2_win_streak,
         hf2.FinishRateTrending as f2_finish_rate_trending,
-        hf2.OpponentQualityTrending as f2_opp_quality_trending
+        hf2.OpponentQualityTrending as f2_opp_quality_trending,
+        -- Days since last fight at fight time (point-in-time safe: only prior fights).
+        -- date - date returns an integer (days) in PostgreSQL; no EXTRACT needed.
+        (SELECT COALESCE((f.Date::date - MAX(prev.Date)::date), 0)
+         FROM Fights prev
+         WHERE (prev.FighterID = f.FighterID OR prev.OpponentID = f.FighterID)
+           AND prev.Date < f.Date
+           AND prev.WinnerID IS NOT NULL
+        ) as f1_days_since_last_fight,
+        (SELECT COALESCE((f.Date::date - MAX(prev.Date)::date), 0)
+         FROM Fights prev
+         WHERE (prev.FighterID = f.OpponentID OR prev.OpponentID = f.OpponentID)
+           AND prev.Date < f.Date
+           AND prev.WinnerID IS NOT NULL
+        ) as f2_days_since_last_fight
     FROM Fights f
     LEFT JOIN FighterStats fs1 ON f.FighterID = fs1.FighterID
     LEFT JOIN FighterStats fs2 ON f.OpponentID = fs2.FighterID
@@ -379,6 +393,12 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
             b_finish_trending = get_val(f'{b_prefix}finish_rate_trending')
             a_opp_quality_trending = get_val(f'{a_prefix}opp_quality_trending')
             b_opp_quality_trending = get_val(f'{b_prefix}opp_quality_trending')
+            a_days_inactive = get_val(f'{a_prefix}days_since_last_fight')
+            b_days_inactive = get_val(f'{b_prefix}days_since_last_fight')
+            if np.isnan(a_days_inactive):
+                a_days_inactive = 0.0
+            if np.isnan(b_days_inactive):
+                b_days_inactive = 0.0
 
             # === STYLE CLASSIFICATION ===
             a_style = classify_fighting_style(a_slpm, a_tdavg, a_subavg)
@@ -398,6 +418,11 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
             age_diff = a_age - b_age if (not np.isnan(a_age) and not np.isnan(b_age)) else np.nan
             height_diff = a_height - b_height
             reach_diff = a_reach - b_reach
+            reach_relative_diff = (
+                (a_reach - a_height) - (b_reach - b_height)
+                if not any(np.isnan(x) for x in [a_reach, a_height, b_reach, b_height])
+                else np.nan
+            )
             slpm_diff = a_slpm - b_slpm
             stracc_diff = a_stracc - b_stracc
             tdavg_diff = a_tdavg - b_tdavg
@@ -413,6 +438,7 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
             win_streak_diff = a_win_streak - b_win_streak
             finish_trending_diff = a_finish_trending - b_finish_trending
             opp_quality_trending_diff = a_opp_quality_trending - b_opp_quality_trending
+            days_inactive_diff = a_days_inactive - b_days_inactive
 
             # === NEW CONTEXT FEATURES (V3.1) ===
             avg_elo_level = (a_elo + b_elo) / 2.0
@@ -466,21 +492,13 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
             )
 
             # "Velocity" proxies from point-in-time stats.
-            if not np.isnan(a_recent) and not np.isnan(a_win_rate) and not np.isnan(b_recent) and not np.isnan(b_win_rate):
-                form_velocity_diff = (a_recent - a_win_rate) - (b_recent - b_win_rate)
-            else:
-                form_velocity_diff = np.nan
+            a_form_vel = (a_recent - a_win_rate) if (not np.isnan(a_recent) and not np.isnan(a_win_rate)) else 0.0
+            b_form_vel = (b_recent - b_win_rate) if (not np.isnan(b_recent) and not np.isnan(b_win_rate)) else 0.0
+            form_velocity_diff = a_form_vel - b_form_vel
 
-            a_offense = (
-                (a_slpm * max(a_stracc, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else np.nan
-            )
-            b_offense = (
-                (b_slpm * max(b_stracc, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else np.nan
-            )
-            if not np.isnan(a_offense) and not np.isnan(b_offense):
-                offensive_pressure_diff = a_offense - b_offense
-            else:
-                offensive_pressure_diff = np.nan
+            a_offense = (a_slpm * max(a_stracc, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else 0.0
+            b_offense = (b_slpm * max(b_stracc, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else 0.0
+            offensive_pressure_diff = a_offense - b_offense
 
             # === POLYNOMIAL FEATURES ===
             elo_diff_sq = elo_diff ** 2 * np.sign(elo_diff)
@@ -535,6 +553,7 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
                 'win_streak_diff': win_streak_diff,
                 'finish_trending_diff': finish_trending_diff,
                 'opp_quality_trending_diff': opp_quality_trending_diff,
+                'days_inactive_diff': days_inactive_diff,
                 'avg_elo_level': avg_elo_level,
                 'opponent_elo': opponent_elo,
                 'opponent_recent_form': opponent_recent_form,
@@ -554,6 +573,7 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
                 'reach_striking_interaction': reach_striking_interaction,
                 'is_title_fight': is_title,
                 'debut_diff': debut_diff,
+                'reach_relative_diff': reach_relative_diff,
             })
 
     df = pd.DataFrame(features)
@@ -576,12 +596,12 @@ def get_feature_columns_v3():
     """
     return [
         # Base differentials
-        'elo_diff', 'age_diff', 'height_diff', 'reach_diff',
+        'elo_diff', 'age_diff', 'height_diff', 'reach_diff', 'reach_relative_diff',
         'slpm_diff', 'stracc_diff', 'tdavg_diff', 'subavg_diff',
         'kd_rate_diff', 'win_rate_diff', 'recent_form_diff',
         'finish_rate_diff', 'experience_diff', 'avg_fight_time_diff',
         'opp_elo_last3_diff', 'elo_velocity_diff', 'win_streak_diff',
-        'finish_trending_diff', 'opp_quality_trending_diff',
+        'days_inactive_diff', 'finish_trending_diff', 'opp_quality_trending_diff',
         # Opponent quality / context
         'avg_elo_level', 'opponent_elo', 'opponent_recent_form', 'opponent_finish_rate',
         # Style/stance (2)
@@ -1430,8 +1450,8 @@ Examples:
           f"({val_df['fight_date'].min().date()} to {val_df['fight_date'].max().date()})")
     print(f"   Holdout:  {len(holdout_df):5d} rows / {len(holdout_ids):4d} fights "
           f"({holdout_df['fight_date'].min().date()} to {holdout_df['fight_date'].max().date()})")
-    print(f"   Overlap check (fight_id): train∩val={overlap_train_val}, "
-          f"train∩holdout={overlap_train_holdout}, val∩holdout={overlap_val_holdout}")
+    print(f"   Overlap check (fight_id): train&val={overlap_train_val}, "
+          f"train&holdout={overlap_train_holdout}, val&holdout={overlap_val_holdout}")
     assert overlap_train_val == 0 and overlap_train_holdout == 0 and overlap_val_holdout == 0, \
         "FIGHT_ID LEAK: same fight appears across splits!"
 
