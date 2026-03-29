@@ -81,15 +81,28 @@ class BaseEloSystem:
         """
         return 1 / (1 + 10 ** ((elo_b - elo_a) / 400))
     
-    def calculate_k_factor(self, fight_type, method, round_num):
+    def calculate_k_factor(self, fight_type, method, round_num, fight_count=None):
         """
-        Calculate dynamic K-factor based on fight importance and finish.
+        Calculate dynamic K-factor based on fight importance, finish, and fighter experience.
+        Fighters with fewer fights get a higher K-factor (more uncertain true rating).
         """
         k = self.BASE_K_FACTOR
-        
+
+        # Experience multiplier: fewer fights = faster ELO movement
+        if fight_count is not None:
+            if fight_count < 5:
+                k *= 2.0    # Very new — highly uncertain
+            elif fight_count < 10:
+                k *= 1.5    # Rising prospect — still proving themselves
+            elif fight_count < 15:
+                k *= 1.25   # Developing — moderate uncertainty
+            elif fight_count < 20:
+                k *= 1.1    # Experienced but not fully established
+            # 20+ fights: k *= 1.0 (established, baseline)
+
         # Fight importance
         k *= self.FIGHT_IMPORTANCE.get(fight_type, 1.0)
-        
+
         # Method bonus
         method_upper = (method or '').upper()
         if 'KO' in method_upper or 'TKO' in method_upper:
@@ -98,11 +111,11 @@ class BaseEloSystem:
             k *= self.FINISH_BONUS['SUB']
         elif 'DEC' in method_upper:
             k *= self.FINISH_BONUS['DEC']
-        
+
         # Round bonus
         if round_num and round_num in self.ROUND_BONUS:
             k *= self.ROUND_BONUS[round_num]
-        
+
         return k
     
     def apply_mean_reversion(self, fighter_url, current_date):
@@ -153,9 +166,12 @@ class BaseEloSystem:
         winner_expected = self.expected_outcome(winner_elo, loser_elo)
         loser_expected = 1 - winner_expected
         
-        # Calculate K-factor
-        k = self.calculate_k_factor(fight_type, method, round_num)
-        
+        # Calculate per-fighter K-factors based on experience
+        winner_fights = len(self.elo_history.get(winner_url, []))
+        loser_fights = len(self.elo_history.get(loser_url, []))
+        k_winner = self.calculate_k_factor(fight_type, method, round_num, winner_fights)
+        k_loser = self.calculate_k_factor(fight_type, method, round_num, loser_fights)
+
         if is_draw:
             # Draw: both get partial credit
             winner_actual = 0.5
@@ -163,10 +179,10 @@ class BaseEloSystem:
         else:
             winner_actual = 1.0
             loser_actual = 0.0
-        
-        # Calculate ELO changes
-        winner_change = k * (winner_actual - winner_expected)
-        loser_change = k * (loser_actual - loser_expected)
+
+        # Calculate ELO changes using per-fighter K
+        winner_change = k_winner * (winner_actual - winner_expected)
+        loser_change = k_loser * (loser_actual - loser_expected)
         
         # Update ratings
         new_winner_elo = winner_elo + winner_change
@@ -653,19 +669,22 @@ class EnhancedEloSystem(BaseEloSystem):
         winner_expected = self.calculate_enhanced_expected(winner_url, loser_url, fight_date)
         loser_expected = 1 - winner_expected
         
-        # Calculate K-factor
-        k = self.calculate_k_factor(fight_type, method, round_num)
-        
+        # Calculate per-fighter K-factors based on experience
+        winner_fights = len(self.elo_history.get(winner_url, []))
+        loser_fights = len(self.elo_history.get(loser_url, []))
+        k_winner = self.calculate_k_factor(fight_type, method, round_num, winner_fights)
+        k_loser = self.calculate_k_factor(fight_type, method, round_num, loser_fights)
+
         if is_draw:
             winner_actual = 0.5
             loser_actual = 0.5
         else:
             winner_actual = 1.0
             loser_actual = 0.0
-        
-        # Calculate ELO changes
-        winner_change = k * (winner_actual - winner_expected)
-        loser_change = k * (loser_actual - loser_expected)
+
+        # Calculate ELO changes using per-fighter K
+        winner_change = k_winner * (winner_actual - winner_expected)
+        loser_change = k_loser * (loser_actual - loser_expected)
         
         # Update ratings
         new_winner_elo = winner_elo + winner_change

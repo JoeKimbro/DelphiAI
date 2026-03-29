@@ -44,6 +44,11 @@ import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 
+try:
+    from ml.scrape_fighter_on_demand import scrape_and_add_fighter as _scrape_and_add_fighter
+except ImportError:
+    _scrape_and_add_fighter = None
+
 
 # Load environment
 env_path = Path(__file__).parent.parent.parent.parent / '.env'
@@ -719,9 +724,17 @@ def predict_full_card(conn, fights, event_name='', event_date='',
             first_initial = parts[0][0] if parts[0] else ''
             f2 = _fuzzy_fighter_lookup(conn, get_fighter_data, last, first_initial, full_name=f2_name)
 
+        # Auto-scrape: if still missing, fetch from UFCStats and add to DB
+        if _scrape_and_add_fighter is not None:
+            if not f1:
+                print(f"\n    [AUTO-SCRAPE] {f1_name} not in DB — searching UFCStats...", end='', flush=True)
+                f1 = _scrape_and_add_fighter(f1_name, conn)
+                print(" added!" if f1 else " not found.")
+            if not f2:
+                print(f"\n    [AUTO-SCRAPE] {f2_name} not in DB — searching UFCStats...", end='', flush=True)
+                f2 = _scrape_and_add_fighter(f2_name, conn)
+                print(" added!" if f2 else " not found.")
 
-
-        
         if not f1 or not f2:
             missing = []
             if not f1:
