@@ -557,6 +557,8 @@ def main():
             print(f"{'Fighter':<25} {'Raw':>8} {'Inact':>6} {'Injury':>6} {'Adj':>8}")
             print("-" * 70)
             for name, raw, inact, injury, adj, days in results:
+                if raw is None or adj is None:
+                    continue
                 inact = inact or 0
                 injury = injury or 0
                 print(f"{name[:24]:<25} {raw:>8.0f} {-inact:>6.0f} {-injury:>6.0f} {adj:>8.0f}")

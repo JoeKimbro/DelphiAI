@@ -1,39 +1,39 @@
 {
-  "completed_at": "2026-02-05T18:30:51.532743",
-  "duration_seconds": 2048.628747,
+  "completed_at": "2026-03-29T01:16:28.646778",
+  "duration_seconds": 6412.440539,
   "reason": "finished",
   "fighters": {
-    "total": 3090,
-    "active": 935,
-    "inactive": 2155
+    "total": 3095,
+    "active": 928,
+    "inactive": 2167
   },
   "career_stats": {
-    "total": 2956
+    "total": 2964
   },
   "fights": {
-    "total": 19186,
-    "wins": 9705,
-    "losses": 9138,
-    "draws": 142,
+    "total": 19367,
+    "wins": 9795,
+    "losses": 9227,
+    "draws": 144,
     "nc": 201
   },
-  "duplicates_filtered": 56,
+  "duplicates_filtered": 57,
   "validation_drops": 0,
   "missing_data": {
-    "no_dob": 273,
-    "no_height": 58,
-    "no_reach": 664,
-    "no_stats": 248
+    "no_dob": 270,
+    "no_height": 59,
+    "no_reach": 665,
+    "no_stats": 249
   },
-  "requests": 12303,
-  "responses": 12303,
+  "requests": 12325,
+  "responses": 12325,
   "errors": 0,
   "top_methods": {
-    "U-DEC": 6653,
-    "KO/TKO": 6406,
-    "SUB": 3862,
-    "S-DEC": 1777,
-    "M-DEC": 203,
+    "U-DEC": 6738,
+    "KO/TKO": 6462,
+    "SUB": 3881,
+    "S-DEC": 1794,
+    "M-DEC": 207,
     "Overturned": 125,
     "CNC": 79,
     "DQ": 61,

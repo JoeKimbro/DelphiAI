@@ -104,9 +104,9 @@
       "ufc_url": "https://www.ufc.com/athlete/reinier-de-ridder",
       "is_active": true,
       "wins": 21,
-      "losses": 3,
+      "losses": 4,
       "draws": 0,
-      "total_fights": 24
+      "total_fights": 25
     },
     "jack della maddalena": {
       "height": "71.00",
@@ -626,9 +626,9 @@
       "ufc_url": "https://www.ufc.com/athlete/yadier-del-valle",
       "is_active": true,
       "wins": 10,
-      "losses": 0,
+      "losses": 1,
       "draws": 0,
-      "total_fights": 10
+      "total_fights": 11
     },
     "germaine de randamie": {
       "height": "69.00",
@@ -912,11 +912,11 @@
       "place_of_birth": "Santa Cruz, Bolivia",
       "leg_reach": "40.00",
       "ufc_url": "https://www.ufc.com/athlete/jose-daniel-medina",
-      "is_active": true,
+      "is_active": false,
       "wins": 11,
-      "losses": 6,
+      "losses": 7,
       "draws": 0,
-      "total_fights": 17
+      "total_fights": 18
     },
     "sean daughtery": {
       "height": "0.00",
@@ -1274,9 +1274,9 @@
       "ufc_url": "https://www.ufc.com/athlete/michael-aswell",
       "is_active": true,
       "wins": 11,
-      "losses": 3,
+      "losses": 4,
       "draws": 0,
-      "total_fights": 14
+      "total_fights": 15
     },
     "leonardo augusto leleco": {
       "height": "72.00",
@@ -1471,10 +1471,10 @@
       "leg_reach": "38.50",
       "ufc_url": "https://www.ufc.com/athlete/sumudaerji",
       "is_active": true,
-      "wins": 18,
+      "wins": 19,
       "losses": 7,
       "draws": 0,
-      "total_fights": 25
+      "total_fights": 26
     },
     "robbie peralta": {
       "height": "68.00",
@@ -2192,9 +2192,9 @@
       "ufc_url": "https://www.ufc.com/athlete/douglas-silva-de-andrade",
       "is_active": true,
       "wins": 29,
-      "losses": 6,
+      "losses": 7,
       "draws": 0,
-      "total_fights": 35
+      "total_fights": 36
     },
     "michael smith": {
       "height": "71.00",
@@ -2612,7 +2612,7 @@
     },
     "benoit saint denis": {
       "height": "71.00",
-      "weight": "155.60",
+      "weight": "170.90",
       "reach": "73.00",
       "stance": "MMA",
       "dob": null,
@@ -2810,5 +2810,5 @@
     }
   },
   "stats": {},
-  "updated_at": "2026-02-06T00:30:51.126481"
+  "updated_at": "2026-03-29T06:16:28.373934"
 }

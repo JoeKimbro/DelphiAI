@@ -1,26 +1,26 @@
-Content-Length: 28783
+Content-Length: 32284
 Cache-Control: max-age=86400, public
 Content-Encoding: gzip
 Content-Language: en
 Content-Type: text/html; charset=UTF-8
-Etag: W/"1770330049"
+Etag: W/"1774761982"
 Expires: Sun, 19 Nov 1978 05:00:00 GMT
-Last-Modified: Thu, 05 Feb 2026 22:20:49 GMT
+Last-Modified: Sun, 29 Mar 2026 05:26:22 GMT
 Server: nginx
 X-Content-Type-Options: nosniff
-X-Drupal-Dynamic-Cache: MISS
+X-Drupal-Dynamic-Cache: HIT
 X-Frame-Options: SAMEORIGIN
 X-Generator: Drupal 10 (https://www.drupal.org)
-X-Pantheon-Styx-Hostname: styx-fe1-b-6d866b556d-2hs78
-X-Styx-Req-Id: ed0ff450-02e0-11f1-af4b-ee718359e0de
-Age: 0
+X-Pantheon-Styx-Hostname: styx-us-a-69c5cff8b9-hfjk7
+X-Styx-Req-Id: d29add23-2b2f-11f1-8e2e-929a90010c7c
+Age: 1913
 Accept-Ranges: bytes
 Via: 1.1 varnish, 1.1 varnish, 1.1 varnish
-Date: Thu, 05 Feb 2026 22:20:50 GMT
+Date: Sun, 29 Mar 2026 05:58:14 GMT
 Strict-Transport-Security: max-age=300; includeSubDomains;
-X-Served-By: cache-chi-kigq8000142-CHI, cache-dfw-kdal2120058-DFW, cache-dfw-ktki8620022-DFW
-X-Cache: MISS, MISS, MISS
-X-Cache-Hits: 0, 0, 0
-X-Timer: S1770330050.806090,VS0,VE661
+X-Served-By: cache-chi-kigq8000142-CHI, cache-dfw-kdal2120058-DFW, cache-dfw-kdal2120115-DFW
+X-Cache: HIT, MISS, MISS
+X-Cache-Hits: 2, 0, 0
+X-Timer: S1774763895.825567,VS0,VE28
 Vary: Accept-Encoding, x-zone-langcode, Cookie, Cookie
-Set-Cookie: STYXKEY_region=USA.US.en.Default; path=/; expires=Sat, 07 Feb 2026 22:20:50 GMT
+Set-Cookie: STYXKEY_region=USA.US.en.Default; path=/; expires=Tue, 31 Mar 2026 05:58:14 GMT
