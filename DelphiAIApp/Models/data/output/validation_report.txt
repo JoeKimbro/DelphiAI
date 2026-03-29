@@ -1,6 +1,6 @@
 ======================================================================
 UFC DATA VALIDATION REPORT
-Generated: 2026-02-05 19:49:27
+Generated: 2026-03-29 01:16:30
 ======================================================================
 
 [SUMMARY]
@@ -11,19 +11,19 @@ Generated: 2026-02-05 19:49:27
 
 [!] WARNINGS (Review Recommended)
 ----------------------------------------
-  [fighters] Missing weight_class (count: 110)
+  [fighters] Missing weight_class (count: 112)
   [fighters] Wins out of expected range (0-100) (count: 2)
-  [career_stats] slpm unusually high (>20) (count: 2)
+  [career_stats] slpm unusually high (>20) (count: 1)
   [career_stats] sapm unusually high (>20) (count: 3)
-  [career_stats] td_avg unusually high (>20) (count: 1)
   [career_stats] sub_avg unusually high (>20) (count: 2)
+  [career_stats] Missing elo_rating (count: 2942)
   [fights] Round outside 1-5 range (count: 2)
 
 [i] INFO
 ----------------------------------------
-  [fighters] Total records: 3090
-  [career_stats] Total records: 2934
-  [fights] Total records: 10482
+  [fighters] Total records: 3098
+  [career_stats] Total records: 2942
+  [fights] Total records: 10575
 
 ======================================================================
 [OK] RECOMMENDATION: Data is ready for database upload
