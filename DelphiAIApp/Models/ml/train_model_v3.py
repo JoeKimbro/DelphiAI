@@ -986,7 +986,13 @@ def bootstrap_confidence_interval(y_true, y_probs, n_bootstrap=1000, seed=42):
 
 def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
     """
-    Chronological split by unique fight_id, not by augmented rows.
+    Date-based chronological split: train on pre-2024, calibrate on 2024,
+    hold out 2025+. Falls back to percentage-based split if there are fewer
+    than 50 fights in either the calibration or holdout year windows.
+
+    Using date cutoffs instead of percentage fractions ensures the calibrator
+    is trained on fights temporally close to the evaluation period, preventing
+    distribution shift between the calibration set and live predictions.
     """
     fights = (
         features_df[['fight_id', 'fight_date']]
@@ -994,16 +1000,27 @@ def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
         .sort_values(['fight_date', 'fight_id'])
         .reset_index(drop=True)
     )
-    n_fights = len(fights)
-    train_end = int(n_fights * train_frac)
-    val_end = int(n_fights * (train_frac + val_frac))
+    fights['fight_date'] = pd.to_datetime(fights['fight_date'])
 
-    train_ids = set(fights.iloc[:train_end]['fight_id'])
-    val_ids = set(fights.iloc[train_end:val_end]['fight_id'])
-    holdout_ids = set(fights.iloc[val_end:]['fight_id'])
+    train_ids   = set(fights[fights['fight_date'] <  '2024-01-01']['fight_id'])
+    val_ids     = set(fights[(fights['fight_date'] >= '2024-01-01') &
+                              (fights['fight_date'] <  '2025-01-01')]['fight_id'])
+    holdout_ids = set(fights[fights['fight_date'] >= '2025-01-01']['fight_id'])
 
-    train_df = features_df[features_df['fight_id'].isin(train_ids)].copy()
-    val_df = features_df[features_df['fight_id'].isin(val_ids)].copy()
+    # Fall back to percentage split if any window is too small
+    if len(val_ids) < 50 or len(holdout_ids) < 50:
+        print(f"   [INFO] Date-based split too small "
+              f"(val={len(val_ids)}, holdout={len(holdout_ids)}), "
+              f"falling back to 70/15/15 split")
+        n_fights = len(fights)
+        train_end = int(n_fights * train_frac)
+        val_end = int(n_fights * (train_frac + val_frac))
+        train_ids   = set(fights.iloc[:train_end]['fight_id'])
+        val_ids     = set(fights.iloc[train_end:val_end]['fight_id'])
+        holdout_ids = set(fights.iloc[val_end:]['fight_id'])
+
+    train_df   = features_df[features_df['fight_id'].isin(train_ids)].copy()
+    val_df     = features_df[features_df['fight_id'].isin(val_ids)].copy()
     holdout_df = features_df[features_df['fight_id'].isin(holdout_ids)].copy()
     return train_df, val_df, holdout_df
 
