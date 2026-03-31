@@ -27,6 +27,7 @@ from datetime import datetime, date
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import LogisticRegression
 
 # Try to import style classifier
 try:
@@ -37,33 +38,48 @@ except ModuleNotFoundError:
 
 class IsotonicCalibrator(BaseEstimator, ClassifierMixin):
     """
-    Manually calibrate a pre-fitted classifier using isotonic regression.
-    
-    Replaces CalibratedClassifierCV(cv='prefit') which was removed in 
-    scikit-learn >= 1.6.
-    
+    Calibrate a pre-fitted classifier using Platt scaling (sigmoid) by default,
+    with isotonic regression as a fallback option.
+
+    Platt scaling fits a smooth logistic curve over raw probabilities and is
+    more robust than isotonic regression when the calibration set is small or
+    when the raw probability distribution shifts (e.g. after an ELO rebuild).
+    Isotonic regression creates flat step-function zones that compress
+    probabilities, causing systematic underestimation in the 55-65% range.
+
     This class MUST live in model_loader.py because pickle stores the full
     module path. Both train_model_v3.py and backtest.py import from here.
     """
 
-    def __init__(self, base_estimator):
+    def __init__(self, base_estimator, method='sigmoid'):
         self.base_estimator = base_estimator
-        self.calibrator_ = IsotonicRegression(out_of_bounds='clip')
+        self.method = method
+        if method == 'isotonic':
+            self.calibrator_ = IsotonicRegression(out_of_bounds='clip')
+        else:
+            # Platt scaling: logistic regression on raw probabilities
+            self.calibrator_ = LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
         self.classes_ = None
 
     def fit(self, X, y):
-        """Fit isotonic calibration on held-out data using base model's raw probs."""
+        """Fit calibration on held-out data using base model's raw probs."""
         self.classes_ = np.unique(y)
         raw_probs = self.base_estimator.predict_proba(X)[:, 1]
-        self.calibrator_.fit(raw_probs, y)
+        if self.method == 'isotonic':
+            self.calibrator_.fit(raw_probs, y)
+        else:
+            self.calibrator_.fit(raw_probs.reshape(-1, 1), y)
         return self
 
     def predict_proba(self, X):
         """Return calibrated probabilities, capped to realistic fight range."""
         raw_probs = self.base_estimator.predict_proba(X)[:, 1]
-        calibrated = self.calibrator_.predict(raw_probs)
-        # Cap at 10%-90%. Wide enough for symmetry correction to work,
-        # tight enough to prevent unrealistic extreme confidence in MMA.
+        if self.method == 'isotonic':
+            calibrated = self.calibrator_.predict(raw_probs)
+        else:
+            calibrated = self.calibrator_.predict_proba(raw_probs.reshape(-1, 1))[:, 1]
+        # Cap at 10%-90%: wide enough for symmetry correction, prevents
+        # unrealistic extreme confidence in MMA.
         calibrated = np.clip(calibrated, 0.10, 0.90)
         return np.column_stack([1 - calibrated, calibrated])
 

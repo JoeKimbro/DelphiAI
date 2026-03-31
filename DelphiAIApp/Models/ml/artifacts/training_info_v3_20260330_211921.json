@@ -1,6 +1,6 @@
 {
-  "model_version": "v3_20260330_212238",
-  "model_filename": "model_v3_20260330_212238.pkl",
+  "model_version": "v3_20260330_211921",
+  "model_filename": "model_v3_20260330_211921.pkl",
   "feature_columns": [
     "elo_diff",
     "age_diff",
@@ -322,7 +322,7 @@
       ]
     },
     "holdout_production": {
-      "accuracy": 0.5582608695652174,
+      "accuracy": 0.5756521739130435,
       "fight_count": 575,
       "skipped": 101,
       "samples": [
@@ -331,21 +331,21 @@
           "fight_date": "2025-01-11 00:00:00",
           "fighter1_name": "Carlston Harris",
           "fighter2_name": "Santiago Ponzinibbio",
-          "p_fighter1": 0.4889548284652189,
+          "p_fighter1": 0.48517575106328603,
           "y_true": 1,
           "pred": 0,
           "pick": "Santiago Ponzinibbio",
-          "prob_source": "ML+ELO (42% ML)"
+          "prob_source": "ML+ELO (34% ML)"
         },
         {
           "fight_id": 14349,
           "fight_date": "2025-01-11 00:00:00",
           "fighter1_name": "Chris Curtis",
           "fighter2_name": "Roman Kopylov",
-          "p_fighter1": 0.4842533521794585,
+          "p_fighter1": 0.5095415342409728,
           "y_true": 0,
-          "pred": 0,
-          "pick": "Roman Kopylov",
+          "pred": 1,
+          "pick": "Chris Curtis",
           "prob_source": "ML+ELO (50% ML)"
         },
         {
@@ -353,7 +353,7 @@
           "fight_date": "2025-01-11 00:00:00",
           "fighter1_name": "Ihor Potieria",
           "fighter2_name": "Marco Tulio",
-          "p_fighter1": 0.4102871448161976,
+          "p_fighter1": 0.4132385128050775,
           "y_true": 0,
           "pred": 0,
           "pick": "Marco Tulio",
@@ -364,7 +364,7 @@
           "fight_date": "2025-01-11 00:00:00",
           "fighter1_name": "Amanda Ribas",
           "fighter2_name": "Mackenzie Dern",
-          "p_fighter1": 0.4660928958590846,
+          "p_fighter1": 0.48821633354844535,
           "y_true": 0,
           "pred": 0,
           "pick": "Mackenzie Dern",
@@ -375,7 +375,7 @@
           "fight_date": "2025-01-11 00:00:00",
           "fighter1_name": "Viktoriia Dudakova",
           "fighter2_name": "Fatima Kline",
-          "p_fighter1": 0.49800725945754226,
+          "p_fighter1": 0.4713829643725054,
           "y_true": 0,
           "pred": 0,
           "pick": "Fatima Kline",
@@ -463,7 +463,7 @@
       }
     ]
   },
-  "trained_at": "2026-03-30T21:22:38.660783",
+  "trained_at": "2026-03-30T21:19:21.061216",
   "python_version": "3.12.6 (tags/v3.12.6:a4a2d2b, Sep  6 2024, 20:11:23) [MSC v.1940 64 bit (AMD64)]",
   "xgboost_version": "3.1.3",
   "sklearn_version": "1.8.0",
