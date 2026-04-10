@@ -236,7 +236,7 @@ def _calculate_paper_trading(predictions):
     STAKE = 100
     results = {}
 
-    for label, min_prob in [('all_picks', 0.50), ('med_conf', 0.60), ('high_conf', 0.65)]:
+    for label, min_prob in [('all_picks', 0.50), ('med_conf', 0.60), ('high_conf', 0.60)]:
         filtered = [p for p in predictions if float(p['pick_probability']) >= min_prob]
         wagered = len(filtered) * STAKE
         returned = 0

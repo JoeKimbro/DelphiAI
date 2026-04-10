@@ -31,12 +31,15 @@ python -m ml.predict_fight "Fighter A" "Fighter B"
 
 # Compare predictions vs actual results post-event
 python -m ml.update_results "UFC 326"
+python -m ml.update_results "UFC 326" --force   # re-fetch even if already resolved
+python -m ml.update_results --list              # show all tracked events
 
 # Aggregate performance metrics
 python -m ml.performance_summary
 
 # Historical backtesting
 python -m ml.backtest --year 2025
+python -m ml.backtest --year 2025 --clear   # reset backtest records before running
 
 # Retrain model
 python -m ml.train_model_v3
@@ -62,7 +65,8 @@ ELO/feature updates (from `DelphiAIApp/Models/`):
 ```bash
 python -m ml.update_adjusted_elos   # Recalculate ring rust + injury ELO
 python -m ml.populate_styles        # Classify fighter styles
-python -m ml.weekly_update          # Full end-to-end pipeline
+python -m ml.weekly_update              # Full end-to-end pipeline
+python -m ml.weekly_update --skip-scrape  # Skip scraping if CSVs already updated
 ```
 
 ## Architecture
@@ -124,12 +128,28 @@ Scrapy (UFC.com + UFCStats)
 
 PostgreSQL runs on port **5433** (not the standard 5432). Connection details are in `.env`. Key tables include fighter stats, ELO history, matchup predictions, and point-in-time snapshots.
 
+### Retraining Cadence
+
+Retrain quarterly (~every 100 new fights) or after any structural feature change. A single event (~12 fights) is too little signal. After retraining, run backtest to validate:
+
+```bash
+python -m ml.train_model_v3
+python -m ml.backtest --year 2025 --clear
+```
+
+Expected post-retrain targets: overall accuracy 60–66%, high-conf (65%+) accuracy 70–78%, ROI on 65%+ picks +5% to +15%.
+
+### UFCStats Lag
+
+UFCStats (detailed strike/grappling stats) updates **24–48 hours** after an event. UFC.com (basic results) updates same night. If `weekly_update` runs before UFCStats is ready, re-run it the next day with `--skip-scrape` if UFC.com data is already loaded.
+
 ### Tests
 
 Tests live in `Models/ml/tests/`. Run them from `DelphiAIApp/Models/`:
 
 ```bash
 python -m pytest ml/tests/
+python -m pytest ml/tests/test_ml_pipeline.py -v   # single file, verbose
 ```
 
 ## Reference Docs

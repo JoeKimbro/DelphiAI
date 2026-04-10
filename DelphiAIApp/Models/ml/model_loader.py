@@ -99,7 +99,7 @@ ARTIFACTS_DIR = Path(__file__).parent / 'artifacts'
 # The model's actual feature_cols may be a subset if correlation analysis dropped some.
 ALL_V3_FEATURES = [
     'elo_diff', 'age_diff', 'height_diff', 'reach_diff', 'reach_relative_diff',
-    'slpm_diff', 'stracc_diff', 'tdavg_diff', 'subavg_diff',
+    'slpm_diff', 'tdavg_diff', 'subavg_diff',
     'kd_rate_diff', 'win_rate_diff', 'recent_form_diff',
     'finish_rate_diff', 'experience_diff', 'avg_fight_time_diff',
     'opp_elo_last3_diff', 'elo_velocity_diff', 'win_streak_diff',
@@ -107,8 +107,8 @@ ALL_V3_FEATURES = [
     'avg_elo_level', 'opponent_elo', 'opponent_recent_form', 'opponent_finish_rate',
     'style_advantage', 'southpaw_advantage',
     'undefeated_prospect_diff', 'rising_prospect_diff', 'declining_veteran_diff',
-    'striker_vs_grappler', 'finisher_vs_decision', 'form_velocity_diff',
-    'offensive_pressure_diff',
+    'stracc_diff', 'offensive_pressure_diff',
+    'finisher_vs_decision', 'form_velocity_diff',
     'elo_diff_sq', 'age_diff_sq',
     'elo_prime_interaction', 'reach_striking_interaction',
     'is_title_fight', 'debut_diff',
@@ -417,8 +417,8 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
     b_form_vel = (b_recent - b_win_rate) if (not np.isnan(b_recent) and not np.isnan(b_win_rate)) else 0.0
     form_velocity_diff = a_form_vel - b_form_vel
 
-    a_offense = (a_slpm * max(a_stracc, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else 0.0
-    b_offense = (b_slpm * max(b_stracc, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else 0.0
+    a_offense = (a_slpm * max(a_stracc / 100.0, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else 0.0
+    b_offense = (b_slpm * max(b_stracc / 100.0, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else 0.0
     offensive_pressure_diff = a_offense - b_offense
 
     # === POLYNOMIAL ===
@@ -442,7 +442,6 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
 
 
     # === CONTEXT ===
-    is_title = 1 if is_title_fight else 0
     debut_a = 1 if (not np.isnan(a_fights) and a_fights == 0) else 0
     debut_b = 1 if (not np.isnan(b_fights) and b_fights == 0) else 0
     debut_diff = debut_a - debut_b
@@ -453,7 +452,6 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
         'height_diff': height_diff,
         'reach_diff': reach_diff,
         'slpm_diff': slpm_diff,
-        'stracc_diff': stracc_diff,
         'tdavg_diff': tdavg_diff,
         'subavg_diff': subavg_diff,
         'kd_rate_diff': kd_rate_diff,
@@ -477,15 +475,15 @@ def build_feature_dict(fighter_a, fighter_b, is_title_fight=False):
         'undefeated_prospect_diff': undefeated_prospect_diff,
         'rising_prospect_diff': rising_prospect_diff,
         'declining_veteran_diff': declining_veteran_diff,
-        'striker_vs_grappler': striker_vs_grappler,
+        'stracc_diff': stracc_diff,
+        'offensive_pressure_diff': offensive_pressure_diff,
         'finisher_vs_decision': finisher_vs_decision,
         'form_velocity_diff': form_velocity_diff,
-        'offensive_pressure_diff': offensive_pressure_diff,
         'elo_diff_sq': elo_diff_sq,
         'age_diff_sq': age_diff_sq,
         'elo_prime_interaction': elo_prime_interaction,
         'reach_striking_interaction': reach_striking_interaction,
-        'is_title_fight': is_title,
+        'is_title_fight': 1 if is_title_fight else 0,
         'debut_diff': debut_diff,
         'reach_relative_diff': reach_relative_diff,
     }

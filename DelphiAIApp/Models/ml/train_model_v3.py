@@ -496,8 +496,8 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
             b_form_vel = (b_recent - b_win_rate) if (not np.isnan(b_recent) and not np.isnan(b_win_rate)) else 0.0
             form_velocity_diff = a_form_vel - b_form_vel
 
-            a_offense = (a_slpm * max(a_stracc, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else 0.0
-            b_offense = (b_slpm * max(b_stracc, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else 0.0
+            a_offense = (a_slpm * max(a_stracc / 100.0, 0.0)) if (not np.isnan(a_slpm) and not np.isnan(a_stracc)) else 0.0
+            b_offense = (b_slpm * max(b_stracc / 100.0, 0.0)) if (not np.isnan(b_slpm) and not np.isnan(b_stracc)) else 0.0
             offensive_pressure_diff = a_offense - b_offense
 
             # === POLYNOMIAL FEATURES ===
@@ -539,7 +539,6 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
                 'height_diff': height_diff,
                 'reach_diff': reach_diff,
                 'slpm_diff': slpm_diff,
-                'stracc_diff': stracc_diff,
                 'tdavg_diff': tdavg_diff,
                 'subavg_diff': subavg_diff,
                 'kd_rate_diff': kd_rate_diff,
@@ -563,10 +562,10 @@ def engineer_features_v3(fights_df, augment_both=True, seed=42):
                 'undefeated_prospect_diff': undefeated_prospect_diff,
                 'rising_prospect_diff': rising_prospect_diff,
                 'declining_veteran_diff': declining_veteran_diff,
-                'striker_vs_grappler': striker_vs_grappler,
+                'stracc_diff': stracc_diff,
+                'offensive_pressure_diff': offensive_pressure_diff,
                 'finisher_vs_decision': finisher_vs_decision,
                 'form_velocity_diff': form_velocity_diff,
-                'offensive_pressure_diff': offensive_pressure_diff,
                 'elo_diff_sq': elo_diff_sq,
                 'age_diff_sq': age_diff_sq,
                 'elo_prime_interaction': elo_prime_interaction,
@@ -597,7 +596,7 @@ def get_feature_columns_v3():
     return [
         # Base differentials
         'elo_diff', 'age_diff', 'height_diff', 'reach_diff', 'reach_relative_diff',
-        'slpm_diff', 'stracc_diff', 'tdavg_diff', 'subavg_diff',
+        'slpm_diff', 'tdavg_diff', 'subavg_diff',
         'kd_rate_diff', 'win_rate_diff', 'recent_form_diff',
         'finish_rate_diff', 'experience_diff', 'avg_fight_time_diff',
         'opp_elo_last3_diff', 'elo_velocity_diff', 'win_streak_diff',
@@ -608,8 +607,8 @@ def get_feature_columns_v3():
         'style_advantage', 'southpaw_advantage',
         # Prospect / momentum / style matchup
         'undefeated_prospect_diff', 'rising_prospect_diff', 'declining_veteran_diff',
-        'striker_vs_grappler', 'finisher_vs_decision', 'form_velocity_diff',
-        'offensive_pressure_diff',
+        'stracc_diff', 'offensive_pressure_diff',
+        'finisher_vs_decision', 'form_velocity_diff',
         # Polynomial (2)
         'elo_diff_sq', 'age_diff_sq',
         # Interactions (2)
@@ -1002,10 +1001,10 @@ def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
     )
     fights['fight_date'] = pd.to_datetime(fights['fight_date'])
 
-    train_ids   = set(fights[fights['fight_date'] <  '2024-01-01']['fight_id'])
-    val_ids     = set(fights[(fights['fight_date'] >= '2024-01-01') &
-                              (fights['fight_date'] <  '2025-01-01')]['fight_id'])
-    holdout_ids = set(fights[fights['fight_date'] >= '2025-01-01']['fight_id'])
+    train_ids   = set(fights[fights['fight_date'] <  '2025-07-01']['fight_id'])
+    val_ids     = set(fights[(fights['fight_date'] >= '2025-07-01') &
+                              (fights['fight_date'] <  '2026-01-01')]['fight_id'])
+    holdout_ids = set(fights[fights['fight_date'] >= '2026-01-01']['fight_id'])
 
     # Fall back to percentage split if any window is too small
     if len(val_ids) < 50 or len(holdout_ids) < 50:

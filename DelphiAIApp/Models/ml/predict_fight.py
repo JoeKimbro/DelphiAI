@@ -16,6 +16,7 @@ Usage:
 import os
 import sys
 import math
+import pickle
 import argparse
 import logging
 import json
@@ -300,25 +301,46 @@ def elo_to_probability(elo_a, elo_b):
 
 def recalibrate_probabilities(prob):
     """
-    Optional temperature scaling for calibration.
+    Apply live calibration to a post-blend probability.
 
-    Controlled by env var DELPHI_CALIBRATION_T (default 0.62 from backtest tuning).
-    T < 1.0 increases confidence; T > 1.0 decreases confidence.
+    Uses a data-driven Platt Scaling (logistic regression) calibrator trained
+    on live/OOS fight outcomes (artifacts/live_calibrator.pkl) if available.
+    Falls back to neutral passthrough if no calibrator exists — run
+    ml.recalibrate_live to generate one. Also handles legacy IsotonicRegression
+    calibrators via duck-typing (predict_proba vs predict).
+
+    The calibrator was trained on probabilities > 0.5 (the predicted winner's
+    confidence). It is applied SYMMETRICALLY: when prob < 0.5 (fighter is the
+    underdog), we reflect through 0.5, calibrate the opponent's confidence, and
+    reflect back. This preserves the pick direction — calibration only adjusts
+    confidence, never flips who is predicted to win.
     """
-    try:
-        t = float(os.getenv("DELPHI_CALIBRATION_T", "0.62"))
-    except Exception:
-        t = 1.0
+    calibrator_path = Path(__file__).parent / 'artifacts' / 'live_calibrator.pkl'
+    if calibrator_path.exists():
+        try:
+            with open(calibrator_path, 'rb') as f:
+                cal = pickle.load(f)
 
-    # Disabled path (removes prior manual uplift).
-    if abs(t - 1.0) < 1e-9:
-        return prob
+            def _cal_predict(cal, q):
+                """Predict calibrated probability; supports both Platt (LogisticRegression) and IsotonicRegression."""
+                if hasattr(cal, 'predict_proba'):
+                    return float(cal.predict_proba([[q]])[0][1])
+                return float(cal.predict([q])[0])
 
-    # Numerically stable temperature scaling around logit space.
-    p = max(1e-6, min(1 - 1e-6, float(prob)))
-    logit = math.log(p / (1 - p))
-    scaled = 1.0 / (1.0 + math.exp(-(logit / t)))
-    return max(0.10, min(0.90, scaled))
+            p = float(prob)
+            if p >= 0.5:
+                # Fighter is the pick — calibrate confidence directly
+                q = max(0.50, min(0.90, p))
+                mapped = _cal_predict(cal, q)
+            else:
+                # Fighter is the underdog — calibrate opponent's confidence and reflect
+                q = max(0.50, min(0.90, 1.0 - p))
+                mapped = 1.0 - _cal_predict(cal, q)
+            return max(0.10, min(0.90, mapped))
+        except Exception:
+            pass
+    # Fallback: neutral passthrough (no distortion)
+    return max(0.10, min(0.90, float(prob)))
 
 
 def calculate_elo_adjustments(fighter_data, force_injury_refresh=False):
