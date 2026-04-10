@@ -55,10 +55,14 @@ def parse_fight_time(round_num, time_str):
         return 15.0  # Default 3 rounds
 
 
-def calculate_pit_for_fighter(history, fighter_url, fight_date):
+def calculate_pit_for_fighter(history, fighter_url, fight_date, career_stracc=None):
     """
     Calculate point-in-time stats for a fighter based on their prior fight history.
+
+    career_stracc: Career-average striking accuracy (0-100) from CareerStats.
+                   Used as a proxy since per-fight accuracy data is not available.
     """
+    str_acc = float(career_stracc) if career_stracc is not None and not pd.isna(career_stracc) else 0.0
     if len(history) == 0:
         # First fight - no prior data
         return {
@@ -69,7 +73,7 @@ def calculate_pit_for_fighter(history, fighter_url, fight_date):
             'losses_before': 0,
             'win_rate_before': 0.5,  # Default
             'pit_slpm': 0.0,
-            'pit_str_acc': 0.0,
+            'pit_str_acc': str_acc,
             'pit_td_avg': 0.0,
             'pit_sub_avg': 0.0,
             'pit_kd_rate': 0.0,
@@ -125,7 +129,7 @@ def calculate_pit_for_fighter(history, fighter_url, fight_date):
         'losses_before': losses,
         'win_rate_before': win_rate,
         'pit_slpm': round(slpm, 2),
-        'pit_str_acc': 0.0,
+        'pit_str_acc': str_acc,
         'pit_td_avg': round(td_avg, 2),
         'pit_sub_avg': round(sub_avg, 2),
         'pit_kd_rate': round(kd_rate, 3),
@@ -150,6 +154,20 @@ def calculate_point_in_time_stats():
     # Load fights
     fights_df = pd.read_csv(OUTPUT_DIR / 'fights.csv')
     print(f"Loaded {len(fights_df)} fights")
+
+    # Load career striking accuracy as a per-fighter proxy (no per-fight accuracy available)
+    career_stracc = {}
+    career_stats_path = OUTPUT_DIR / 'career_stats.csv'
+    if career_stats_path.exists():
+        cs_df = pd.read_csv(career_stats_path)
+        acc_col = 'str_acc' if 'str_acc' in cs_df.columns else ('stracc' if 'stracc' in cs_df.columns else None)
+        if acc_col and 'fighter_url' in cs_df.columns:
+            for _, row in cs_df.iterrows():
+                url = row.get('fighter_url')
+                val = row.get(acc_col)
+                if url and val is not None and not pd.isna(val):
+                    career_stracc[url] = float(val)
+            print(f"Loaded striking accuracy for {len(career_stracc)} fighters from career_stats.csv")
     
     # Parse dates
     def parse_date(date_str):
@@ -209,7 +227,7 @@ def calculate_point_in_time_stats():
         # === Process FIGHTER (if valid) ===
         if fighter_url and (fighter_url, fight_date) not in seen_records:
             history = fighter_history[fighter_url]
-            pit_stats = calculate_pit_for_fighter(history, fighter_url, fight_date)
+            pit_stats = calculate_pit_for_fighter(history, fighter_url, fight_date, career_stracc.get(fighter_url))
             pit_records.append(pit_stats)
             seen_records.add((fighter_url, fight_date))
             
@@ -228,7 +246,7 @@ def calculate_point_in_time_stats():
         # === Process OPPONENT (if valid) ===
         if opponent_url and (opponent_url, fight_date) not in seen_records:
             history = fighter_history[opponent_url]
-            pit_stats = calculate_pit_for_fighter(history, opponent_url, fight_date)
+            pit_stats = calculate_pit_for_fighter(history, opponent_url, fight_date, career_stracc.get(opponent_url))
             pit_records.append(pit_stats)
             seen_records.add((opponent_url, fight_date))
             

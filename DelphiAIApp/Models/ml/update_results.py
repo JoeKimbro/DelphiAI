@@ -23,6 +23,7 @@ Usage:
 import os
 import sys
 import re
+import json
 import argparse
 import time
 import random
@@ -59,6 +60,11 @@ USER_AGENTS = [
 ]
 
 logger = logging.getLogger(__name__)
+
+# Live results JSON (same source the UFC.com fight card polls in the browser).
+UFC_LIVE_EVENT_API = (
+    'https://d29dxerjsp82wz.cloudfront.net/api/v3/event/live/{event_fmid}.json'
+)
 
 
 # ============================================================================
@@ -410,6 +416,143 @@ def _get_session():
     return session
 
 
+def _extract_event_fmid_from_page(soup, html_text):
+    """
+    Resolve UFC live API event id. The HTML card lists fights but leaves
+    outcomes empty (filled by JS); drupal-settings / ticker carry event_fmid.
+    """
+    for sel in ('#c-listing-ticker', '.c-listing-ticker--footer', '[id^="c-listing-ticker"]'):
+        el = soup.select_one(sel)
+        if el and el.get('data-fmid'):
+            try:
+                return int(el['data-fmid'])
+            except (TypeError, ValueError):
+                pass
+
+    script = soup.select_one('script[data-drupal-selector="drupal-settings-json"]')
+    if script and script.string:
+        try:
+            settings = json.loads(script.string)
+            raw = (settings.get('eventLiveStats') or {}).get('event_fmid')
+            if raw is not None:
+                return int(raw)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+
+    m = re.search(r'"event_fmid"\s*:\s*"(\d+)"', html_text)
+    if m:
+        try:
+            return int(m.group(1))
+        except ValueError:
+            pass
+
+    return None
+
+
+def _fight_rows_from_live_event_json(payload):
+    """
+    Parse CloudFront live event JSON into the same rows as HTML scraping.
+
+    Returns:
+        list of dicts: fighter1, fighter2, winner, method, round, time, is_draw
+    """
+    root = payload.get('LiveEventDetail') or payload.get('liveEventDetail')
+    if not root:
+        return []
+
+    card = root.get('FightCard') or []
+    rows = []
+
+    for fight in card:
+        fighters = fight.get('Fighters') or []
+        ordered = []
+        for corner in ('Red', 'Blue'):
+            for f in fighters:
+                if f.get('Corner') != corner:
+                    continue
+                nm = f.get('Name') or {}
+                full = f"{nm.get('FirstName', '')} {nm.get('LastName', '')}"
+                full = re.sub(r'\s+', ' ', full).strip()
+                ordered.append(full)
+
+        if len(ordered) < 2:
+            names_fallback = []
+            for f in fighters:
+                nm = f.get('Name') or {}
+                full = f"{nm.get('FirstName', '')} {nm.get('LastName', '')}"
+                names_fallback.append(re.sub(r'\s+', ' ', full).strip())
+            if len(names_fallback) >= 2:
+                ordered = names_fallback[:2]
+            else:
+                continue
+
+        fighter1, fighter2 = ordered[0], ordered[1]
+
+        winner_name = None
+        for f in fighters:
+            oc = (f.get('Outcome') or {}).get('Outcome')
+            if oc == 'Win':
+                nm = f.get('Name') or {}
+                winner_name = f"{nm.get('FirstName', '')} {nm.get('LastName', '')}"
+                winner_name = re.sub(r'\s+', ' ', winner_name).strip()
+                break
+
+        res = fight.get('Result') or {}
+        method = res.get('Method') or ''
+        if isinstance(method, str):
+            method = method.strip()
+        round_num = res.get('EndingRound')
+        if round_num is not None:
+            try:
+                round_num = int(round_num)
+            except (TypeError, ValueError):
+                round_num = None
+        fight_time = res.get('EndingTime') or ''
+        if isinstance(fight_time, str):
+            fight_time = fight_time.strip()
+
+        meth_l = method.lower()
+        is_draw = bool(
+            winner_name is None
+            and method
+            and any(k in meth_l for k in ('draw', 'no contest', 'nc'))
+        )
+
+        rows.append({
+            'fighter1': fighter1,
+            'fighter2': fighter2,
+            'winner': winner_name,
+            'method': method,
+            'round': round_num,
+            'time': fight_time,
+            'is_draw': is_draw,
+        })
+
+    return rows
+
+
+def _fetch_live_event_results(session, event_fmid):
+    """GET live event JSON and return fight rows, or [] on failure."""
+    url = UFC_LIVE_EVENT_API.format(event_fmid=event_fmid)
+    try:
+        r = session.get(url, timeout=20, headers={'Accept': 'application/json'})
+        r.raise_for_status()
+        payload = r.json()
+    except Exception as e:
+        logger.warning('Live event API failed for fmid=%s: %s', event_fmid, e)
+        return []
+
+    rows = _fight_rows_from_live_event_json(payload)
+    if not rows:
+        return []
+
+    # Upcoming / incomplete cards: no outcomes yet — fall back to HTML (usually empty too).
+    if not any(r.get('winner') or r.get('is_draw') for r in rows):
+        return []
+
+    return rows
+
+
 def scrape_event_results(event_url):
     """
     Scrape completed event results from a UFC.com event page.
@@ -428,6 +571,13 @@ def scrape_event_results(event_url):
         return []
 
     soup = BeautifulSoup(resp.text, 'html.parser')
+
+    event_fmid = _extract_event_fmid_from_page(soup, resp.text)
+    if event_fmid is not None:
+        live_rows = _fetch_live_event_results(session, event_fmid)
+        if live_rows:
+            return live_rows
+
     fight_results = []
 
     fight_cards = soup.select('.c-listing-fight')

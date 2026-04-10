@@ -196,8 +196,10 @@ def get_historical_fights(conn, start_date, end_date, event_filter=None):
     query = """
         SELECT f.fightid, f.fightername, f.opponentname, f.fighterid, f.opponentid,
                f.winnername, f.winnerid, f.method, f.round,
-               f.date, f.eventname, f.istitlefight
+               f.date, f.eventname, f.istitlefight,
+               COALESCE(fs.weightclass, 'Unknown') AS weightclass
         FROM fights f
+        LEFT JOIN fighterstats fs ON fs.fighterid = f.fighterid
         WHERE f.date >= %s AND f.date < %s
           AND f.result = 'win'
           AND f.fighterid IS NOT NULL
@@ -234,6 +236,7 @@ def get_historical_fights(conn, start_date, end_date, event_filter=None):
             'date': row[9],
             'event_name': row[10],
             'is_title': bool(row[11]) if row[11] is not None else False,
+            'weight_class': row[12] or 'Unknown',
         })
 
     cur.close()
@@ -664,6 +667,7 @@ def run_backtest(conn, start_date, end_date, event_filter=None, clear=False):
             pred['was_correct'] = was_correct
             pred['event_name'] = event_name
             pred['event_date'] = str(event_date)
+            pred['weight_class'] = fight.get('weight_class', 'Unknown')
 
             # Tag coverage quality: 'full' only when both fighters had historical
             # ELO and point-in-time stats (no current-data fallbacks).
@@ -916,6 +920,22 @@ def _print_backtest_report(results, event_summaries, start_date, end_date,
         for src, d in src_stats.items():
             acc = d['correct'] / d['total'] * 100 if d['total'] > 0 else 0
             print(f"    {src:<12}: {d['correct']}/{d['total']} ({acc:.1f}%)")
+
+    # ---------- BY WEIGHT CLASS ----------
+    div_stats = defaultdict(lambda: {'total': 0, 'correct': 0})
+    for r in results:
+        wc = r.get('weight_class', 'Unknown')
+        div_stats[wc]['total'] += 1
+        if r['was_correct']:
+            div_stats[wc]['correct'] += 1
+
+    divisions_with_data = [(wc, d) for wc, d in div_stats.items() if d['total'] >= 5]
+    if divisions_with_data:
+        print(f"\n  BY WEIGHT CLASS (≥5 fights):")
+        for wc, d in sorted(divisions_with_data, key=lambda x: -x[1]['total']):
+            acc = d['correct'] / d['total'] * 100
+            icon = "\u2705" if acc >= 60 else "\u26a0\ufe0f" if acc >= 50 else "\u274c"
+            print(f"    {icon} {wc:<28}: {d['correct']}/{d['total']} ({acc:.1f}%)")
 
     # ---------- PAPER TRADING ----------
     STAKE = 100
