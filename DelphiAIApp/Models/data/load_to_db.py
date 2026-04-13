@@ -746,15 +746,27 @@ def load_fights(conn, fighter_url_to_id, dry_run=False):
 
 
 def load_elo_history(conn, fighter_url_to_id, dry_run=False):
-    """Load elo_history.csv into EloHistory table."""
+    """Load elo_history.csv into EloHistory table (incremental: only new dates)."""
     csv_path = CSV_FILES['elo_history']
-    
+
     if not csv_path.exists():
         print(f"[WARN] {csv_path} not found, skipping ELO history")
         return
-    
+
     df = pd.read_csv(csv_path)
-    print(f"[FILE] Loading {len(df)} ELO history records from {csv_path.name}")
+
+    # Incremental load: skip dates already in the table
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(fightdate) FROM elohistory")
+    max_date = cursor.fetchone()[0]
+    cursor.close()
+    if max_date is not None:
+        df['fight_date'] = pd.to_datetime(df['fight_date'], errors='coerce')
+        before = len(df)
+        df = df[df['fight_date'] > pd.Timestamp(max_date)]
+        print(f"[FILE] ELO history: {before} total rows, loading {len(df)} new rows after {max_date}")
+    else:
+        print(f"[FILE] Loading {len(df)} ELO history records from {csv_path.name}")
     
     if dry_run:
         print(df.head())
@@ -1206,15 +1218,27 @@ def load_matchup_features(conn, fighter_url_to_id, dry_run=False):
 
 
 def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False):
-    """Load point_in_time_stats.csv into PointInTimeStats table."""
+    """Load point_in_time_stats.csv into PointInTimeStats table (incremental: only new dates)."""
     csv_path = CSV_FILES['point_in_time_stats']
-    
+
     if not csv_path.exists():
         print(f"[WARN] {csv_path} not found, skipping point-in-time stats")
         return
-    
+
     df = pd.read_csv(csv_path)
-    print(f"[FILE] Loading {len(df)} point-in-time stat records from {csv_path.name}")
+
+    # Incremental load: skip dates already in the table
+    cursor = conn.cursor()
+    cursor.execute("SELECT MAX(fightdate) FROM pointintimestats")
+    max_date = cursor.fetchone()[0]
+    cursor.close()
+    if max_date is not None:
+        df['fight_date'] = pd.to_datetime(df['fight_date'], errors='coerce')
+        before = len(df)
+        df = df[df['fight_date'] > pd.Timestamp(max_date)]
+        print(f"[FILE] PIT stats: {before} total rows, loading {len(df)} new rows after {max_date}")
+    else:
+        print(f"[FILE] Loading {len(df)} point-in-time stat records from {csv_path.name}")
     
     if dry_run:
         print(df.head())

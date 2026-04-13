@@ -20,6 +20,7 @@ import pickle
 import argparse
 import logging
 import json
+import unicodedata
 from pathlib import Path
 from decimal import Decimal
 from datetime import datetime, timedelta
@@ -75,6 +76,44 @@ DB_CONFIG = {
 }
 
 
+def _ascii_fold(s):
+    """Lowercase ASCII fold for matching (Jiří Procházka -> jiri prochazka)."""
+    if not s:
+        return ''
+    nfkd = unicodedata.normalize('NFKD', str(s).strip())
+    base = ''.join(c for c in nfkd if not unicodedata.combining(c))
+    return base.lower()
+
+
+# Single-char replacements nested in SQL — mirrors _ascii_fold for roster names in PostgreSQL.
+_PG_NAME_FOLD_PAIRS = (
+    ('á', 'a'), ('à', 'a'), ('â', 'a'), ('ã', 'a'), ('ä', 'a'), ('å', 'a'), ('ą', 'a'), ('ā', 'a'),
+    ('ć', 'c'), ('ç', 'c'), ('č', 'c'),
+    ('ď', 'd'), ('đ', 'd'),
+    ('é', 'e'), ('è', 'e'), ('ê', 'e'), ('ë', 'e'), ('ě', 'e'), ('ę', 'e'), ('ē', 'e'),
+    ('í', 'i'), ('ì', 'i'), ('î', 'i'), ('ï', 'i'), ('ī', 'i'), ('ı', 'i'),
+    ('ł', 'l'), ('ľ', 'l'), ('ļ', 'l'),
+    ('ñ', 'n'), ('ń', 'n'), ('ň', 'n'),
+    ('ó', 'o'), ('ò', 'o'), ('ô', 'o'), ('ö', 'o'), ('õ', 'o'), ('ő', 'o'), ('ō', 'o'),
+    ('ř', 'r'), ('ŕ', 'r'),
+    ('š', 's'), ('ś', 's'), ('ș', 's'),
+    ('ť', 't'), ('ț', 't'),
+    ('ú', 'u'), ('ù', 'u'), ('û', 'u'), ('ü', 'u'), ('ů', 'u'), ('ű', 'u'), ('ū', 'u'),
+    ('ý', 'y'), ('ÿ', 'y'),
+    ('ž', 'z'), ('ź', 'z'), ('ż', 'z'),
+)
+
+
+def _pg_fighter_name_fold_sql(column_ref):
+    """SQL expression: lowercase fighter name with common diacritics stripped."""
+    expr = f'lower({column_ref})'
+    for old, new in _PG_NAME_FOLD_PAIRS:
+        o_esc = old.replace("'", "''")
+        n_esc = new.replace("'", "''")
+        expr = f"REPLACE({expr}, '{o_esc}', '{n_esc}')"
+    return expr
+
+
 def get_fighter_data(conn, name):
     """Get all fighter data by name (fuzzy search)."""
     cur = conn.cursor()
@@ -88,7 +127,16 @@ def get_fighter_data(conn, name):
         .replace("ž", "z")
         .replace("’", "'")
     )
-    
+    name_fold = _ascii_fold(name or '')
+    fold_sql = _pg_fighter_name_fold_sql('fs.name')
+    fold_or = ''
+    fold_params = ()
+    if name_fold:
+        fold_or = f'''
+           OR ({fold_sql}) ILIKE %s
+           OR ({fold_sql}) = %s'''
+        fold_params = (f'%{name_fold}%', name_fold)
+
     # Try exact match first, then fuzzy
     # Get most recent ELO from EloHistory or CareerStats
     cur.execute('''
@@ -212,11 +260,16 @@ def get_fighter_data(conn, name):
                 'ñ','n'),'ć','c'),'č','c'),'š','s'),'ž','z') ILIKE %s
            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(fs.name),
                 'ñ','n'),'ć','c'),'č','c'),'š','s'),'ž','z') ILIKE %s
+           {fold_or}
         ORDER BY 
             CASE WHEN fs.name ILIKE %s THEN 0 ELSE 1 END,
             fs.wins DESC
         LIMIT 1
-    ''', (name, f'%{name}%', name_norm, f'%{name_norm}%', name))
+    '''.format(fold_sql=fold_sql, fold_or=fold_or), (
+        name, f'%{name}%', name_norm, f'%{name_norm}%',
+        *fold_params,
+        name,
+    ))
 
 
     

@@ -48,7 +48,7 @@ DB_CONFIG = {
 ARTIFACTS_DIR = Path(__file__).parent / 'artifacts'
 OUTPUT_PATH = ARTIFACTS_DIR / 'live_calibrator.pkl'
 
-MIN_SAMPLES = 15  # Minimum resolved predictions required to fit calibrator
+MIN_SAMPLES = 200  # Minimum resolved predictions required to fit calibrator (small samples fit noise)
 
 BUCKET_EDGES = [0.50, 0.55, 0.60, 0.65, 0.70, 1.01]
 BUCKET_LABELS = ['50-55%', '55-60%', '60-65%', '65-70%', '70%+']
