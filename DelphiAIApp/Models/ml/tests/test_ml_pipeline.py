@@ -632,7 +632,7 @@ class TestTemporalOrdering(unittest.TestCase):
             'f2_avg_fight_time': [None]*3,
         })
 
-        features_df = engineer_features_v3(fights, random_swap=False)
+        features_df = engineer_features_v3(fights, augment_both=False)
 
         # Dates should be in order
         dates = features_df['fight_date'].tolist()

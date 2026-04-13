@@ -231,12 +231,15 @@ def calculate_stats(predictions):
     }
 
 
+MIN_ROI_BETS = 100  # Minimum bets required before reporting ROI (small samples are noise)
+
+
 def _calculate_paper_trading(predictions):
     """Calculate hypothetical ROI for different strategies."""
     STAKE = 100
     results = {}
 
-    for label, min_prob in [('all_picks', 0.50), ('med_conf', 0.60), ('high_conf', 0.60)]:
+    for label, min_prob in [('all_picks', 0.50), ('med_conf', 0.60), ('high_conf', 0.65)]:
         filtered = [p for p in predictions if float(p['pick_probability']) >= min_prob]
         wagered = len(filtered) * STAKE
         returned = 0
@@ -318,7 +321,10 @@ def _print_section(stats, title, W=80):
     if pt['high_conf']['bets'] > 0:
         d = pt['high_conf']
         print(f"\n    Paper Trading (65%+ picks, $100 flat):")
-        print(f"      {d['bets']} bets | ${d['profit']:+.0f} profit | {d['roi']:+.1f}% ROI")
+        if d['bets'] >= MIN_ROI_BETS:
+            print(f"      {d['bets']} bets | ${d['profit']:+.0f} profit | {d['roi']:+.1f}% ROI")
+        else:
+            print(f"      {d['bets']} bets | ROI: insufficient data (need {MIN_ROI_BETS}+ bets)")
 
 
 def print_full_report(conn, last_n_events=None, event_filter=None,
@@ -402,9 +408,11 @@ def print_full_report(conn, last_n_events=None, event_filter=None,
                 print(f"    {'High Conf Accuracy':<28} {bt_stats['high_conf_accuracy']:>11.1f}% "
                       f"{live_stats['high_conf_accuracy']:>11.1f}%")
 
-            bt_roi = bt_stats['paper_trading']['high_conf']['roi']
-            live_roi = live_stats['paper_trading']['high_conf']['roi']
-            print(f"    {'ROI (65%+ picks)':<28} {bt_roi:>+11.1f}% {live_roi:>+11.1f}%")
+            bt_bets = bt_stats['paper_trading']['high_conf']['bets']
+            live_bets = live_stats['paper_trading']['high_conf']['bets']
+            bt_roi_str = f"{bt_stats['paper_trading']['high_conf']['roi']:>+11.1f}%" if bt_bets >= MIN_ROI_BETS else f"{'n/a (<'+str(MIN_ROI_BETS)+' bets)':>12}"
+            live_roi_str = f"{live_stats['paper_trading']['high_conf']['roi']:>+11.1f}%" if live_bets >= MIN_ROI_BETS else f"{'n/a (<'+str(MIN_ROI_BETS)+' bets)':>12}"
+            print(f"    {'ROI (65%+ picks)':<28} {bt_roi_str} {live_roi_str}")
 
             delta = abs(bt_stats['accuracy'] - live_stats['accuracy'])
             if delta < 5:
@@ -434,7 +442,8 @@ def print_full_report(conn, last_n_events=None, event_filter=None,
                     break
 
         pt = all_stats['paper_trading']
-        profitable = pt['high_conf']['roi'] > 0 if pt['high_conf']['bets'] > 0 else False
+        hc_bets = pt['high_conf']['bets']
+        profitable = pt['high_conf']['roi'] > 0 if hc_bets >= MIN_ROI_BETS else None
 
         if all_stats['accuracy'] >= 60 and calibrated:
             print(f"    Accuracy:    {all_stats['accuracy']:.1f}% \u2705 VALIDATED")
@@ -446,7 +455,9 @@ def print_full_report(conn, last_n_events=None, event_filter=None,
         cal_icon = "\u2705" if calibrated else "\u274c"
         print(f"    Calibration: {'GOOD' if calibrated else 'MISCALIBRATED'} {cal_icon}")
 
-        if profitable:
+        if profitable is None:
+            print(f"    ROI (65%+):  insufficient data ({hc_bets}/{MIN_ROI_BETS} bets needed)")
+        elif profitable:
             print(f"    ROI (65%+):  {pt['high_conf']['roi']:+.1f}% \u2705 PROFITABLE")
         else:
             print(f"    ROI (65%+):  {pt['high_conf']['roi']:+.1f}% \u274c NOT PROFITABLE")
@@ -454,7 +465,7 @@ def print_full_report(conn, last_n_events=None, event_filter=None,
         has_live = live_counts['resolved'] > 0
         has_backtest = bt_counts['resolved'] > 0
 
-        if has_backtest and has_live and all_stats['accuracy'] >= 60 and profitable:
+        if has_backtest and has_live and all_stats['accuracy'] >= 60 and profitable is True:
             print(f"\n    Ready for betting: YES")
         elif has_backtest and not has_live:
             print(f"\n    Ready for betting: NOT YET - need live validation")
