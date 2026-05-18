@@ -69,6 +69,70 @@ python -m ml.weekly_update              # Full end-to-end pipeline
 python -m ml.weekly_update --skip-scrape  # Skip scraping if CSVs already updated
 ```
 
+Calibration (from `DelphiAIApp/Models/`):
+
+```bash
+# Refit Platt Scaling calibrator — run after accumulating enough new OOS fights
+python -m ml.recalibrate_live                    # use live predictions only
+python -m ml.recalibrate_live --include-backtest # bootstrap from OOS backtest data (no live yet)
+```
+
+## Weekly Post-Event Workflow
+
+Run these steps the day after each event (wait 24–48 h for UFCStats to update before step 1).
+
+**Step 1 — Ingest new fight data**
+```bash
+# From DelphiAIApp/Models/data/scrapers/
+python scrape_all.py
+
+# From DelphiAIApp/Models/data/
+python validate_data.py
+python load_to_db.py
+```
+
+**Step 2 — Refresh ELO and features**
+```bash
+# From DelphiAIApp/Models/
+python -m ml.update_adjusted_elos
+python -m ml.populate_styles
+```
+
+**Step 3 — Resolve predictions and check performance**
+```bash
+# From DelphiAIApp/Models/
+python -m ml.update_results "UFC 327"
+python -m ml.performance_summary
+```
+
+**Step 4 — Predict next event**
+```bash
+python -m ml.predict_card "UFC 328"
+```
+
+### Calibration Refit Schedule
+
+The live calibrator (`artifacts/live_calibrator.pkl`) uses Platt Scaling (logistic regression sigmoid). It was bootstrapped from 41 OOS 2026 backtest fights. **Do not refit after every event** — let predictions accumulate.
+
+Refit when you have ~80–100 total resolved 2026 OOS fights:
+
+```bash
+# 1. Get fresh raw OOS predictions (no calibrator interference)
+python -m ml.backtest --year 2026 --clear
+
+# 2. Refit Platt calibrator on full OOS dataset
+python -m ml.recalibrate_live --include-backtest
+
+# 3. Re-run all years to validate
+python -m ml.backtest --year 2024 --clear
+python -m ml.backtest --year 2025 --clear
+python -m ml.backtest --year 2026 --clear
+```
+
+Target calibration deltas after refit: all buckets within ±5%.
+
+**Do NOT mix `--include-backtest` with accumulated live predictions from a prior model version** — the probability distributions differ. Once 15+ live predictions exist from the current model, switch to running `recalibrate_live` without the flag.
+
 ## Architecture
 
 ### Layer Structure
@@ -119,7 +183,7 @@ Scrapy (UFC.com + UFCStats)
 ### Key Design Decisions
 
 - **Symmetry via augmentation**: Training data stores every fight twice (both fighter orderings) so the model has no positional bias
-- **Isotonic calibration**: Custom `IsotonicCalibrator` maps XGBoost raw probabilities to real-world frequencies
+- **Two-layer calibration**: XGBoost has a built-in `IsotonicCalibrator` (training-time), then a post-blend Platt Scaling calibrator (`artifacts/live_calibrator.pkl`, fit on OOS fights) corrects systematic probability compression. Applied symmetrically — underdog probs reflect through 0.5, never flip the pick direction.
 - **Point-in-time stats**: Separate `PointInTimeStats` table snapshots stats at fight time, enabling leak-free backtesting
 - **Style classification**: Wrestlers (TD avg > 2.5), Grapplers (Sub avg > 1.0), Strikers (SLpM > 4.0 + TD < 2.0), Balanced
 - **Injury caching**: `predict_card.py` caches scraped injury data for 7 days

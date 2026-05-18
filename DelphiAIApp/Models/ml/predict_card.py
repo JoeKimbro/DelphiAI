@@ -180,102 +180,72 @@ def _get_session():
 def scrape_upcoming_events():
     """
     Scrape UFC.com for a list of upcoming events.
-    
+
     Returns: [{'name': str, 'url': str, 'full_text': str}]
-    
-    The full_text field includes fighter names and card text,
-    useful for keyword matching (e.g. "Strickland vs Hernandez").
+
+    Each event on UFC.com's /events page is wrapped in `.l-listing__item` and
+    exposes its main-event headline via `.c-card-event--result__headline`
+    (mirrored as the card's <h3>). We extract URL + headline per-card so the
+    alignment can't drift when an event's headline doesn't follow the
+    "Fighter A vs Fighter B" pattern (e.g. UFC Freedom 250 lists its brand
+    rather than the Topuria vs Gaethje matchup as the headline).
     """
     session = _get_session()
     events = []
-    
+
     try:
         resp = session.get('https://www.ufc.com/events', timeout=15)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, 'html.parser')
-        
-        # Step 1: Collect unique event URLs
+
         seen_urls = set()
-        event_urls = []
-        for link in soup.select('a[href*="/event/"]'):
-            href = link.get('href', '')
-            if '/event/' not in href:
+        for card in soup.select('.l-listing__item'):
+            link = card.find('a', href=lambda h: bool(h) and '/event/' in h)
+            if not link:
                 continue
+            href = link.get('href', '')
             url = href if href.startswith('http') else f'https://www.ufc.com{href}'
             url = url.split('?')[0].split('#')[0].rstrip('/')
             if 'ufc.com' not in url or url in seen_urls:
                 continue
             seen_urls.add(url)
-            event_urls.append(url)
-        
-        # Step 2: Collect "vs" headings (fighter matchup names)
-        vs_headings = []
-        for heading in soup.select('h3, h4'):
-            text = heading.get_text(separator=' ', strip=True)
-            text = re.sub(r'\s+', ' ', text).strip()
-            if 'vs' in text.lower() and len(text) > 3:
-                vs_headings.append(text)
-        
-        # Step 3: Get the full page text around each event for context
-        full_page_text = soup.get_text(separator=' ')
-        
-        # Step 4: Build events list - for each URL, try to find a matching heading
-        used_headings = set()
-        for url in event_urls:
+
+            head_el = card.select_one(
+                '.c-card-event--result__headline, .c-card-event--result__main-event, h3, h4'
+            )
+            heading = ''
+            if head_el:
+                heading = re.sub(r'\s+', ' ', head_el.get_text(strip=True)).strip()
+
             slug = url.split('/event/')[-1]
-            url_name = slug.replace('-', ' ').title()
-            
-            event_name = url_name
-            full_text = url_name
-            
-            # Match heading to URL:
-            # For numbered UFCs (ufc-326), look for headings near that number
-            # For dated events, try to match by proximity (first unused heading = first URL)
-            matched = False
-            for i, heading in enumerate(vs_headings):
-                if i in used_headings:
-                    continue
-                # Direct match: heading keywords appear in slug
-                h_words = [w.lower() for w in heading.split() if len(w) > 2 and w.lower() != 'vs']
-                if any(w in slug for w in h_words):
-                    event_name = heading
-                    full_text = heading
-                    used_headings.add(i)
-                    matched = True
-                    break
-            
-            # If no direct match, assign next unused heading
-            # (assumes upcoming headings and URLs appear in same order)
-            if not matched:
-                for i, heading in enumerate(vs_headings):
-                    if i not in used_headings:
-                        event_name = heading
-                        full_text = heading
-                        used_headings.add(i)
-                        break
-            
+            fallback_name = slug.replace('-', ' ').title()
+
             events.append({
-                'name': event_name,
+                'name': heading or fallback_name,
                 'url': url,
-                'full_text': full_text,
+                'full_text': heading or fallback_name,
             })
-        
+
     except Exception as e:
         logger.warning(f"Failed to scrape UFC.com events: {e}")
-    
+
     return events[:20]
 
 
 
 
 
-def scrape_event_card(event_url):
+def scrape_event_card(event_url, delay=True):
     """
     Scrape a specific UFC.com event page for the fight card.
-    
+
     Args:
         event_url: Full URL to the UFC.com event page
-        
+        delay: When True (default), sleeps 1-3 s before the request as a polite
+            rate-limit. Callers that already throttle their own loops (or
+            single-shot, user-facing requests where the latency matters) can
+            pass `delay=False`.
+
     Returns: {
         'event_name': str,
         'event_date': str,
@@ -284,7 +254,8 @@ def scrape_event_card(event_url):
     }
     """
     session = _get_session()
-    time.sleep(random.uniform(1, 3))
+    if delay:
+        time.sleep(random.uniform(1, 3))
     
     try:
         resp = session.get(event_url, timeout=15)

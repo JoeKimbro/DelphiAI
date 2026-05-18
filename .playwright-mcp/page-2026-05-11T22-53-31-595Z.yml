@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "DelphiAI DELPHIAI UFC Predictions" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "DelphiAI" [ref=e5]
+        - generic [ref=e6]:
+          - generic [ref=e7]: DELPHIAI
+          - generic [ref=e8]: UFC Predictions
+      - navigation [ref=e9]:
+        - link "Dashboard" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - link "Events" [ref=e11] [cursor=pointer]:
+          - /url: /events
+        - link "Performance" [ref=e12] [cursor=pointer]:
+          - /url: /performance
+        - link "Bets" [ref=e13] [cursor=pointer]:
+          - /url: /bets
+  - main [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - text: Model Validation
+          - heading "Performance" [level=1] [ref=e18]
+        - generic [ref=e19]: live
+      - generic [ref=e21]:
+        - heading "No resolved predictions yet" [level=3] [ref=e22]
+        - paragraph [ref=e23]: "Once predictions are resolved via `python -m ml.update_results`, this dashboard will populate with accuracy, calibration, and ROI metrics."
+  - button "Open Next.js Dev Tools" [ref=e29] [cursor=pointer]:
+    - img [ref=e30]
+  - alert [ref=e33]

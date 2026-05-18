@@ -107,6 +107,7 @@ def ensure_tracking_table(conn):
             was_correct BOOLEAN,
             prediction_type VARCHAR(10) DEFAULT 'live',
             model_version VARCHAR(50) DEFAULT 'v3',
+            input_fingerprint VARCHAR(64),
             predicted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             resolved_at TIMESTAMP
         )
@@ -115,6 +116,12 @@ def ensure_tracking_table(conn):
     cur.execute("""
         ALTER TABLE PredictionTracking
         ADD COLUMN IF NOT EXISTS prediction_type VARCHAR(10) DEFAULT 'live'
+    """)
+    # Migration 004: fingerprint of fighter-state inputs at prediction time.
+    # Lets ml.prefetch_predictions skip recomputation when nothing changed.
+    cur.execute("""
+        ALTER TABLE PredictionTracking
+        ADD COLUMN IF NOT EXISTS input_fingerprint VARCHAR(64)
     """)
     # Indexes
     cur.execute("""
