@@ -1,0 +1,70 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "DelphiAI DELPHIAI UFC Predictions" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "DelphiAI" [ref=e5]
+        - generic [ref=e6]:
+          - generic [ref=e7]: DELPHIAI
+          - generic [ref=e8]: UFC Predictions
+      - navigation [ref=e9]:
+        - link "Dashboard" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - link "Events" [ref=e11] [cursor=pointer]:
+          - /url: /events
+        - link "Performance" [ref=e12] [cursor=pointer]:
+          - /url: /performance
+        - link "Bets" [ref=e13] [cursor=pointer]:
+          - /url: /bets
+        - link "Sign in" [ref=e15] [cursor=pointer]:
+          - /url: /auth/signin
+          - img [ref=e16]
+          - text: Sign in
+  - main [ref=e19]:
+    - generic [ref=e21]:
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - img [ref=e27]
+            - text: Live Model
+          - heading "DELPHIAI" [level=1] [ref=e29]
+          - paragraph [ref=e30]: XGBoost + ELO blended UFC predictions. Calibrated probabilities, method-of-victory breakdowns, and live ROI tracking.
+        - generic [ref=e31]: No upcoming event found.
+      - generic [ref=e32]:
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - generic [ref=e35]: High-Conf Accuracy
+            - img [ref=e37]
+          - generic [ref=e43]: —
+          - generic [ref=e44]: 0 resolved bets
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e47]: Overall Accuracy
+            - img [ref=e49]
+          - generic [ref=e53]: —
+          - generic [ref=e54]: 0 predictions
+        - generic [ref=e55]:
+          - generic [ref=e56]:
+            - generic [ref=e57]: ROI · High-Conf
+            - img [ref=e59]
+          - generic [ref=e62]: —
+          - generic [ref=e63]: Flat-stake paper trading
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: Events Tracked
+            - img [ref=e68]
+          - generic [ref=e70]: "0"
+          - generic [ref=e71]: Live + backtest
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - generic [ref=e74]:
+            - heading "Calibration" [level=2] [ref=e75]
+            - link "View full report →" [ref=e76] [cursor=pointer]:
+              - /url: /performance
+          - paragraph [ref=e77]: Predicted probability vs actual outcome across all confidence buckets.
+          - generic [ref=e78]:
+            - heading "No resolved predictions yet" [level=3] [ref=e79]
+            - paragraph [ref=e80]: Once predictions are resolved via update_results, the calibration curve will appear here.
+        - generic [ref=e81]:
+          - heading "Upcoming Events" [level=2] [ref=e82]
+          - paragraph [ref=e83]: No upcoming events found.

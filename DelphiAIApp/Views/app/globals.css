@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Delphi classical palette — drawn from the logo (gold laurel, crimson medallions, cream toga, deep wine ground). */
+  --color-bg: #14090A;
+  --color-surface: #1F1213;
+  --color-surface-raised: #2E1A1C;
+  --color-border: #4A2A2C;
+  --color-text: #F2E8D0;
+  --color-muted: #B5A380;
+  --color-muted-2: #8C7858;
+  --color-red: #B91C1C;
+  --color-red-soft: #6B1E1E;
+  --color-red-glow: rgba(185, 28, 28, 0.45);
+  --color-gold: #D9A33A;
+  --color-gold-bright: #E8B946;
+  --color-gold-glow: rgba(217, 163, 58, 0.4);
+  --color-success: #6B8E4E;
+  --color-danger: #B8312F;
+
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans), Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-gold);
+  color: var(--color-red);
+}
+
+/* Greek-key inspired grid background */
+.bg-grid {
+  background-image:
+    linear-gradient(rgba(217, 163, 58, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(217, 163, 58, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Warm gradient overlays */
+.bg-laurel {
+  background:
+    radial-gradient(ellipse at top left, rgba(217, 163, 58, 0.10), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(185, 28, 28, 0.10), transparent 50%);
+}
+
+/* Delphic glow utilities */
+.glow-red {
+  box-shadow: 0 0 32px var(--color-red-glow);
+}
+.glow-gold {
+  box-shadow: 0 0 32px var(--color-gold-glow);
+}
+
+/* Smooth focus ring */
+*:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Recharts cosmetic */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+}
+
+/* Page entry */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.35s ease-out both;
+}

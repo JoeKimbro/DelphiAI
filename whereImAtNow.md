@@ -157,3 +157,349 @@ Option C (Recalibrate): Adjust probabilities
 - More accurate probabilities
 
 I'd recommend A or B (don't fix what works)
+
+Delphi front end 
+
+
+
+Event Lookup 
+Page that displays results (outo track after every Sunday)
+Page that displays current predictions
+Page that displays total accuracy for the year and all time 
+Maybe integrate a chatbot that will explain the stat predictions if its worth to undersdog bet
+About Page?
+
+
+
+
+
+Key Elements:
+
+Live accuracy ticker (updates after each event)
+Upcoming events dropdown (next 3-4 cards)
+Quick stats (overall, monthly, ROI, current streak)
+Call-to-action: "View Predictions for UFC 313" button
+
+
+
+Goal: Make complex predictions accessible Focus: Bettors want speed, clarity, confidence Style: Clean, data-dense, decision-focused
+
+By card position (Main/Prelims/Early)
+
+By confidence tier (HIGH/MED/LOW/TOSS)
+
+By method (KO/Sub/Dec predictions)
+
+By betting value (edges >10%)
+
+
+
+
+
+Each Fight Card Shows:
+
+Fighters: Record, ELO, form indicators
+Probability bars: Visual win likelihood
+Confidence tier: HIGH/MED/LOW badge
+Pick: Clear recommendation
+Method breakdown: KO/Sub/Dec percentages
+Betting insights: Value plays, edges
+Expandable: Click for full analysis
+Visual Indicators:
+
+🔥 Win streak (3+)
+⚠️ Layoff warning (6+ months)
+🤕 Injury history
+🌟 Rising prospect
+📉 Declining (3+ losses recent)
+👑 Champion
+
+
+
+
+Interactive Charts:
+
+Accuracy trend line (daily/weekly/monthly)
+ROI progression over time
+Win/loss streaks visualization
+Confidence calibration curve
+Method prediction accuracy (KO/Sub/Dec)
+
+
+Features:
+
+Auto-calculate optimal bet sizes (Kelly Criterion)
+Track actual vs expected performance
+Identify profitable bet types
+Warning system (drawdown alerts, losing streaks)
+Export for taxes/records
+
+
+Database Features:
+
+Search/filter all UFC fighters
+ELO rankings (all-time, current, by division)
+Head-to-head comparisons
+Style analysis (striker/grappler/balanced)
+Historical model performance on fighter
+Similar fighter recommendations
+
+
+Predictions: 🟢 High Confidence (65%+): #10B981 (Green) 🟡 Medium Confidence (60-65%): #F59E0B (Amber) 🔵 Low Confidence (55-60%): #3B82F6 (Blue) ⚪ Toss-up (<55%): #6B7280 (Gray) Results: ✅ Correct: #10B981 (Green) ❌ Incorrect: #EF4444 (Red) ⏳ Pending: #6B7280 (Gray) Metrics: 📈 Positive ROI: #10B981 (Green) 📉 Negative ROI: #EF4444 (Red) ➡️ Break-even: #F59E0B (Amber) Background: Dark Mode: #1F2937 (Primary), #111827 (Secondary) Light Mode: #F9FAFB (Primary), #FFFFFF (Secondary)
+
+
+
+Headings: Inter Bold (San-serif, clean)
+
+Body: Inter Regular
+
+Numbers/Stats: JetBrains Mono (Monospace, precise)
+
+Accents: Poppins (Modern, friendly)
+
+
+
+✓ Data density: More info, less clutter
+
+✓ Scannable: Eye naturally flows top-to-bottom, left-to-right
+
+✓ Hierarchy: Most important info biggest/boldest
+
+✓ Whitespace: Breathing room between sections
+
+✓ Mobile-first: Works perfectly on phone, scales to desktop
+
+✓ Dark mode: Default (easier on eyes for sports bettors)
+
+
+🎯 TECH STACK RECOMMENDATIONS
+
+Frontend:
+
+
+
+
+
+Framework: Next.js 14 (React)
+
+- Server components for speed
+
+- API routes for backend integration
+
+- Great SEO
+
+
+
+Styling: Tailwind CSS
+
+- Rapid development
+
+- Consistent design system
+
+- Dark mode built-in
+
+
+
+Charts: Recharts or Chart.js
+
+- Interactive visualizations
+
+- Responsive
+
+- Lightweight
+
+
+
+State: Zustand or React Query
+
+- Simple state management
+
+- Server state syncing
+
+- Caching
+
+
+
+Deployment: Vercel
+
+- Edge network (fast globally)
+
+- Auto-scaling
+
+- Zero config
+
+
+
+Backend Integration:
+
+
+
+
+
+API: Flask/FastAPI (Python)
+
+- Connect to existing SQLite DB
+
+- RESTful endpoints
+
+- Easy Python ML model integration
+
+
+
+Endpoints needed:
+
+GET  /api/events/upcoming
+
+GET  /api/events/{id}/predictions
+
+GET  /api/fighters/{id}
+
+GET  /api/performance/summary
+
+POST /api/results/update
+
+GET  /api/analytics/accuracy
+
+
+
+Database:
+
+
+
+
+
+Keep SQLite for now:
+
+- Already built
+
+- Works great for read-heavy
+
+- No migration needed
+
+
+
+Add caching:
+
+- Redis for hot data
+
+- Cache predictions, stats
+
+- Invalidate after events
+
+
+
+📱 RESPONSIVE BREAKPOINTS
+
+
+
+
+
+Mobile:   320-767px  (Single column, swipeable)
+
+Tablet:   768-1023px (Two columns, touch-friendly)
+
+Desktop:  1024-1439px (Three columns, mouse-optimized)
+
+Wide:     1440px+    (Four columns, data-dense)
+
+
+
+🎯 MVP PRIORITIES (Build This First)
+
+Phase 1: Core Experience (2-3 weeks)
+
+
+
+
+
+Must-have:
+
+✅ Homepage with upcoming events
+
+✅ Event prediction page (list view)
+
+✅ Fight detail modal
+
+✅ Basic analytics (accuracy, ROI)
+
+✅ Mobile responsive
+
+✅ Dark mode
+
+
+
+Skip for now:
+
+❌ Betting tracker
+
+❌ Fighter database
+
+❌ Advanced analytics
+
+❌ Live event tracker
+
+❌ Parlay builder
+
+
+
+Phase 2: Enhanced Features (2-3 weeks)
+
+
+
+
+
+Add:
+
+✅ Fighter profiles
+
+✅ Performance dashboard
+
+✅ Event history
+
+✅ Odds comparison
+
+✅ Notification system
+
+
+
+Still skip:
+
+❌ Betting tracker (premium feature)
+
+❌ Advanced analytics
+
+❌ Live updates
+
+
+
+Phase 3: Premium Features (Ongoing)
+
+
+
+
+
+Add:
+
+✅ Betting tracker
+
+✅ Live odds integration
+
+✅ Advanced analytics
+
+✅ Parlay builder
+
+✅ Historical matchup explorer
+
+
+
+🎯 FINAL VISION
+
+Your frontend should be:
+
+✅ Fast: Instant load, snappy interactions ✅ Clear: Decisions are obvious, no confusion ✅ Dense: Maximum info, minimum scrolling ✅ Beautiful: Professional, modern, polished ✅ Actionable: Users know exactly what to bet
+
+Think ESPN Stats + Bloomberg Terminal + Betting App
+
+Data-rich but accessible. Professional but friendly. Complex but intuitive.
+
+Your model is elite (66%). Your frontend should match that quality. 🎯

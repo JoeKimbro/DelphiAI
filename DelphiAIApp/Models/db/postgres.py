@@ -35,8 +35,13 @@ DB_CONFIG = {
 _connection_pool = None
 
 
-def get_connection_pool(minconn=1, maxconn=10):
-    """Get or create the connection pool."""
+def get_connection_pool(minconn=5, maxconn=20):
+    """Get or create the connection pool.
+
+    Defaults are sized for the FastAPI workload: a warm pool of 5 connections
+    eliminates first-request latency, and 20 max prevents stalls when the UI
+    fires several /api requests in parallel (dashboard does this).
+    """
     global _connection_pool
     if _connection_pool is None:
         _connection_pool = pool.ThreadedConnectionPool(

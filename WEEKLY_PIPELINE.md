@@ -47,7 +47,7 @@ This runs the entire pipeline in order:
 - Repopulates fighter styles
 - Applies ring rust + injury ELO adjustments
 
-If scraping already completed separately, skip it:
+If scraping already completed separately, skip it: 
 ```bash
 python -m ml.weekly_update --skip-scrape
 ```

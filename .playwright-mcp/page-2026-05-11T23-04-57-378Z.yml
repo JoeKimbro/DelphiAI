@@ -1,0 +1,40 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "DelphiAI DELPHIAI UFC Predictions" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "DelphiAI" [ref=e5]
+        - generic [ref=e6]:
+          - generic [ref=e7]: DELPHIAI
+          - generic [ref=e8]: UFC Predictions
+      - navigation [ref=e9]:
+        - link "Dashboard" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - link "Events" [ref=e11] [cursor=pointer]:
+          - /url: /events
+        - link "Performance" [ref=e12] [cursor=pointer]:
+          - /url: /performance
+        - link "Bets" [ref=e13] [cursor=pointer]:
+          - /url: /bets
+        - link "Sign in" [ref=e15] [cursor=pointer]:
+          - /url: /auth/signin
+          - img [ref=e16]
+          - text: Sign in
+  - main [ref=e19]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - heading "Sign in" [level=1] [ref=e24]
+        - paragraph [ref=e25]: Access your bet log and personal ROI tracking.
+      - generic [ref=e26]:
+        - text: Email
+        - textbox "Email" [ref=e27]
+      - generic [ref=e28]:
+        - text: Password
+        - textbox "Password" [ref=e29]
+      - button "Sign in" [ref=e30]
+      - paragraph [ref=e31]:
+        - text: New here?
+        - link "Create an account" [ref=e32] [cursor=pointer]:
+          - /url: /auth/signup
+  - button "Open Next.js Dev Tools" [ref=e38] [cursor=pointer]:
+    - img [ref=e39]
