@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from DelphiAIApp.Services.auto_resolve import auto_resolve_pending
 from DelphiAIApp.Services.event_service import resolve_event_results
 
 router = APIRouter()
@@ -20,3 +21,17 @@ def update_results(payload: UpdateRequest):
     if not summary:
         raise HTTPException(status_code=404, detail=f"No tracked predictions for '{payload.event_name}'.")
     return summary
+
+
+@router.post("/auto-resolve")
+def auto_resolve(force_ttl: bool = False):
+    """
+    Manually trigger the auto-resolver that scans for past-but-unresolved
+    events and resolves them. Runs synchronously and returns the per-event
+    summary. The same job runs automatically as a background task after
+    every `/api/performance/summary` request (TTL-guarded).
+    """
+    try:
+        return auto_resolve_pending(force_ttl=force_ttl)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Auto-resolve failed: {e}")

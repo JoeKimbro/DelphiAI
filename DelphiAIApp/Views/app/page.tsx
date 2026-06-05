@@ -107,7 +107,11 @@ export default async function DashboardPage() {
       {/* Main event preview */}
       {nextEvent && (
         <div className="mt-6">
-          <MainEventPreview event={nextEvent} fight={mainEventFight} />
+          <MainEventPreview
+            event={nextEvent}
+            fight={mainEventFight}
+            startsAt={nextEventPredictions?.date ?? null}
+          />
         </div>
       )}
 

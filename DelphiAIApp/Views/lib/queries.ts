@@ -23,6 +23,16 @@ const KEYS = {
   bets: ["bets"] as const,
 };
 
+/** Error carrying the HTTP status so callers can branch on auth/validation vs transient failures. */
+export class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
 async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(path, {
     ...init,
@@ -32,16 +42,26 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body?.error ?? `Request failed: ${res.status}`);
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new HttpError(res.status, body?.error ?? `Request failed: ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
 
-export function useBets() {
+/** Retry transient/5xx/network failures, but never 4xx (auth, validation) — retrying those is pointless. */
+function retryNon4xx(failureCount: number, error: unknown): boolean {
+  if (error instanceof HttpError && error.status >= 400 && error.status < 500) {
+    return false;
+  }
+  return failureCount < 2;
+}
+
+export function useBets(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: KEYS.bets,
     queryFn: () => jsonFetch<{ bets: Bet[] }>("/api/bets"),
+    enabled: options?.enabled ?? true,
+    retry: retryNon4xx,
   });
 }
 

@@ -129,6 +129,30 @@ def get_prediction_counts(conn):
 # STATISTICS CALCULATION
 # ============================================================================
 
+def _event_sort_key(event_date_str, predicted_at):
+    """
+    Parse a display-format event date like "Sat, May 16 / 8:00 PM" into a
+    datetime so events can be sorted chronologically. The year isn't in the
+    string, so we infer it from `predicted_at` (predictions are saved within
+    days of the event). Falls back to `predicted_at` itself when the date
+    string is missing or unparseable.
+    """
+    from datetime import datetime as _dt
+
+    if event_date_str and predicted_at is not None:
+        head = event_date_str.split('/')[0].strip()  # 'Sat, May 16'
+        if ',' in head:
+            head = head.split(',', 1)[1].strip()     # 'May 16'
+        for y_offset in (0, -1, 1):
+            try:
+                dt = _dt.strptime(f"{head} {predicted_at.year + y_offset}", "%b %d %Y")
+                if abs((dt - predicted_at).days) < 200:
+                    return dt
+            except ValueError:
+                continue
+    return predicted_at
+
+
 def calculate_stats(predictions):
     """Calculate comprehensive performance statistics for a set of predictions."""
     if not predictions:
@@ -195,17 +219,35 @@ def calculate_stats(predictions):
         d = source_stats[src]
         d['accuracy'] = d['correct'] / d['total'] * 100 if d['total'] > 0 else 0
 
-    # By event
-    event_stats = defaultdict(lambda: {'total': 0, 'correct': 0, 'date': ''})
+    # By event. `event_date` is a display string (e.g. "Sat, May 16 / 8:00 PM"),
+    # not an actual date column, so we parse it for sorting. Fall back to
+    # `predicted_at` (always present) when the string is empty or unparseable.
+    event_stats = defaultdict(lambda: {'total': 0, 'correct': 0, 'date': '', '_sort': None})
     for p in predictions:
         e = p['event_name']
         event_stats[e]['total'] += 1
         event_stats[e]['date'] = p.get('event_date', '')
+        sort_key = _event_sort_key(p.get('event_date'), p.get('predicted_at'))
+        cur = event_stats[e]['_sort']
+        if sort_key is not None and (cur is None or sort_key > cur):
+            event_stats[e]['_sort'] = sort_key
         if p['was_correct']:
             event_stats[e]['correct'] += 1
     for e in event_stats:
         d = event_stats[e]
         d['accuracy'] = d['correct'] / d['total'] * 100 if d['total'] > 0 else 0
+
+    from datetime import datetime as _dt
+    _DT_MIN = _dt.min
+    sorted_event_stats = {}
+    for name, d in sorted(
+        event_stats.items(),
+        key=lambda kv: kv[1]['_sort'] or _DT_MIN,
+        reverse=True,
+    ):
+        d.pop('_sort', None)
+        sorted_event_stats[name] = d
+    event_stats = sorted_event_stats
 
     # High confidence
     high_conf = [p for p in predictions if float(p['pick_probability']) >= 0.65]

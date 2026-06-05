@@ -1,18 +1,40 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { useBets, type Bet } from "@/lib/queries";
 import { BetForm } from "@/components/bets/BetForm";
 import { BetRow } from "@/components/bets/BetRow";
 import { StatCard } from "@/components/ui/StatCard";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Coins, Target, TrendingUp, Wallet } from "lucide-react";
+import { Coins, LogIn, Target, TrendingUp, Wallet } from "lucide-react";
+
+function PageHeader({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="flex items-end justify-between">
+      <div>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-gold">
+          Personal Tracker
+        </span>
+        <h1 className="mt-2 text-3xl font-black tracking-tight text-text">My Bets</h1>
+      </div>
+      {children}
+    </div>
+  );
+}
 
 export default function BetsPage() {
-  const { data, isLoading, error } = useBets();
-  const bets = data?.bets ?? [];
+  const { status } = useSession();
+  const isAuthed = status === "authenticated";
+
+  // Only fetch once we know the user is signed in. Firing while unauthenticated
+  // just yields a 401 that surfaces as a red error box.
+  const { data, isLoading, error } = useBets({ enabled: isAuthed });
+  // Memoize so the reference is stable across renders (keeps the summary useMemo honest).
+  const bets = useMemo(() => data?.bets ?? [], [data]);
 
   const summary = useMemo(() => {
     let total = 0;
@@ -45,17 +67,52 @@ export default function BetsPage() {
   const active = bets.filter((b) => !b.result);
   const history = bets.filter((b) => b.result);
 
+  // Resolving the session — avoid flashing the sign-in prompt before we know.
+  if (status === "loading") {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <PageHeader />
+        <section className="mt-6 grid gap-4 md:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28" />
+          ))}
+        </section>
+      </div>
+    );
+  }
+
+  // Signed out: the bet log is per-account, so prompt sign-in instead of erroring.
+  if (!isAuthed) {
+    return (
+      <div className="mx-auto max-w-6xl px-6 py-10">
+        <PageHeader />
+        <div className="mt-6">
+          <EmptyState
+            icon={<LogIn className="h-8 w-8" />}
+            title="Sign in to track your bets"
+            description={
+              <>
+                Your bet log and ROI are tied to your account.{" "}
+                <Link
+                  href="/auth/signin?callbackUrl=/bets"
+                  className="font-medium text-gold hover:underline"
+                >
+                  Sign in
+                </Link>{" "}
+                to log wagers and track performance against the model.
+              </>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-10">
-      <div className="flex items-end justify-between">
-        <div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-gold">
-            Personal Tracker
-          </span>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-text">My Bets</h1>
-        </div>
+      <PageHeader>
         <BetForm />
-      </div>
+      </PageHeader>
 
       {/* Summary KPIs */}
       <section className="mt-6 grid gap-4 md:grid-cols-4">

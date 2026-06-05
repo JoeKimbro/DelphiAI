@@ -85,7 +85,28 @@
       "Bash(python -m pytest DelphiAIApp/tests/ -v --tb=short)",
       "Bash(docker exec *)",
       "Bash(python -m pytest DelphiAIApp/tests/ -v)",
-      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\('career_stats.csv'\\); print\\('Rows:', len\\(df\\)\\); print\\('Cols:', list\\(df.columns\\)\\); print\\('elo_rating non-null:', df['elo_rating'].notna\\(\\).sum\\(\\) if 'elo_rating' in df.columns else 'MISSING'\\); print\\('peak_elo non-null:', df['peak_elo'].notna\\(\\).sum\\(\\) if 'peak_elo' in df.columns else 'MISSING'\\)\")"
+      "Bash(python -c \"import pandas as pd; df = pd.read_csv\\('career_stats.csv'\\); print\\('Rows:', len\\(df\\)\\); print\\('Cols:', list\\(df.columns\\)\\); print\\('elo_rating non-null:', df['elo_rating'].notna\\(\\).sum\\(\\) if 'elo_rating' in df.columns else 'MISSING'\\); print\\('peak_elo non-null:', df['peak_elo'].notna\\(\\).sum\\(\\) if 'peak_elo' in df.columns else 'MISSING'\\)\")",
+      "Skill(superpowers:systematic-debugging)",
+      "Bash(findstr \":3000\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); es=d['stats']['event_stats']; [print\\(repr\\(name\\), '->', repr\\(s.get\\('date'\\)\\)\\) for name,s in es.items\\(\\)]\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); es=d['stats']['event_stats']; [print\\(name, '->', repr\\(s.get\\('date'\\)\\)\\) for name,s in es.items\\(\\)]\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); es=d['stats']['event_stats']; [print\\(name, '->', repr\\(s.get\\('date'\\)\\)\\) for name,s in list\\(es.items\\(\\)\\)[:6]]\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(repr\\(e.get\\('name'\\)\\), '->', repr\\(e.get\\('date'\\)\\)\\) for e in d['events']]\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('name:',d.get\\('name'\\)\\); print\\('date:',repr\\(d.get\\('date'\\)\\)\\)\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); e=d['events'][0]; print\\('id:',e['id']\\); print\\('url:',e['url']\\)\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(json.dumps\\(e, indent=2\\)\\) for e in d['events'][:2]]\")",
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('date:',repr\\(d.get\\('date'\\)\\)\\)\")",
+      "Bash(python -m ml.performance_summary --type live)",
+      "Bash(ls .claude/projects/C--Users-Silly-Desktop-DelphiAI-DelphiAI/memory/)",
+      "Bash(cat .claude/projects/C--Users-Silly-Desktop-DelphiAI-DelphiAI/memory/MEMORY.md)",
+      "Bash(python3 -m json.tool)",
+      "Bash(del bfo_tmp.html)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(npx eslint *)",
+      "Bash(echo \"eslint exit: $?\")",
+      "Bash(python *)",
+      "Bash(pip show *)"
     ]
   }
 }

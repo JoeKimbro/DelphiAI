@@ -1,18 +1,21 @@
 import Link from "next/link";
-import { ArrowRight, Calendar, Crown, Flame } from "lucide-react";
+import { ArrowRight, Calendar, Clock, Crown, Flame } from "lucide-react";
 import type { EventSummary, FightPrediction } from "@/lib/types";
 import { shortDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { FighterMini } from "@/components/fighters/FighterMini";
+import { CountdownInline } from "@/components/ui/Countdown";
 import { ProbabilityBar } from "./ProbabilityBar";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 
 export function MainEventPreview({
   event,
   fight,
+  startsAt,
 }: {
   event: EventSummary;
   fight: FightPrediction | null;
+  startsAt?: string | null;
 }) {
   const f1Fav = fight ? fight.f1_prob >= 0.5 : false;
   const isTitle = fight?.is_title ?? false;
@@ -54,6 +57,16 @@ export function MainEventPreview({
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
+
+      {startsAt && (
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <span className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-gold">
+            <Clock className="h-3 w-3" />
+            Fights begin in
+          </span>
+          <CountdownInline targetIso={startsAt} />
+        </div>
+      )}
 
       {fight ? (
         <div className="mt-6 grid items-center gap-4 md:grid-cols-[1fr_auto_1fr]">

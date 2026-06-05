@@ -9,10 +9,56 @@ from __future__ import annotations
 import io
 import time
 import contextlib
+from datetime import datetime
 from decimal import Decimal
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from DelphiAIApp.Models.db.postgres import get_db_connection, execute_query
+
+# UFC.com server-renders event times in US Eastern (the JS on the page then
+# converts to the viewer's locale). When we scrape with `requests`, JS doesn't
+# run, so the text we capture is always ET. We localize it here and emit a
+# tz-aware ISO so the frontend can format it for any zone unambiguously.
+_UFC_SOURCE_TZ = ZoneInfo("America/New_York")
+
+
+def _event_date_to_iso(date_str: str | None, anchor: datetime | None) -> str | None:
+    """
+    Convert a display-format event date like "Sat, May 16 / 8:00 PM" to an
+    ISO 8601 string. When a time is present, returns a tz-aware ISO with
+    the event's ET offset ("2026-05-16T20:00:00-04:00"); otherwise date-only
+    ("2026-05-16"). The string has no year, so we infer it from `anchor`
+    (e.g. `predicted_at`, written within days of the event).
+
+    Without this, the frontend does `new Date("Sat, May 16 / 8:00 PM")`,
+    which V8 silently defaults to year 2001.
+    """
+    if not date_str or anchor is None:
+        return None
+
+    segments = [p.strip() for p in date_str.split('/')]
+    date_part = segments[0]                                  # 'Sat, May 16'
+    time_part = segments[1] if len(segments) > 1 else None   # '8:00 PM' or None
+    if ',' in date_part:
+        date_part = date_part.split(',', 1)[1].strip()       # 'May 16'
+
+    for y_offset in (0, -1, 1):
+        try:
+            dt = datetime.strptime(f"{date_part} {anchor.year + y_offset}", "%b %d %Y")
+        except ValueError:
+            continue
+        if abs((dt - anchor).days) >= 200:
+            continue
+        if time_part:
+            try:
+                t = datetime.strptime(time_part, "%I:%M %p")
+                dt = dt.replace(hour=t.hour, minute=t.minute, tzinfo=_UFC_SOURCE_TZ)
+                return dt.isoformat(timespec='seconds')
+            except ValueError:
+                pass
+        return dt.strftime("%Y-%m-%d")
+    return None
 
 UFC_EVENT_BASE = "https://www.ufc.com/event/"
 
@@ -150,50 +196,59 @@ def _build_upcoming_events() -> list[dict]:
 
 
 def list_past_events(limit: int = 4) -> list[dict]:
-    """Return the last `limit` resolved events ordered by most-recently-resolved.
+    """Return the last `limit` resolved events ordered by actual event date.
 
     Aggregates PredictionTracking rows where `was_correct IS NOT NULL`,
     grouping by event so each event appears once with its record + accuracy.
+    Pulls a wider candidate set than `limit` then sorts in Python by the
+    parsed event date — `event_date` is a display string so we can't ORDER BY
+    it in SQL and get chronological order.
     """
     with get_db_connection() as conn:
         cur = conn.cursor()
         cur.execute(
             """
             SELECT event_name,
-                   MAX(event_url)   AS event_url,
-                   MAX(event_date)  AS event_date,
-                   COUNT(*)         AS total,
+                   MAX(event_url)      AS event_url,
+                   MAX(event_date)     AS event_date,
+                   COUNT(*)            AS total,
                    COUNT(*) FILTER (WHERE was_correct) AS correct,
-                   MAX(resolved_at) AS last_resolved
+                   MAX(predicted_at)   AS last_predicted
             FROM PredictionTracking
             WHERE was_correct IS NOT NULL
             GROUP BY event_name
-            ORDER BY MAX(resolved_at) DESC NULLS LAST, MAX(predicted_at) DESC
+            ORDER BY MAX(predicted_at) DESC NULLS LAST
             LIMIT %s
             """,
-            (limit,),
+            (max(limit * 4, 20),),
         )
         rows = cur.fetchall()
         cur.close()
 
     out = []
-    for name, url, date, total, correct, _ in rows:
+    for name, url, date, total, correct, last_predicted in rows:
         if not url:
             continue
         total = int(total or 0)
         correct = int(correct or 0)
+        iso_date = _event_date_to_iso(date, last_predicted)
         out.append(
             {
                 "id": _slug_from_url(url),
                 "name": name,
-                "date": date,
+                "date": iso_date,
                 "url": url,
                 "total": total,
                 "correct": correct,
                 "accuracy": (correct / total * 100.0) if total else 0.0,
+                "_sort": iso_date or (last_predicted.strftime("%Y-%m-%d") if last_predicted else ""),
             }
         )
-    return out
+
+    out.sort(key=lambda e: e["_sort"], reverse=True)
+    for e in out:
+        e.pop("_sort", None)
+    return out[:limit]
 
 
 def get_past_event_details(event_id: str) -> dict | None:
@@ -226,24 +281,50 @@ def get_past_event_details(event_id: str) -> dict | None:
         cached = _fetch_cached_predictions_by_url(conn, event_url)
         if not cached:
             return None
-        return _cached_response(event_id, event_url, cached)
+        return _cached_response(event_id, event_url, cached, is_past=True)
 
 
-def _enrich_with_odds(results: list[dict]) -> list[dict]:
-    """Attach simulated American odds + edge_pct to each fight prediction."""
-    from ml.realistic_odds_estimator import probability_to_american
+def _enrich_with_odds(
+    results: list[dict],
+    event_url: str,
+    event_name: str,
+    is_past: bool,
+) -> list[dict]:
+    """Attach real American odds + edge_pct to each fight prediction.
+
+    Upcoming events draw from a live BestFightOdds homepage scrape (15-min
+    in-process cache). Past events fall back to the existing
+    historical_odds.json archive. Fights with no match get american=None and
+    `odds_source='unavailable'` — the UI renders these as '—' rather than
+    fake numbers.
+    """
+    from DelphiAIApp.Services.odds_provider import get_event_odds, _normalize_name
+    from DelphiAIApp.Services.odds_math import compute_edge_pct
+
+    odds_map = get_event_odds(event_url, event_name, is_past=is_past) or {}
 
     enriched = []
     for r in results:
-        f1_prob = float(r.get("f1_prob", 0.5))
-        f2_prob = float(r.get("f2_prob", 0.5))
         item = dict(r)
-        item["f1_american"] = probability_to_american(f1_prob)
-        item["f2_american"] = probability_to_american(f2_prob)
-        # Edge vs efficient-market implied prob (assume the market matches our model — placeholder).
-        # When real odds are integrated, replace with model_prob - market_implied_prob.
-        item["f1_edge_pct"] = 0.0
-        item["f2_edge_pct"] = 0.0
+        key = (_normalize_name(r["fighter1"]), _normalize_name(r["fighter2"]))
+        m = odds_map.get(key)
+
+        if m and m.get("decimal_a") and m.get("decimal_b"):
+            dec_a = float(m["decimal_a"])
+            dec_b = float(m["decimal_b"])
+            f1_prob = float(r.get("f1_prob", 0.5))
+            item["f1_american"] = int(m["american_a"])
+            item["f2_american"] = int(m["american_b"])
+            item["f1_edge_pct"] = round(compute_edge_pct(f1_prob, dec_a, dec_b), 2)
+            item["f2_edge_pct"] = round(compute_edge_pct(1.0 - f1_prob, dec_b, dec_a), 2)
+            item["odds_source"] = m.get("source", "bestfightodds")
+        else:
+            item["f1_american"] = None
+            item["f2_american"] = None
+            item["f1_edge_pct"] = 0.0
+            item["f2_edge_pct"] = 0.0
+            item["odds_source"] = "unavailable"
+
         enriched.append(_to_jsonable(item))
     return enriched
 
@@ -297,7 +378,9 @@ def _shape_cached_rows(rows: list[dict]) -> list[dict]:
         )
     meta = {
         "event_name": rows[0]["event_name"],
-        "event_date": rows[0]["event_date"],
+        "event_date": _event_date_to_iso(
+            rows[0]["event_date"], rows[0].get("predicted_at")
+        ) or rows[0]["event_date"],
         "event_url": rows[0]["event_url"],
     }
     return [meta, *out]
@@ -371,14 +454,18 @@ def _run_predict_card(conn, event_url: str) -> dict | None:
     }
 
 
-def _cached_response(event_id: str, event_url: str, cached: list[dict]) -> dict:
+def _cached_response(
+    event_id: str, event_url: str, cached: list[dict], is_past: bool
+) -> dict:
     meta, *fights = cached
     return {
         "id": event_id,
         "name": meta["event_name"],
         "date": meta["event_date"],
         "url": meta.get("event_url") or event_url,
-        "fights": _enrich_with_odds(fights),
+        "fights": _enrich_with_odds(
+            fights, event_url, meta.get("event_name", ""), is_past=is_past
+        ),
         "source": "cache",
     }
 
@@ -398,7 +485,7 @@ def get_event_predictions(event_id: str, force_recompute: bool = False) -> dict 
         if not force_recompute:
             cached = _fetch_cached_predictions_by_url(conn, event_url)
             if cached:
-                return _cached_response(event_id, event_url, cached)
+                return _cached_response(event_id, event_url, cached, is_past=False)
 
         live = _run_predict_card(conn, event_url)
         if not live:
@@ -408,7 +495,9 @@ def get_event_predictions(event_id: str, force_recompute: bool = False) -> dict 
             "name": live["event_name"],
             "date": live["event_date"],
             "url": live["event_url"],
-            "fights": _enrich_with_odds(live["results"]),
+            "fights": _enrich_with_odds(
+                live["results"], event_url, live.get("event_name", ""), is_past=False
+            ),
             "source": "live",
         }
 
@@ -424,7 +513,7 @@ def get_event_predictions_cached(event_id: str) -> dict | None:
         cached = _fetch_cached_predictions_by_url(conn, event_url)
         if not cached:
             return None
-        return _cached_response(event_id, event_url, cached)
+        return _cached_response(event_id, event_url, cached, is_past=False)
 
 
 def resolve_event_results(event_name: str, force: bool = False) -> dict | None:
