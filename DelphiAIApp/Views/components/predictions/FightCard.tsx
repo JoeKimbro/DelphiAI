@@ -105,20 +105,25 @@ export function FightCard({
           >
             <div className="grid gap-6 p-6 md:grid-cols-3">
               <section>
-                <h4 className="mb-3 text-[10px] font-bold uppercase tracking-widest text-muted">
-                  Odds (Simulated)
-                </h4>
+                <div className="mb-3 flex items-center gap-2">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-muted">
+                    Market Odds
+                  </h4>
+                  <OddsSourceBadge source={fight.odds_source} />
+                </div>
                 <div className="space-y-2">
                   <OddsRow
                     name={fight.fighter1}
                     prob={fight.f1_prob}
                     odds={fight.f1_american}
+                    edgePct={fight.f1_edge_pct}
                     isFav={f1Fav}
                   />
                   <OddsRow
                     name={fight.fighter2}
                     prob={fight.f2_prob}
                     odds={fight.f2_american}
+                    edgePct={fight.f2_edge_pct}
                     isFav={f2Fav}
                   />
                 </div>
@@ -213,13 +218,22 @@ function OddsRow({
   name,
   prob,
   odds,
+  edgePct,
   isFav,
 }: {
   name: string;
   prob: number;
   odds: number | null | undefined;
+  edgePct?: number;
   isFav: boolean;
 }) {
+  const edge = edgePct ?? 0;
+  const showEdge = odds != null && Math.abs(edge) >= 1;
+  const edgeTone =
+    edge >= 1
+      ? "border-gold/40 bg-gold/10 text-gold"
+      : "border-border bg-bg/40 text-muted-2";
+
   return (
     <div className="flex items-center justify-between text-sm">
       <span
@@ -231,11 +245,43 @@ function OddsRow({
         {name}
       </span>
       <div className="flex items-baseline gap-3 font-mono tabular-nums">
+        {showEdge && (
+          <span
+            className={cn(
+              "rounded-md border px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest",
+              edgeTone
+            )}
+          >
+            {edge >= 0 ? "+" : ""}
+            {edge.toFixed(1)} EDGE
+          </span>
+        )}
         <span className="text-xs text-muted">{formatPercent(prob)}</span>
         <span className={cn("text-base", isFav ? "text-gold" : "text-muted-2")}>
           {formatAmericanOdds(odds)}
         </span>
       </div>
     </div>
+  );
+}
+
+function OddsSourceBadge({
+  source,
+}: {
+  source?: "bestfightodds" | "historical_archive" | "unavailable";
+}) {
+  if (!source || source === "unavailable") {
+    return (
+      <span className="rounded-md border border-border bg-bg/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-muted-2">
+        Unavailable
+      </span>
+    );
+  }
+  const label =
+    source === "bestfightodds" ? "BestFightOdds" : "Closing Line";
+  return (
+    <span className="rounded-md border border-border bg-bg/40 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-muted">
+      {label}
+    </span>
   );
 }

@@ -31,6 +31,7 @@ export type FightPrediction = {
   f2_american?: number | null;
   f1_edge_pct?: number;
   f2_edge_pct?: number;
+  odds_source?: "bestfightodds" | "historical_archive" | "unavailable";
   actual_winner?: string | null;
   actual_method?: string | null;
   actual_round?: number | null;
@@ -159,4 +160,6 @@ export type PerformanceSummary = {
   prediction_type: string;
   counts: Record<string, { total: number; resolved: number; correct: number }>;
   stats: PerformanceStats | null;
+  available_years?: number[];
+  selected_year?: number | null;
 };

@@ -34,6 +34,15 @@ export default async function EventsPage() {
         </div>
       </div>
 
+      {/* The prefetch job (ml.prefetch_predictions --top 4) precomputes only the
+          next 4 events, which UFC.com lists soonest-first. Those open instantly
+          from cache; anything further out is a cache miss that runs a live
+          scrape + predict pipeline and takes a few seconds. */}
+      <p className="mt-3 text-xs text-muted">
+        The next 4 events are preloaded and open instantly. Selecting an event
+        further out runs a live prediction, which can take a few seconds.
+      </p>
+
       {events.length === 0 ? (
         <div className="mt-6">
           <EmptyState

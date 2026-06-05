@@ -3,16 +3,19 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { query } from "@/lib/db";
 
+// Nullable + optional (`.nullish()`) on the optional columns: the client form
+// sends `null` (not `undefined`) for empty fields, and the DB columns are
+// nullable. Plain `.optional()` rejects `null` and 400s every bet submit.
 const createSchema = z.object({
   event_name: z.string().min(1).max(200),
-  event_id: z.string().max(200).optional(),
+  event_id: z.string().max(200).nullish(),
   fighter_picked: z.string().min(1).max(100),
   opponent: z.string().min(1).max(100),
   bet_type: z.enum(["moneyline", "method", "round", "parlay"]),
   units_wagered: z.number().positive().max(10_000_000),
   american_odds: z.number().int().min(-100_000).max(100_000),
-  model_prob: z.number().min(0).max(1).optional(),
-  notes: z.string().max(500).optional(),
+  model_prob: z.number().min(0).max(1).nullish(),
+  notes: z.string().max(500).nullish(),
 });
 
 export async function GET() {

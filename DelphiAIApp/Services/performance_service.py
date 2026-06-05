@@ -19,8 +19,11 @@ def _jsonable(value: Any) -> Any:
     return value
 
 
-def get_performance_summary(prediction_type: str = "live") -> dict:
-    from ml.performance_summary import get_resolved_predictions, calculate_stats, get_prediction_counts
+def get_performance_summary(prediction_type: str = "live", year: int | None = None) -> dict:
+    from ml.performance_summary import (
+        get_resolved_predictions, calculate_stats, get_prediction_counts,
+        _event_sort_key,
+    )
 
     ptype = prediction_type if prediction_type in ("live", "backtest") else None
 
@@ -28,11 +31,30 @@ def get_performance_summary(prediction_type: str = "live") -> dict:
         predictions = get_resolved_predictions(conn, prediction_type=ptype)
         counts = get_prediction_counts(conn)
 
+    # Distinct event years derived the same way the per-event sort does it
+    # (parse event_date string with predicted_at as anchor, fall back to
+    # predicted_at when the string is empty/unparseable).
+    years_present: set[int] = set()
+    for p in predictions:
+        dt = _event_sort_key(p.get("event_date"), p.get("predicted_at"))
+        if dt is not None:
+            years_present.add(dt.year)
+    available_years = sorted(years_present, reverse=True)
+
+    if year is not None:
+        predictions = [
+            p for p in predictions
+            if (dt := _event_sort_key(p.get("event_date"), p.get("predicted_at")))
+            is not None and dt.year == year
+        ]
+
     stats = calculate_stats(predictions) if predictions else None
     return _jsonable(
         {
             "prediction_type": prediction_type,
             "counts": counts,
             "stats": stats,
+            "available_years": available_years,
+            "selected_year": year,
         }
     )

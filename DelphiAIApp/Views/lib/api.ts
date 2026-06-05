@@ -1,4 +1,8 @@
 const BASE = process.env.FASTAPI_URL ?? "http://localhost:8000";
+// Read on the server only. Never NEXT_PUBLIC_-prefixed so the key can't leak
+// to the browser bundle. All apiFetch callers are Server Components / route
+// handlers, so `process.env` resolves at request time on the Node runtime.
+const API_KEY = process.env.DELPHI_API_KEY ?? "";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -11,6 +15,7 @@ async function _fetchOrThrow<T>(path: string, init: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
       ...(init.headers ?? {}),
     },
   });

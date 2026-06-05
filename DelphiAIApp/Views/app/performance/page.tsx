@@ -6,6 +6,7 @@ import { CalibrationCurve } from "@/components/charts/CalibrationCurve";
 import { AccuracyByTier } from "@/components/charts/AccuracyByTier";
 import { ConfidenceBadge } from "@/components/predictions/ConfidenceBadge";
 import { ProbabilityBar } from "@/components/predictions/ProbabilityBar";
+import { YearFilter } from "@/components/performance/YearFilter";
 import { BarChart3, Crosshair, Target, TrendingUp } from "lucide-react";
 
 async function safeFetch<T>(path: string): Promise<T | null> {
@@ -19,8 +20,19 @@ async function safeFetch<T>(path: string): Promise<T | null> {
   }
 }
 
-export default async function PerformancePage() {
-  const summary = await safeFetch<PerformanceSummary>("/api/performance/summary");
+export default async function PerformancePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string }>;
+}) {
+  const sp = await searchParams;
+  const yearParam = Number.parseInt(sp.year ?? "", 10);
+  const year = Number.isFinite(yearParam) ? yearParam : null;
+  const summary = await safeFetch<PerformanceSummary>(
+    year != null
+      ? `/api/performance/summary?year=${year}`
+      : "/api/performance/summary"
+  );
   const stats = summary?.stats;
 
   return (
@@ -34,9 +46,15 @@ export default async function PerformancePage() {
             Performance
           </h1>
         </div>
-        <span className="text-xs font-medium uppercase tracking-widest text-muted">
-          {summary?.prediction_type ?? "live"}
-        </span>
+        <div className="flex items-center gap-3">
+          <YearFilter
+            years={summary?.available_years ?? []}
+            selected={summary?.selected_year ?? year}
+          />
+          <span className="text-xs font-medium uppercase tracking-widest text-muted">
+            {summary?.prediction_type ?? "live"}
+          </span>
+        </div>
       </div>
 
       {!stats ? (
@@ -179,11 +197,7 @@ export default async function PerformancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {Object.entries(stats.event_stats)
-                    .sort(([, a], [, b]) =>
-                      (b.date ?? "").localeCompare(a.date ?? "")
-                    )
-                    .map(([event, s]) => (
+                  {Object.entries(stats.event_stats).map(([event, s]) => (
                       <tr
                         key={event}
                         className="border-t border-border hover:bg-bg/40"

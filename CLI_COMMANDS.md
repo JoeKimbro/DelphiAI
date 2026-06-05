@@ -2,6 +2,40 @@
 
 ---
 
+## Run the App (Database + Backend + Frontend)
+
+The dashboard needs three things running together: **PostgreSQL**, the **FastAPI
+backend** (port 8000), and the **Next.js frontend** (port 3000). The frontend
+talks to the backend via `FASTAPI_URL` (defaults to `http://localhost:8000`).
+
+Open **three terminals** from the repo root and run one command in each:
+
+```bash
+# 1. PostgreSQL + pgAdmin (port 5433) — leave running
+docker-compose up -d
+
+# 2. FastAPI backend -> http://localhost:8000  (run from repo root)
+uvicorn DelphiAIApp.main:app --reload --port 8000
+
+# 3. Next.js frontend -> http://localhost:3000
+cd DelphiAIApp/Views
+npm run dev
+```
+
+Then open **http://localhost:3000** in your browser.
+
+**Notes:**
+- The backend must be started from the **repo root** so the `DelphiAIApp.main:app`
+  import path resolves.
+- Stop the backend/frontend with `Ctrl+C` in their terminals. Stop Postgres with
+  `docker-compose down`.
+- Interactive API docs (Swagger) are off by default; enable them by setting
+  `DELPHI_ENABLE_DOCS=1` before starting the backend, then visit
+  `http://localhost:8000/docs`.
+- Frontend env (API key, `FASTAPI_URL`) lives in `DelphiAIApp/Views/.env.local`.
+
+---
+
 ## Predict a Full Fight Card
 
 Automatically finds all fights on a UFC event and runs predictions for each.
