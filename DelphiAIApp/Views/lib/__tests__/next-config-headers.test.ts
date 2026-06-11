@@ -15,16 +15,15 @@ describe("next.config security headers", () => {
     expect(names).toContain("content-security-policy");
   });
 
-  it("uses a pragmatic CSP allowing inline styles only", () => {
-    return config.headers!().then((rules) => {
-      const csp = rules
-        .find((r) => r.source === "/(.*)")!
-        .headers.find((h) => h.key.toLowerCase() === "content-security-policy")!
-        .value;
-      expect(csp).toContain("script-src 'self'");
-      expect(csp).toContain("style-src 'self' 'unsafe-inline'");
-      expect(csp).toContain("frame-ancestors 'none'");
-      expect(csp).not.toContain("'unsafe-eval'");
-    });
+  it("uses a pragmatic CSP allowing inline styles only", async () => {
+    const rules = await config.headers!();
+    const csp = rules
+      .find((r) => r.source === "/(.*)")!
+      .headers.find((h) => h.key.toLowerCase() === "content-security-policy")!
+      .value;
+    expect(csp).toContain("script-src 'self'");
+    expect(csp).toContain("style-src 'self' 'unsafe-inline'");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).not.toContain("'unsafe-eval'");
   });
 });
