@@ -30,6 +30,7 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 if DATABASE_URL:
     _POOL_ARGS: tuple = (DATABASE_URL,)
     _POOL_KWARGS: dict = {}
+    DB_CONFIG: dict = {}  # unused in URL mode; defined so helpers can reference it
 else:
     REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
     missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
