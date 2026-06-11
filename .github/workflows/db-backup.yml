@@ -22,9 +22,24 @@ jobs:
           BACKUP_DIR: backups
           BACKUP_RETENTION_DAYS: "14"
         run: python -m scripts.backup_db
-      - name: Upload backup artifact
+      - name: Encrypt dumps (fail safe — never upload plaintext)
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          if [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::error::BACKUP_PASSPHRASE secret not set — refusing to upload plaintext DB dumps." >&2
+            exit 1
+          fi
+          shopt -s nullglob
+          for f in backups/*.dump; do
+            gpg --batch --yes --pinentry-mode loopback \
+              --passphrase "$BACKUP_PASSPHRASE" \
+              --symmetric --cipher-algo AES256 "$f"
+            rm -f "$f"
+          done
+      - name: Upload encrypted backup artifact
         uses: actions/upload-artifact@v4
         with:
           name: db-backup-${{ github.run_id }}
-          path: backups/*.dump
+          path: backups/*.dump.gpg
           retention-days: 14

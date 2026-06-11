@@ -41,8 +41,12 @@ with **Cloudflare** available in front of the Railway API.
 ## 5. Backups
 - Primary: Neon point-in-time restore / branching.
 - Secondary: `scripts/backup_db.py` via `.github/workflows/db-backup.yml` (daily,
-  `pg_dump -Fc`, 14-day retention, uploaded as an artifact). Restore with
-  `pg_restore -d <DATABASE_URL> <file>.dump`.
+  `pg_dump -Fc`, 14-day retention). The dump is **gpg-AES256-encrypted** with the
+  `BACKUP_PASSPHRASE` secret before it is uploaded as an artifact — the workflow
+  refuses to run if that secret is unset, so a plaintext DB dump is never egressed.
+  The dump credentials are passed to `pg_dump` via `PGPASSWORD` (never in argv) and
+  any libpq errors are redacted before logging. Restore with:
+  `gpg --decrypt <file>.dump.gpg > restore.dump && pg_restore -d <DATABASE_URL> restore.dump`.
 
 ## 6. Updates & patching
 - Dependabot (`.github/dependabot.yml`): weekly npm + pip + actions PRs.

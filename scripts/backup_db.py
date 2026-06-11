@@ -10,16 +10,45 @@ Usage:
 from __future__ import annotations
 
 import os
+import re
 import subprocess
 import sys
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 
 def backup_filename(db_name: str) -> str:
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     return f"{db_name}-{stamp}.dump"
+
+
+def split_dsn_password(dsn: str) -> tuple[str, str | None]:
+    """Return (dsn_without_password, password|None).
+
+    Keeps the rest of the URI intact (user, host, port, db, query like
+    sslmode=require) so the password never has to appear in pg_dump's argv.
+    """
+    parts = urlsplit(dsn)
+    if parts.password is None:
+        return dsn, None
+    host = parts.hostname or ""
+    if parts.port:
+        host = f"{host}:{parts.port}"
+    netloc = f"{parts.username}@{host}" if parts.username else host
+    sanitized = urlunsplit(
+        (parts.scheme, netloc, parts.path, parts.query, parts.fragment)
+    )
+    return sanitized, parts.password
+
+
+_DSN_PW_RE = re.compile(r"(postgresql?://[^:/@\s]+:)[^@/\s]+(@)")
+
+
+def redact(text: str) -> str:
+    """Replace any `user:password@` in a string with `user:***@` for safe logging."""
+    return _DSN_PW_RE.sub(r"\1***\2", text or "")
 
 
 def _dsn_from_env() -> tuple[str, str]:
@@ -40,7 +69,10 @@ def _dsn_from_env() -> tuple[str, str]:
 
 def build_pg_dump_cmd(dsn: str, out_path: str) -> list[str]:
     # -Fc = custom (compressed, restorable with pg_restore); -f = output file.
-    return ["pg_dump", "-Fc", "-f", out_path, dsn]
+    # The password is stripped from the DSN here and supplied out-of-band via
+    # PGPASSWORD (see main), so it never lands in the process argv / ps output.
+    sanitized, _ = split_dsn_password(dsn)
+    return ["pg_dump", "-Fc", "-f", out_path, sanitized]
 
 
 def prune_old(backup_dir: Path, retention_days: int) -> int:
@@ -62,10 +94,17 @@ def main() -> int:
     out_path = backup_dir / backup_filename(db_name)
     cmd = build_pg_dump_cmd(dsn, str(out_path))
 
+    # Supply the password via PGPASSWORD instead of the connection-string argv.
+    _, password = split_dsn_password(dsn)
+    env = dict(os.environ)
+    if password is not None:
+        env["PGPASSWORD"] = password
+
     print(f"[backup] writing {out_path} ...", flush=True)
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     if result.returncode != 0:
-        print(f"[backup] FAILED: {result.stderr}", file=sys.stderr)
+        # Redact any credentials libpq may echo back before logging.
+        print(f"[backup] FAILED: {redact(result.stderr)}", file=sys.stderr)
         return result.returncode
     print(f"[backup] OK ({out_path.stat().st_size} bytes)", flush=True)
 
