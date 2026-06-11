@@ -129,6 +129,32 @@ def _check_api_key(request: Request) -> None:
 
 
 # ----------------------------------------------------------------------------
+# Response security headers
+# ----------------------------------------------------------------------------
+
+# Static response headers applied to every response. HSTS is safe because the
+# edge (Vercel/Railway/Cloudflare) terminates TLS; browsers ignore it on plain
+# HTTP localhost, so local dev is unaffected.
+_SECURITY_HEADERS: dict[str, str] = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Referrer-Policy": "no-referrer",
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+}
+# Docs (Swagger/ReDoc) need inline scripts + a CDN, so the locked-down CSP is
+# skipped for those paths only.
+_DOC_PATHS = ("/docs", "/redoc", "/openapi.json")
+_API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+
+
+def _apply_security_headers(request: Request, response) -> None:
+    for k, v in _SECURITY_HEADERS.items():
+        response.headers.setdefault(k, v)
+    if not request.url.path.startswith(_DOC_PATHS):
+        response.headers.setdefault("Content-Security-Policy", _API_CSP)
+
+
+# ----------------------------------------------------------------------------
 # Combined middleware
 # ----------------------------------------------------------------------------
 
@@ -143,19 +169,25 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         # Always allow CORS preflight + health/root
         if request.method == "OPTIONS" or path in _PUBLIC_PATHS:
-            return await call_next(request)
+            response = await call_next(request)
+            _apply_security_headers(request, response)
+            return response
 
         try:
             _check_api_key(request)
             _check_rate_limit(request)
         except HTTPException as e:
-            return JSONResponse(
+            resp = JSONResponse(
                 content={"detail": e.detail},
                 status_code=e.status_code,
                 headers=e.headers or {},
             )
+            _apply_security_headers(request, resp)
+            return resp
 
-        return await call_next(request)
+        response = await call_next(request)
+        _apply_security_headers(request, response)
+        return response
 
 
 def warn_if_unconfigured() -> None:
