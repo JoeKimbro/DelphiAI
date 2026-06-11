@@ -11,7 +11,14 @@ import { clientIp, isLockedOut, recordAttempt, tooManySignups } from "@/lib/rate
 beforeEach(() => queryMock.mockReset());
 
 describe("clientIp", () => {
-  it("reads the first x-forwarded-for hop", () => {
+  it("prefers the trusted x-real-ip over a spoofable x-forwarded-for", () => {
+    const h = new Headers({
+      "x-real-ip": "9.9.9.9",
+      "x-forwarded-for": "1.2.3.4, 10.0.0.1",
+    });
+    expect(clientIp(h)).toBe("9.9.9.9");
+  });
+  it("falls back to the first x-forwarded-for hop when x-real-ip is absent", () => {
     const h = new Headers({ "x-forwarded-for": "1.2.3.4, 10.0.0.1" });
     expect(clientIp(h)).toBe("1.2.3.4");
   });

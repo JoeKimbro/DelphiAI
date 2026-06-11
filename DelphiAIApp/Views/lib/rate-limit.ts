@@ -6,11 +6,19 @@ const LOGIN_MAX_FAILS = 5;
 const SIGNUP_WINDOW_MIN = 15;
 const SIGNUP_MAX = 3;
 
-/** First hop of x-forwarded-for (Vercel sets this), else "unknown". */
+/**
+ * Best-effort client IP for throttling. Prefers `x-real-ip`, which Vercel's
+ * edge sets to the actual peer IP and a client cannot override. Only falls back
+ * to the leftmost `x-forwarded-for` hop when `x-real-ip` is absent (non-Vercel
+ * / local dev) — that hop IS client-spoofable, so it is a soft signal there and
+ * the edge WAF is the real volumetric defense (see docs/SECURITY.md).
+ */
 export function clientIp(headers: Headers): string {
+  const real = headers.get("x-real-ip")?.trim();
+  if (real) return real;
   const xff = headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
-  return headers.get("x-real-ip")?.trim() || "unknown";
+  return "unknown";
 }
 
 /** True when (email, ip) has ≥ LOGIN_MAX_FAILS failures since the last success in-window. */
