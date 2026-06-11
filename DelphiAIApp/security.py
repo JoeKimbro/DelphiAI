@@ -48,6 +48,10 @@ if DELPHI_ENV == "production" and API_KEY is None:
         "an unauthenticated API."
     )
 
+# Reject request bodies larger than this (DoS guard). 256 KB is generous for
+# this API's JSON payloads. Tunable via env for unusual deployments.
+MAX_BODY_BYTES = int(os.environ.get("DELPHI_MAX_BODY_BYTES", str(256 * 1024)))
+
 # Paths that bypass auth + rate limit (health checks must always succeed).
 _PUBLIC_PATHS: frozenset[str] = frozenset({"/", "/health"})
 
@@ -181,6 +185,16 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
             _apply_security_headers(request, response)
             return response
+
+        # Reject oversized bodies before auth so a flood is cheap to turn away.
+        clen = request.headers.get("content-length")
+        if clen is not None and clen.isdigit() and int(clen) > MAX_BODY_BYTES:
+            resp = JSONResponse(
+                content={"detail": f"Request body too large (> {MAX_BODY_BYTES} bytes)."},
+                status_code=413,
+            )
+            _apply_security_headers(request, resp)
+            return resp
 
         try:
             _check_api_key(request)
