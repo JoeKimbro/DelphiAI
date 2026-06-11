@@ -514,7 +514,12 @@ class MLPredictor:
         self._load_error = None
 
         if model_path is None:
-            model_path = ARTIFACTS_DIR / 'model_latest.pkl'
+            # DELPHI_MODEL_PATH lets the deployment point at a model delivered
+            # outside the repo — e.g. one downloaded from object storage (R2) to
+            # the container's ephemeral disk at boot. Falls back to the bundled
+            # artifacts dir for local dev.
+            env_path = os.environ.get('DELPHI_MODEL_PATH', '').strip()
+            model_path = Path(env_path) if env_path else ARTIFACTS_DIR / 'model_latest.pkl'
 
         self._load_model(model_path)
 
