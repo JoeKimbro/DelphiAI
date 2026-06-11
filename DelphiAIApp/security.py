@@ -38,6 +38,15 @@ RATE_LIMIT_DISABLED = os.environ.get("DELPHI_DISABLE_RATELIMIT", "").strip().low
 DOCS_ENABLED = os.environ.get("DELPHI_ENABLE_DOCS", "").strip().lower() in {
     "1", "true", "yes", "on",
 }
+DELPHI_ENV = os.environ.get("DELPHI_ENV", "").strip().lower()
+
+# In production the API must not boot open. Fail fast at import time so a
+# misconfigured deploy crashes loudly instead of silently serving unauthed.
+if DELPHI_ENV == "production" and API_KEY is None:
+    raise RuntimeError(
+        "DELPHI_ENV=production but DELPHI_API_KEY is unset — refusing to start "
+        "an unauthenticated API."
+    )
 
 # Paths that bypass auth + rate limit (health checks must always succeed).
 _PUBLIC_PATHS: frozenset[str] = frozenset({"/", "/health"})

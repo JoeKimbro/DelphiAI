@@ -35,3 +35,14 @@ def test_security_headers_present(client):
 def test_api_csp_is_locked_down(client):
     r = client.get("/health")
     assert "default-src 'none'" in r.headers["content-security-policy"]
+
+
+def test_production_requires_api_key(monkeypatch):
+    monkeypatch.setenv("DELPHI_ENV", "production")
+    monkeypatch.delenv("DELPHI_API_KEY", raising=False)
+    import DelphiAIApp.security as sec
+    with pytest.raises(RuntimeError):
+        importlib.reload(sec)
+    # Reset module state for other tests.
+    monkeypatch.delenv("DELPHI_ENV", raising=False)
+    importlib.reload(sec)
