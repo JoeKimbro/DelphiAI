@@ -1,0 +1,4 @@
+# Dev-only tooling, never installed into the API container.
+# boto3 powers scripts/publish_model.py (uploads the model to R2).
+-r requirements.txt
+boto3==1.35.99
