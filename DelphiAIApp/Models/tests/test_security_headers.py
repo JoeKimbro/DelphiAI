@@ -46,3 +46,13 @@ def test_production_requires_api_key(monkeypatch):
     # Reset module state for other tests.
     monkeypatch.delenv("DELPHI_ENV", raising=False)
     importlib.reload(sec)
+
+
+def test_oversized_body_rejected(client):
+    big = "x" * (300 * 1024)  # 300 KB > 256 KB cap
+    r = client.post(
+        "/api/results/update",
+        data=big,
+        headers={"Content-Type": "application/json"},
+    )
+    assert r.status_code == 413
