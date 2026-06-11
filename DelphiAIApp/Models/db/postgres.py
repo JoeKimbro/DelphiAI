@@ -9,27 +9,48 @@ from psycopg2 import pool
 from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
-# Looks for .env in project root (3 levels up from this file)
+# Load environment variables from a local .env file when present. In container
+# deployments (Railway, GitHub Actions) the vars are injected directly into the
+# environment, so the file is optional — never raise if it is missing.
 env_path = Path(__file__).resolve().parents[3] / ".env"
-if not env_path.exists():
-    raise FileNotFoundError(f".env file not found at {env_path}")
-load_dotenv(env_path)
+if env_path.exists():
+    load_dotenv(env_path)
 
-# Required environment variables
-REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
-missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
-if missing:
-    raise EnvironmentError(f"Missing required environment variables: {', '.join(missing)}")
+# Connection config is resolved in priority order:
+#   1. DATABASE_URL  — a single libpq connection string. This is what Neon,
+#      Railway, Supabase, and Vercel all hand you, and it carries sslmode itself
+#      (e.g. ...?sslmode=require). Used verbatim when present.
+#   2. DB_* vars     — the local-dev fallback (docker-compose Postgres on 5433).
+#      An optional DB_SSLMODE lets local point at a managed DB without a URL.
+#
+# _POOL_ARGS / _POOL_KWARGS are spread into ThreadedConnectionPool so either
+# form works through the same code path.
+DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
-# Database configuration - requires .env file
-DB_CONFIG = {
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT"),
-    "database": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-}
+if DATABASE_URL:
+    _POOL_ARGS: tuple = (DATABASE_URL,)
+    _POOL_KWARGS: dict = {}
+else:
+    REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
+    missing = [var for var in REQUIRED_ENV_VARS if not os.getenv(var)]
+    if missing:
+        raise EnvironmentError(
+            "Set DATABASE_URL, or provide all of: "
+            f"{', '.join(missing)} (missing)."
+        )
+    DB_CONFIG = {
+        "host": os.getenv("DB_HOST"),
+        "port": os.getenv("DB_PORT"),
+        "database": os.getenv("DB_NAME"),
+        "user": os.getenv("DB_USER"),
+        "password": os.getenv("DB_PASSWORD"),
+    }
+    # Optional: require SSL when pointing the DB_* path at a managed Postgres.
+    _sslmode = os.getenv("DB_SSLMODE", "").strip()
+    if _sslmode:
+        DB_CONFIG["sslmode"] = _sslmode
+    _POOL_ARGS = ()
+    _POOL_KWARGS = DB_CONFIG
 
 # Connection pool (initialized lazily)
 _connection_pool = None
@@ -45,7 +66,7 @@ def get_connection_pool(minconn=5, maxconn=20):
     global _connection_pool
     if _connection_pool is None:
         _connection_pool = pool.ThreadedConnectionPool(
-            minconn, maxconn, **DB_CONFIG
+            minconn, maxconn, *_POOL_ARGS, **_POOL_KWARGS
         )
     return _connection_pool
 
