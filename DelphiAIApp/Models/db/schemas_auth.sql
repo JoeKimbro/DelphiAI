@@ -50,8 +50,22 @@ CREATE INDEX IF NOT EXISTS idx_user_bets_unresolved
     ON user_bets(user_id, placed_at)
     WHERE result IS NULL;
 
+CREATE TABLE IF NOT EXISTS auth_attempts (
+    id              BIGSERIAL PRIMARY KEY,
+    email           TEXT NOT NULL,
+    ip              TEXT NOT NULL,
+    success         BOOLEAN NOT NULL DEFAULT FALSE,
+    attempted_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_auth_attempts_lookup
+    ON auth_attempts (email, ip, attempted_at);
+CREATE INDEX IF NOT EXISTS idx_auth_attempts_ip
+    ON auth_attempts (ip, attempted_at);
+
 COMMENT ON TABLE users IS 'DelphiAI registered users (email + bcrypt password).';
 COMMENT ON TABLE sessions IS 'Server-side session records for Auth.js or fallback cookie auth.';
 COMMENT ON TABLE user_bets IS 'Personal bet log — independent of model predictions, tracks user-placed wagers and ROI.';
 COMMENT ON COLUMN user_bets.model_prob IS 'Model probability snapshot at bet placement time, so later model retraining does not retroactively change this.';
 COMMENT ON COLUMN user_bets.event_id IS 'UFC.com slug (e.g. "ufc-326-pereira-vs-ankalaev-2") for joining back to the event view.';
+COMMENT ON TABLE auth_attempts IS 'Login/signup attempt log for brute-force lockout + signup throttling.';
