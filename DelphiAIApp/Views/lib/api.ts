@@ -3,6 +3,7 @@ const BASE = process.env.FASTAPI_URL ?? "http://localhost:8000";
 // to the browser bundle. All apiFetch callers are Server Components / route
 // handlers, so `process.env` resolves at request time on the Node runtime.
 const API_KEY = process.env.DELPHI_API_KEY ?? "";
+const REQUEST_TIMEOUT_MS = Number(process.env.DELPHI_FETCH_TIMEOUT_MS ?? 15000);
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -11,14 +12,27 @@ export class ApiError extends Error {
 }
 
 async function _fetchOrThrow<T>(path: string, init: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
-      ...(init.headers ?? {}),
-    },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(API_KEY ? { "X-API-Key": API_KEY } : {}),
+        ...(init.headers ?? {}),
+      },
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new ApiError(504, `Upstream timed out after ${REQUEST_TIMEOUT_MS}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     let detail = res.statusText;
