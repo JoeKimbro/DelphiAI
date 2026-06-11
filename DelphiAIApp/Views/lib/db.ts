@@ -5,9 +5,25 @@ declare global {
   var _pgPool: Pool | undefined;
 }
 
+/** TLS policy for pg: require for managed/remote hosts, off for localhost. */
+export function resolveSsl(connectionString: string): false | { rejectUnauthorized: boolean } {
+  try {
+    const u = new URL(connectionString);
+    if (u.searchParams.get("sslmode") === "disable") return false;
+    const host = u.hostname;
+    if (host === "localhost" || host === "127.0.0.1") return false;
+    return { rejectUnauthorized: true };
+  } catch {
+    return false;
+  }
+}
+
 function makePool(): Pool {
   if (process.env.DATABASE_URL) {
-    return new Pool({ connectionString: process.env.DATABASE_URL });
+    return new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: resolveSsl(process.env.DATABASE_URL),
+    });
   }
   return new Pool({
     host: process.env.DB_HOST || "localhost",
