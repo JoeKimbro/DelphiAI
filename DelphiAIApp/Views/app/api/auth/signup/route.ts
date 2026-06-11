@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
+import { headers } from "next/headers";
 import { query } from "@/lib/db";
+import { passwordSchema } from "@/lib/common-passwords";
+import { tooManySignups, recordAttempt, clientIp } from "@/lib/rate-limit";
 
 const signupSchema = z.object({
   email: z.string().email().max(255),
-  password: z.string().min(8).max(128),
+  password: passwordSchema,
   name: z.string().min(1).max(100).optional(),
 });
 
@@ -25,6 +28,14 @@ export async function POST(req: Request) {
   }
   const { email, password, name } = parsed.data;
 
+  const ip = clientIp(await headers());
+  if (await tooManySignups(ip)) {
+    return NextResponse.json(
+      { error: "Too many signups from this network. Try again later." },
+      { status: 429 }
+    );
+  }
+
   const existing = await query<{ id: string }>(
     `SELECT id FROM users WHERE email = $1 LIMIT 1`,
     [email]
@@ -40,6 +51,8 @@ export async function POST(req: Request) {
      RETURNING id, email, name`,
     [email, name ?? null, hash]
   );
+
+  await recordAttempt("__signup__", ip, true);
 
   return NextResponse.json({ user: inserted[0] }, { status: 201 });
 }
