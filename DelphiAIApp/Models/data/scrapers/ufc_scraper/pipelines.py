@@ -1831,6 +1831,13 @@ class FightStatsCalculationPipeline:
                 
                 if update_fields:
                     update_values.append(fighter_id)
+                    # Defense-in-depth: every interpolated column name must come
+                    # from the hardcoded field_mapping (values already use %s).
+                    _allowed_cols = set(field_mapping.values())
+                    for _f in update_fields:
+                        _col = _f.split(" =", 1)[0].strip()
+                        if _col not in _allowed_cols:
+                            raise ValueError(f"Refusing unknown column in UPDATE: {_col!r}")
                     sql = f"UPDATE CareerStats SET {', '.join(update_fields)} WHERE FighterID = %s"
                     cursor.execute(sql, update_values)
                     updated_count += 1

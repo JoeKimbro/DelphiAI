@@ -28,6 +28,14 @@ from dotenv import load_dotenv
 env_path = Path(__file__).parent.parent.parent.parent / '.env'
 load_dotenv(env_path)
 
+# Ensure the Models package root is importable so `db.*` helpers resolve
+# regardless of the working directory this script is launched from.
+_MODELS_DIR = Path(__file__).resolve().parent.parent
+if str(_MODELS_DIR) not in sys.path:
+    sys.path.insert(0, str(_MODELS_DIR))
+
+from db.sql_identifiers import safe_identifier, ALLOWED_TABLES
+
 # Database connection settings
 DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
@@ -77,7 +85,7 @@ def clear_tables(conn, include_ml_tables=True):
     
     for table in tables_to_clear:
         try:
-            cursor.execute(f"DELETE FROM {table}")
+            cursor.execute(f"DELETE FROM {safe_identifier(table, ALLOWED_TABLES)}")
             print(f"   Cleared {table}")
         except Exception as e:
             print(f"   [WARN] Could not clear {table}: {e}")
@@ -1349,7 +1357,7 @@ def show_summary(conn):
     
     for display_name, table_name in ml_tables:
         try:
-            cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+            cursor.execute(f"SELECT COUNT(*) FROM {safe_identifier(table_name, ALLOWED_TABLES)}")
             count = cursor.fetchone()[0]
             print(f"   {display_name}: {count:>8} records")
         except Exception:
