@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import { Providers } from "@/lib/providers";
 import { Header } from "@/components/layout/Header";
 import "./globals.css";
@@ -22,9 +23,10 @@ export const metadata: Metadata = {
     "XGBoost + ELO blended UFC fight predictions. Calibrated probabilities, ROI tracking, fighter analytics.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html
       lang="en"
