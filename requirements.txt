@@ -6,12 +6,12 @@
 # --- Web API ---
 fastapi==0.136.1
 uvicorn[standard]==0.46.0
-starlette==1.0.0
+starlette==1.0.1
 pydantic==2.13.4
 
 # --- Database ---
 psycopg2-binary==2.9.11
-python-dotenv==1.2.1
+python-dotenv==1.2.2
 yoyo-migrations==9.0.0
 
 # --- ML / prediction pipeline ---
@@ -22,10 +22,11 @@ pandas==3.0.0
 joblib==1.5.3
 
 # --- Live predict-time injury scrape (lightweight; no browser) ---
-requests==2.32.5
+requests==2.33.0
 beautifulsoup4==4.14.3
-lxml==6.0.2
+lxml==6.1.0
 
 # --- Bulk scraping pipeline (GitHub Actions cron, weekly_update) ---
-Scrapy==2.14.1
+Scrapy==2.14.2
 scrapy-playwright==0.0.46
+twisted==26.4.0rc2
