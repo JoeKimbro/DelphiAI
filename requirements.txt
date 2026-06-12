@@ -29,4 +29,3 @@ lxml==6.1.0
 # --- Bulk scraping pipeline (GitHub Actions cron, weekly_update) ---
 Scrapy==2.14.2
 scrapy-playwright==0.0.46
-twisted==26.4.0rc2
