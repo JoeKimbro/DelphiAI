@@ -229,19 +229,17 @@ def update_all_inactivity_penalties(conn) -> int:
             if penalty >= 30:  # Log significant penalties
                 logger.info(f"  {name}: -{penalty} ELO ({days_inactive} days inactive)")
     
-    # Batch update
-    cursor.executemany("""
-        UPDATE CareerStats 
-        SET 
-            InactivityPenalty = %s,
-            AdjustedEloRating = EloRating - %s + COALESCE(InactivityPenalty, 0) - COALESCE(InjuryPenalty, 0),
-            AdjustmentsCalculatedAt = %s
-        WHERE FighterID = %s
-    """, [(p, p, t, fid) for p, _, t, fid in updates])
-    
-    # Actually, let's do a simpler update that recalculates adjusted ELO properly
+    # Batch update — single statement instead of one per fighter
+    execute_values(cursor, """
+        UPDATE CareerStats SET
+            InactivityPenalty = data.penalty,
+            AdjustmentsCalculatedAt = NOW()
+        FROM (VALUES %s) AS data(penalty, fighter_id)
+        WHERE CareerStats.FighterID = data.fighter_id
+    """, [(p, fid) for p, _, t, fid in updates])
+
     cursor.execute("""
-        UPDATE CareerStats 
+        UPDATE CareerStats
         SET AdjustedEloRating = EloRating - COALESCE(InactivityPenalty, 0) - COALESCE(InjuryPenalty, 0)
         WHERE EloRating IS NOT NULL
     """)
