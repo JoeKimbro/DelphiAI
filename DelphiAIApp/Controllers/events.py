@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException
 
 from DelphiAIApp.Services.event_service import (
@@ -9,6 +11,7 @@ from DelphiAIApp.Services.event_service import (
 )
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/upcoming")
@@ -16,7 +19,8 @@ def upcoming_events():
     try:
         return {"events": list_upcoming_events()}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch events: {e}")
+        logger.exception("Failed to fetch events: %s", e)
+        raise HTTPException(status_code=502, detail="Failed to fetch events.")
 
 
 @router.get("/past")
@@ -26,7 +30,8 @@ def past_events(limit: int = 4):
     try:
         return {"events": list_past_events(limit=limit)}
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch past events: {e}")
+        logger.exception("Failed to fetch past events: %s", e)
+        raise HTTPException(status_code=502, detail="Failed to fetch past events.")
 
 
 @router.get("/past/{event_id}")
@@ -34,7 +39,8 @@ def past_event_detail(event_id: str):
     try:
         data = get_past_event_details(event_id)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to fetch past event: {e}")
+        logger.exception("Failed to fetch past event '%s': %s", event_id, e)
+        raise HTTPException(status_code=502, detail="Failed to fetch past event.")
     if not data:
         raise HTTPException(status_code=404, detail=f"No resolved predictions for event '{event_id}'.")
     return data
@@ -47,10 +53,11 @@ def event_predictions(event_id: str, refresh: bool = False, cached_only: bool = 
             data = get_event_predictions_cached(event_id)
         else:
             data = get_event_predictions(event_id, force_recompute=refresh)
-    except FileNotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail=f"No predictions found for event '{event_id}'.")
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Prediction pipeline failed: {e}")
+        logger.exception("Prediction pipeline failed for '%s': %s", event_id, e)
+        raise HTTPException(status_code=502, detail="Prediction pipeline failed.")
     if not data:
         raise HTTPException(status_code=404, detail=f"No predictions for event '{event_id}'.")
     return data

@@ -8,3 +8,6 @@ releaseCommand = "yoyo apply --batch --database \"$DATABASE_URL\" DelphiAIApp/Mo
 startCommand = "sh scripts/entrypoint.sh"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
+
+[deploy.env]
+DELPHI_ENV = "production"

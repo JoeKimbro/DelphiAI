@@ -1,9 +1,12 @@
+import logging
+
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from DelphiAIApp.Services.auto_resolve import auto_resolve_pending
 from DelphiAIApp.Services.performance_service import get_performance_summary
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/summary")
@@ -19,4 +22,5 @@ def performance_summary(
     try:
         return get_performance_summary(prediction_type=prediction_type, year=year)
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Failed to compute performance summary: {e}")
+        logger.exception("Failed to compute performance summary: %s", e)
+        raise HTTPException(status_code=502, detail="Failed to compute performance summary.")
