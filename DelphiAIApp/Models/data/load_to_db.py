@@ -22,6 +22,7 @@ from pathlib import Path
 
 import pandas as pd
 import psycopg2
+from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -60,6 +61,21 @@ CSV_FILES = {
     'matchup_features': OUTPUT_DIR / 'matchup_features.csv',
     'point_in_time_stats': OUTPUT_DIR / 'point_in_time_stats.csv',
 }
+
+
+def _sf(val):
+    if pd.isna(val): return None
+    try: return float(val)
+    except: return None
+
+def _si(val):
+    if pd.isna(val): return None
+    try: return int(val)
+    except: return None
+
+def _ss(val):
+    if pd.isna(val): return None
+    return str(val)
 
 
 def connect_db():
@@ -286,474 +302,279 @@ def merge_fighter_records(df):
 
 
 def load_fighters(conn, dry_run=False):
-    """Load fighters.csv into FighterStats table."""
+    """Load fighters.csv into FighterStats table using batch upserts."""
     csv_path = CSV_FILES['fighters']
-    
     if not csv_path.exists():
         print(f"[WARN] {csv_path} not found, skipping fighters")
         return {}
-    
+
     df = pd.read_csv(csv_path)
     print(f"[FILE] Loading {len(df)} raw records from {csv_path.name}")
-    
-    # Merge records from different sources by name
     df = merge_fighter_records(df)
     print(f"[FILE] Loading {len(df)} fighters after merge")
-    
+
     if dry_run:
         print(df.head())
         return {}
-    
-    cursor = conn.cursor()
-    fighter_url_to_id = {}
-    inserted = 0
-    updated = 0
+
+    now = datetime.now()
+    rows = []
+    fighter_urls = []
     skipped = 0
-    
+
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
-        
-        # Skip records with missing name or fighter_url
         name = row.get('name')
         if pd.isna(name) or name == '' or pd.isna(fighter_url) or fighter_url == '':
             skipped += 1
             continue
-        
-        # Parse dates
-        dob_date = parse_date(row.get('dob'))
-        last_fight_date = parse_date(row.get('last_fight_date'))
-        
-        # Check if fighter exists
-        cursor.execute("SELECT FighterID FROM FighterStats WHERE FighterURL = %s", (fighter_url,))
-        existing = cursor.fetchone()
-        
-        if existing:
-            # Update
-            cursor.execute("""
-                UPDATE FighterStats SET
-                    Name = %s, Height = %s, Weight = %s, Reach = %s, Stance = %s,
-                    DOB = %s, Age = %s, WeightClass = %s, Nickname = %s,
-                    PlaceOfBirth = %s, LegReach = %s, UFCUrl = %s,
-                    TotalFights = %s, Wins = %s, Losses = %s, Draws = %s,
-                    LastFightDate = %s, DaysSinceLastFight = %s, IsActive = %s,
-                    Source = %s, ScrapedAt = %s, FightUpdatedAt = %s
-                WHERE FighterURL = %s
-            """, (
-                row.get('name'),
-                row.get('height'),
-                row.get('weight'),
-                row.get('reach'),
-                row.get('stance'),
-                dob_date,
-                row.get('age') if pd.notna(row.get('age')) else None,
-                row.get('weight_class'),
-                row.get('nickname') if pd.notna(row.get('nickname')) else None,
-                row.get('place_of_birth') if pd.notna(row.get('place_of_birth')) else None,
-                row.get('leg_reach') if pd.notna(row.get('leg_reach')) else None,
-                row.get('ufc_url') if pd.notna(row.get('ufc_url')) else None,
-                row.get('total_fights') if pd.notna(row.get('total_fights')) else None,
-                row.get('wins') if pd.notna(row.get('wins')) else None,
-                row.get('losses') if pd.notna(row.get('losses')) else None,
-                row.get('draws') if pd.notna(row.get('draws')) else None,
-                last_fight_date,
-                row.get('days_since_last_fight') if pd.notna(row.get('days_since_last_fight')) else None,
-                row.get('is_active') == True or row.get('is_active') == 'True',
-                row.get('source'),
-                datetime.now(),
-                datetime.now(),
-                fighter_url,
-            ))
-            fighter_url_to_id[fighter_url] = existing[0]
-            updated += 1
-        else:
-            # Insert
-            cursor.execute("""
-                INSERT INTO FighterStats (
-                    Name, FighterURL, Height, Weight, Reach, Stance, DOB, Age,
-                    WeightClass, Nickname, PlaceOfBirth, LegReach, UFCUrl,
-                    TotalFights, Wins, Losses, Draws,
-                    LastFightDate, DaysSinceLastFight, IsActive, Source, ScrapedAt, FightUpdatedAt
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING FighterID
-            """, (
-                row.get('name'),
-                fighter_url,
-                row.get('height'),
-                row.get('weight'),
-                row.get('reach'),
-                row.get('stance'),
-                dob_date,
-                row.get('age') if pd.notna(row.get('age')) else None,
-                row.get('weight_class'),
-                row.get('nickname') if pd.notna(row.get('nickname')) else None,
-                row.get('place_of_birth') if pd.notna(row.get('place_of_birth')) else None,
-                row.get('leg_reach') if pd.notna(row.get('leg_reach')) else None,
-                row.get('ufc_url') if pd.notna(row.get('ufc_url')) else None,
-                row.get('total_fights') if pd.notna(row.get('total_fights')) else None,
-                row.get('wins') if pd.notna(row.get('wins')) else None,
-                row.get('losses') if pd.notna(row.get('losses')) else None,
-                row.get('draws') if pd.notna(row.get('draws')) else None,
-                last_fight_date,
-                row.get('days_since_last_fight') if pd.notna(row.get('days_since_last_fight')) else None,
-                row.get('is_active') == True or row.get('is_active') == 'True',
-                row.get('source'),
-                datetime.now(),
-                datetime.now(),
-            ))
-            fighter_id = cursor.fetchone()[0]
-            fighter_url_to_id[fighter_url] = fighter_id
-            inserted += 1
-    
+        rows.append((
+            _ss(name), fighter_url,
+            _ss(row.get('height')), _ss(row.get('weight')), _ss(row.get('reach')), _ss(row.get('stance')),
+            parse_date(row.get('dob')), _si(row.get('age')),
+            _ss(row.get('weight_class')), _ss(row.get('nickname')),
+            _ss(row.get('place_of_birth')), _ss(row.get('leg_reach')), _ss(row.get('ufc_url')),
+            _si(row.get('total_fights')), _si(row.get('wins')), _si(row.get('losses')), _si(row.get('draws')),
+            parse_date(row.get('last_fight_date')), _si(row.get('days_since_last_fight')),
+            row.get('is_active') in (True, 'True', 1),
+            _ss(row.get('source')), now, now,
+        ))
+        fighter_urls.append(fighter_url)
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO FighterStats (
+            Name, FighterURL, Height, Weight, Reach, Stance, DOB, Age,
+            WeightClass, Nickname, PlaceOfBirth, LegReach, UFCUrl,
+            TotalFights, Wins, Losses, Draws,
+            LastFightDate, DaysSinceLastFight, IsActive, Source, ScrapedAt, FightUpdatedAt
+        ) VALUES %s
+        ON CONFLICT (FighterURL) DO UPDATE SET
+            Name = EXCLUDED.Name, Height = EXCLUDED.Height, Weight = EXCLUDED.Weight,
+            Reach = EXCLUDED.Reach, Stance = EXCLUDED.Stance, DOB = EXCLUDED.DOB,
+            Age = EXCLUDED.Age, WeightClass = EXCLUDED.WeightClass,
+            Nickname = EXCLUDED.Nickname, PlaceOfBirth = EXCLUDED.PlaceOfBirth,
+            LegReach = EXCLUDED.LegReach, UFCUrl = EXCLUDED.UFCUrl,
+            TotalFights = EXCLUDED.TotalFights, Wins = EXCLUDED.Wins,
+            Losses = EXCLUDED.Losses, Draws = EXCLUDED.Draws,
+            LastFightDate = EXCLUDED.LastFightDate,
+            DaysSinceLastFight = EXCLUDED.DaysSinceLastFight,
+            IsActive = EXCLUDED.IsActive, Source = EXCLUDED.Source,
+            ScrapedAt = EXCLUDED.ScrapedAt, FightUpdatedAt = EXCLUDED.FightUpdatedAt
+    """, rows, page_size=200)
     conn.commit()
+
+    cursor.execute(
+        "SELECT FighterID, FighterURL FROM FighterStats WHERE FighterURL = ANY(%s)",
+        (fighter_urls,)
+    )
+    fighter_url_to_id = {url: fid for fid, url in cursor.fetchall()}
     cursor.close()
-    print(f"   [OK] Fighters: {inserted} inserted, {updated} updated, {skipped} skipped")
-    
+
+    print(f"   [OK] Fighters: {len(rows)} upserted, {skipped} skipped")
     return fighter_url_to_id
 
 
 def load_career_stats(conn, fighter_url_to_id, dry_run=False):
-    """Load career_stats.csv into CareerStats table."""
+    """Load career_stats.csv into CareerStats table using batch upserts."""
     csv_path = CSV_FILES['career_stats']
-    
     if not csv_path.exists():
         print(f"[WARN] {csv_path} not found, skipping career stats")
         return
-    
+
     df = pd.read_csv(csv_path)
     print(f"[FILE] Loading {len(df)} career stats from {csv_path.name}")
-    
+
     if dry_run:
         print(df.head())
         return
-    
-    cursor = conn.cursor()
-    inserted = 0
-    updated = 0
+
+    now = datetime.now()
+    rows = []
     skipped = 0
-    
+
+    # Bulk-resolve any URLs not yet in fighter_url_to_id
+    missing_urls = [row.get('fighter_url') for _, row in df.iterrows()
+                    if pd.notna(row.get('fighter_url')) and row.get('fighter_url') not in fighter_url_to_id]
+    if missing_urls:
+        cursor = conn.cursor()
+        cursor.execute("SELECT FighterID, FighterURL FROM FighterStats WHERE FighterURL = ANY(%s)", (missing_urls,))
+        for fid, url in cursor.fetchall():
+            fighter_url_to_id[url] = fid
+        cursor.close()
+
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
-        
-        # Skip records with missing fighter_url
         if pd.isna(fighter_url) or fighter_url == '':
             skipped += 1
             continue
-        
         fighter_id = fighter_url_to_id.get(fighter_url)
-        
-        if not fighter_id:
-            # Try to find by URL in database
-            cursor.execute("SELECT FighterID FROM FighterStats WHERE FighterURL = %s", (fighter_url,))
-            result = cursor.fetchone()
-            if result:
-                fighter_id = result[0]
-                fighter_url_to_id[fighter_url] = fighter_id
-        
         if not fighter_id:
             skipped += 1
             continue
-        
-        # Check if career stats exist
-        cursor.execute("SELECT CSID FROM CareerStats WHERE FighterID = %s", (fighter_id,))
-        existing = cursor.fetchone()
-        
-        def safe_float(val):
-            if pd.isna(val):
-                return None
-            try:
-                return float(val)
-            except:
-                return None
-        
-        def safe_int(val):
-            if pd.isna(val):
-                return None
-            try:
-                return int(val)
-            except:
-                return None
-        
-        if existing:
-            # Update
-            cursor.execute("""
-                UPDATE CareerStats SET
-                    FighterURL = %s, SLpM = %s, StrAcc = %s, SApM = %s, StrDef = %s,
-                    TDAvg = %s, TDAcc = %s, TDDef = %s, SubAvg = %s,
-                    WinStreak_Last3 = %s, WinsByKO_Last5 = %s, WinsBySub_Last5 = %s,
-                    AvgFightDuration = %s, FirstRoundFinishRate = %s, DecisionRate = %s,
-                    KO_Round1_Pct = %s, KO_Round2_Pct = %s, KO_Round3_Pct = %s,
-                    Sub_Round1_Pct = %s, Sub_Round2_Pct = %s, Sub_Round3_Pct = %s,
-                    EloRating = %s, PeakEloRating = %s,
-                    Source = %s, ScrapedAt = %s, CareerUpdatedAt = %s
-                WHERE FighterID = %s
-            """, (
-                fighter_url,
-                safe_float(row.get('slpm')),
-                safe_float(row.get('str_acc')),
-                safe_float(row.get('sapm')),
-                safe_float(row.get('str_def')),
-                safe_float(row.get('td_avg')),
-                safe_float(row.get('td_acc')),
-                safe_float(row.get('td_def')),
-                safe_float(row.get('sub_avg')),
-                safe_int(row.get('win_streak_last3')),
-                safe_int(row.get('wins_by_ko_last5')),
-                safe_int(row.get('wins_by_sub_last5')),
-                safe_float(row.get('avg_fight_duration')),
-                safe_float(row.get('first_round_finish_rate')),
-                safe_float(row.get('decision_rate')),
-                safe_float(row.get('ko_round1_pct')),
-                safe_float(row.get('ko_round2_pct')),
-                safe_float(row.get('ko_round3_pct')),
-                safe_float(row.get('sub_round1_pct')),
-                safe_float(row.get('sub_round2_pct')),
-                safe_float(row.get('sub_round3_pct')),
-                safe_float(row.get('elo_rating')),
-                safe_float(row.get('peak_elo')),
-                row.get('source'),
-                datetime.now(),
-                datetime.now(),
-                fighter_id,
-            ))
-            updated += 1
-        else:
-            # Insert
-            cursor.execute("""
-                INSERT INTO CareerStats (
-                    FighterID, FighterURL, SLpM, StrAcc, SApM, StrDef,
-                    TDAvg, TDAcc, TDDef, SubAvg,
-                    WinStreak_Last3, WinsByKO_Last5, WinsBySub_Last5,
-                    AvgFightDuration, FirstRoundFinishRate, DecisionRate,
-                    KO_Round1_Pct, KO_Round2_Pct, KO_Round3_Pct,
-                    Sub_Round1_Pct, Sub_Round2_Pct, Sub_Round3_Pct,
-                    EloRating, PeakEloRating,
-                    Source, ScrapedAt, CareerUpdatedAt
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter_id,
-                fighter_url,
-                safe_float(row.get('slpm')),
-                safe_float(row.get('str_acc')),
-                safe_float(row.get('sapm')),
-                safe_float(row.get('str_def')),
-                safe_float(row.get('td_avg')),
-                safe_float(row.get('td_acc')),
-                safe_float(row.get('td_def')),
-                safe_float(row.get('sub_avg')),
-                safe_int(row.get('win_streak_last3')),
-                safe_int(row.get('wins_by_ko_last5')),
-                safe_int(row.get('wins_by_sub_last5')),
-                safe_float(row.get('avg_fight_duration')),
-                safe_float(row.get('first_round_finish_rate')),
-                safe_float(row.get('decision_rate')),
-                safe_float(row.get('ko_round1_pct')),
-                safe_float(row.get('ko_round2_pct')),
-                safe_float(row.get('ko_round3_pct')),
-                safe_float(row.get('sub_round1_pct')),
-                safe_float(row.get('sub_round2_pct')),
-                safe_float(row.get('sub_round3_pct')),
-                safe_float(row.get('elo_rating')),
-                safe_float(row.get('peak_elo')),
-                row.get('source'),
-                datetime.now(),
-                datetime.now(),
-            ))
-            inserted += 1
-    
+        rows.append((
+            fighter_id, fighter_url,
+            _sf(row.get('slpm')), _sf(row.get('str_acc')), _sf(row.get('sapm')), _sf(row.get('str_def')),
+            _sf(row.get('td_avg')), _sf(row.get('td_acc')), _sf(row.get('td_def')), _sf(row.get('sub_avg')),
+            _si(row.get('win_streak_last3')), _si(row.get('wins_by_ko_last5')), _si(row.get('wins_by_sub_last5')),
+            _sf(row.get('avg_fight_duration')), _sf(row.get('first_round_finish_rate')), _sf(row.get('decision_rate')),
+            _sf(row.get('ko_round1_pct')), _sf(row.get('ko_round2_pct')), _sf(row.get('ko_round3_pct')),
+            _sf(row.get('sub_round1_pct')), _sf(row.get('sub_round2_pct')), _sf(row.get('sub_round3_pct')),
+            _sf(row.get('elo_rating')), _sf(row.get('peak_elo')),
+            _ss(row.get('source')), now, now,
+        ))
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO CareerStats (
+            FighterID, FighterURL, SLpM, StrAcc, SApM, StrDef,
+            TDAvg, TDAcc, TDDef, SubAvg,
+            WinStreak_Last3, WinsByKO_Last5, WinsBySub_Last5,
+            AvgFightDuration, FirstRoundFinishRate, DecisionRate,
+            KO_Round1_Pct, KO_Round2_Pct, KO_Round3_Pct,
+            Sub_Round1_Pct, Sub_Round2_Pct, Sub_Round3_Pct,
+            EloRating, PeakEloRating,
+            Source, ScrapedAt, CareerUpdatedAt
+        ) VALUES %s
+        ON CONFLICT (FighterID) DO UPDATE SET
+            FighterURL = EXCLUDED.FighterURL,
+            SLpM = EXCLUDED.SLpM, StrAcc = EXCLUDED.StrAcc,
+            SApM = EXCLUDED.SApM, StrDef = EXCLUDED.StrDef,
+            TDAvg = EXCLUDED.TDAvg, TDAcc = EXCLUDED.TDAcc,
+            TDDef = EXCLUDED.TDDef, SubAvg = EXCLUDED.SubAvg,
+            WinStreak_Last3 = EXCLUDED.WinStreak_Last3,
+            WinsByKO_Last5 = EXCLUDED.WinsByKO_Last5,
+            WinsBySub_Last5 = EXCLUDED.WinsBySub_Last5,
+            AvgFightDuration = EXCLUDED.AvgFightDuration,
+            FirstRoundFinishRate = EXCLUDED.FirstRoundFinishRate,
+            DecisionRate = EXCLUDED.DecisionRate,
+            KO_Round1_Pct = EXCLUDED.KO_Round1_Pct,
+            KO_Round2_Pct = EXCLUDED.KO_Round2_Pct,
+            KO_Round3_Pct = EXCLUDED.KO_Round3_Pct,
+            Sub_Round1_Pct = EXCLUDED.Sub_Round1_Pct,
+            Sub_Round2_Pct = EXCLUDED.Sub_Round2_Pct,
+            Sub_Round3_Pct = EXCLUDED.Sub_Round3_Pct,
+            EloRating = EXCLUDED.EloRating, PeakEloRating = EXCLUDED.PeakEloRating,
+            Source = EXCLUDED.Source, ScrapedAt = EXCLUDED.ScrapedAt,
+            CareerUpdatedAt = EXCLUDED.CareerUpdatedAt
+    """, rows, page_size=200)
     conn.commit()
     cursor.close()
-    print(f"   [OK] Career Stats: {inserted} inserted, {updated} updated, {skipped} skipped")
+    print(f"   [OK] Career Stats: {len(rows)} upserted, {skipped} skipped")
 
 
 def load_fights(conn, fighter_url_to_id, dry_run=False):
-    """Load fights.csv into Fights table."""
+    """Load fights.csv into Fights table using batch upserts."""
     csv_path = CSV_FILES['fights']
-    
     if not csv_path.exists():
         print(f"[WARN] {csv_path} not found, skipping fights")
         return
-    
+
     df = pd.read_csv(csv_path)
     print(f"[FILE] Loading {len(df)} fights from {csv_path.name}")
-    
+
     if dry_run:
         print(df.head())
         return
-    
+
     cursor = conn.cursor()
-    inserted = 0
-    updated = 0
+
+    # Bulk-load all fighter URL mappings (UFCStats + UFC.com URLs)
+    cursor.execute("SELECT FighterID, FighterURL, UFCUrl FROM FighterStats WHERE FighterURL IS NOT NULL OR UFCUrl IS NOT NULL")
+    for fid, furl, uurl in cursor.fetchall():
+        if furl: fighter_url_to_id[furl] = fid
+        if uurl: fighter_url_to_id[uurl] = fid
+
+    fighter_name_to_id = build_fighter_name_to_id(conn)
+
+    now = datetime.now()
+    rows_with_url = []   # fights that have a FightURL (can batch upsert)
+    rows_without_url = []  # fights without FightURL (individual insert, rare)
     skipped = 0
     resolved_name_fighter = 0
     resolved_name_opponent = 0
     unresolved_examples = []
-    
-    # First, make sure we have all fighter URLs mapped (both UFCStats and UFC.com URLs)
-    cursor.execute("""
-        SELECT FighterID, FighterURL, UFCUrl
-        FROM FighterStats
-        WHERE FighterURL IS NOT NULL OR UFCUrl IS NOT NULL
-    """)
-    for fighter_id, fighter_url, ufc_url in cursor.fetchall():
-        if fighter_url:
-            fighter_url_to_id[fighter_url] = fighter_id
-        if ufc_url:
-            fighter_url_to_id[ufc_url] = fighter_id
 
-    fighter_name_to_id = build_fighter_name_to_id(conn)
-    
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
         opponent_url = row.get('opponent_url')
         fight_url = row.get('fight_url')
 
-        fighter_name = row.get('fighter_name')
-        opponent_name = row.get('opponent_name')
-
         fighter_id, fighter_by_name = resolve_fighter_id(
-            fighter_url, fighter_name, fighter_url_to_id, fighter_name_to_id
-        )
+            fighter_url, row.get('fighter_name'), fighter_url_to_id, fighter_name_to_id)
         opponent_id, opponent_by_name = resolve_fighter_id(
-            opponent_url, opponent_name, fighter_url_to_id, fighter_name_to_id
-        )
-        if fighter_by_name:
-            resolved_name_fighter += 1
-        if opponent_by_name:
-            resolved_name_opponent += 1
-        
+            opponent_url, row.get('opponent_name'), fighter_url_to_id, fighter_name_to_id)
+
+        if fighter_by_name: resolved_name_fighter += 1
+        if opponent_by_name: resolved_name_opponent += 1
+
         if not fighter_id:
             skipped += 1
             if len(unresolved_examples) < 10:
-                unresolved_examples.append({
-                    'fighter_name': fighter_name,
-                    'fighter_url': fighter_url,
-                    'opponent_name': opponent_name,
-                    'opponent_url': opponent_url,
-                    'fight_url': fight_url,
-                })
+                unresolved_examples.append(f"'{row.get('fighter_name')}' vs '{row.get('opponent_name')}' ({fight_url})")
             continue
-        
-        # Determine winner_id
-        winner_id = None
+
         result = row.get('result')
-        if result == 'win':
-            winner_id = fighter_id
-        elif result == 'loss' and opponent_id:
-            winner_id = opponent_id
-        
-        # Parse fight date
+        winner_id = fighter_id if result == 'win' else (opponent_id if result == 'loss' and opponent_id else None)
+        is_title_bool = row.get('is_title_fight') in (True, 'True', 1)
         fight_date = parse_date(row.get('date'))
-        
-        # Check if fight exists
-        if pd.notna(fight_url):
-            cursor.execute("SELECT FightID FROM Fights WHERE FightURL = %s", (fight_url,))
+
+        t = (
+            fighter_id, _ss(fighter_url), _ss(row.get('fighter_name')),
+            opponent_id, _ss(opponent_url), _ss(row.get('opponent_name')),
+            winner_id, _ss(row.get('winner_name')), _ss(result),
+            fight_date, _ss(row.get('event_name')), _ss(row.get('event_url')), _ss(fight_url),
+            _ss(row.get('method')), _ss(row.get('method_detail')),
+            _si(row.get('round')), _ss(row.get('time')), _ss(row.get('knockdowns')),
+            _ss(row.get('sig_strikes')), _ss(row.get('takedowns')), _ss(row.get('sub_attempts')),
+            is_title_bool, _ss(row.get('source')), now,
+        )
+
+        if pd.notna(fight_url) and fight_url:
+            rows_with_url.append(t)
         else:
+            rows_without_url.append(t)
+
+    COLS = """FighterID, FighterURL, FighterName, OpponentID, OpponentURL, OpponentName,
+              WinnerID, WinnerName, Result, Date, EventName, EventURL, FightURL,
+              Method, MethodDetail, Round, Time, Knockdowns, SigStrikes, Takedowns,
+              SubAttempts, IsTitleFight, Source, ScrapedAt"""
+    UPDATE_SET = """
+        FighterURL = EXCLUDED.FighterURL, FighterName = EXCLUDED.FighterName,
+        OpponentID = EXCLUDED.OpponentID, OpponentURL = EXCLUDED.OpponentURL,
+        OpponentName = EXCLUDED.OpponentName, WinnerID = EXCLUDED.WinnerID,
+        WinnerName = EXCLUDED.WinnerName, Result = EXCLUDED.Result,
+        Date = EXCLUDED.Date, EventName = EXCLUDED.EventName, EventURL = EXCLUDED.EventURL,
+        Method = EXCLUDED.Method, MethodDetail = EXCLUDED.MethodDetail,
+        Round = EXCLUDED.Round, Time = EXCLUDED.Time, Knockdowns = EXCLUDED.Knockdowns,
+        SigStrikes = EXCLUDED.SigStrikes, Takedowns = EXCLUDED.Takedowns,
+        SubAttempts = EXCLUDED.SubAttempts, IsTitleFight = EXCLUDED.IsTitleFight,
+        Source = EXCLUDED.Source, ScrapedAt = EXCLUDED.ScrapedAt"""
+
+    if rows_with_url:
+        execute_values(cursor,
+            f"INSERT INTO Fights ({COLS}) VALUES %s ON CONFLICT (FightURL) DO UPDATE SET {UPDATE_SET}",
+            rows_with_url, page_size=200)
+
+    # Rare: fights without a FightURL — insert only if not already present
+    for t in rows_without_url:
+        fighter_id, _, _, opponent_id, _, _, _, _, _, fight_date = t[:10]
+        cursor.execute(
+            "SELECT FightID FROM Fights WHERE FighterID = %s AND OpponentID IS NOT DISTINCT FROM %s AND Date = %s",
+            (fighter_id, opponent_id, fight_date))
+        if not cursor.fetchone():
             cursor.execute(
-                "SELECT FightID FROM Fights WHERE FighterID = %s AND OpponentID = %s AND Date = %s",
-                (fighter_id, opponent_id, fight_date)
-            )
-        existing = cursor.fetchone()
-        
-        def safe_int(val):
-            if pd.isna(val):
-                return None
-            try:
-                return int(val)
-            except:
-                return None
-        
-        def safe_str(val):
-            if pd.isna(val):
-                return None
-            return str(val)
-        
-        is_title = row.get('is_title_fight')
-        is_title_bool = is_title == True or is_title == 'True' or is_title == 1
-        
-        if existing:
-            # Update
-            cursor.execute("""
-                UPDATE Fights SET
-                    FighterURL = %s, FighterName = %s, OpponentID = %s, OpponentURL = %s,
-                    OpponentName = %s, WinnerID = %s, WinnerName = %s, Result = %s,
-                    Date = %s, EventName = %s, EventURL = %s, Method = %s, MethodDetail = %s,
-                    Round = %s, Time = %s, Knockdowns = %s, SigStrikes = %s, Takedowns = %s,
-                    SubAttempts = %s, IsTitleFight = %s, Source = %s, ScrapedAt = %s
-                WHERE FightID = %s
-            """, (
-                fighter_url,
-                safe_str(row.get('fighter_name')),
-                opponent_id,
-                safe_str(opponent_url),
-                safe_str(row.get('opponent_name')),
-                winner_id,
-                safe_str(row.get('winner_name')),
-                safe_str(result),
-                fight_date,
-                safe_str(row.get('event_name')),
-                safe_str(row.get('event_url')),
-                safe_str(row.get('method')),
-                safe_str(row.get('method_detail')),
-                safe_int(row.get('round')),
-                safe_str(row.get('time')),
-                safe_str(row.get('knockdowns')),
-                safe_str(row.get('sig_strikes')),
-                safe_str(row.get('takedowns')),
-                safe_str(row.get('sub_attempts')),
-                is_title_bool,
-                safe_str(row.get('source')),
-                datetime.now(),
-                existing[0],
-            ))
-            updated += 1
-        else:
-            # Insert
-            cursor.execute("""
-                INSERT INTO Fights (
-                    FighterID, FighterURL, FighterName, OpponentID, OpponentURL, OpponentName,
-                    WinnerID, WinnerName, Result, Date, EventName, EventURL, FightURL,
-                    Method, MethodDetail, Round, Time, Knockdowns, SigStrikes, Takedowns,
-                    SubAttempts, IsTitleFight, Source, ScrapedAt
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter_id,
-                fighter_url,
-                safe_str(row.get('fighter_name')),
-                opponent_id,
-                safe_str(opponent_url),
-                safe_str(row.get('opponent_name')),
-                winner_id,
-                safe_str(row.get('winner_name')),
-                safe_str(result),
-                fight_date,
-                safe_str(row.get('event_name')),
-                safe_str(row.get('event_url')),
-                safe_str(fight_url),
-                safe_str(row.get('method')),
-                safe_str(row.get('method_detail')),
-                safe_int(row.get('round')),
-                safe_str(row.get('time')),
-                safe_str(row.get('knockdowns')),
-                safe_str(row.get('sig_strikes')),
-                safe_str(row.get('takedowns')),
-                safe_str(row.get('sub_attempts')),
-                is_title_bool,
-                safe_str(row.get('source')),
-                datetime.now(),
-            ))
-            inserted += 1
-    
+                f"INSERT INTO Fights ({COLS}) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", t)
+
     conn.commit()
     cursor.close()
-    print(f"   [OK] Fights: {inserted} inserted, {updated} updated, {skipped} skipped")
-    print(f"   [RESOLVE] Name fallback used -> fighter: {resolved_name_fighter}, opponent: {resolved_name_opponent}")
+
+    print(f"   [OK] Fights: {len(rows_with_url) + len(rows_without_url)} upserted, {skipped} skipped")
+    print(f"   [RESOLVE] Name fallback -> fighter: {resolved_name_fighter}, opponent: {resolved_name_opponent}")
     if unresolved_examples:
-        print("   [WARN] Sample unresolved fights (showing up to 10):")
+        print("   [WARN] Unresolved fights (up to 10):")
         for ex in unresolved_examples:
-            print(
-                f"      fighter='{ex['fighter_name']}' ({ex['fighter_url']}) vs "
-                f"opponent='{ex['opponent_name']}' ({ex['opponent_url']}) fight_url={ex['fight_url']}"
-            )
+            print(f"      {ex}")
 
 
 def load_elo_history(conn, fighter_url_to_id, dry_run=False):
