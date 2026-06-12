@@ -44,6 +44,7 @@ def get_active_fighter_urls() -> list:
     try:
         cur = conn.cursor()
 
+        # Fighters who fought in the last 21 days — their stats need refreshing
         cur.execute("""
             SELECT DISTINCT fs.UFCUrl
             FROM Fights f
@@ -52,26 +53,10 @@ def get_active_fighter_urls() -> list:
               AND fs.UFCUrl IS NOT NULL
               AND fs.UFCUrl <> ''
         """)
-        recent = {row[0] for row in cur.fetchall()}
-
-        cur.execute("""
-            SELECT DISTINCT fs.UFCUrl
-            FROM PredictionTracking pt
-            JOIN FighterStats fs ON (
-                pt.fighter1_id = fs.FighterID
-                OR pt.fighter2_id = fs.FighterID
-            )
-            WHERE pt.event_date IS NOT NULL
-              AND pt.event_date <> ''
-              AND pt.event_date::date > CURRENT_DATE
-              AND pt.was_correct IS NULL
-              AND fs.UFCUrl IS NOT NULL
-              AND fs.UFCUrl <> ''
-        """)
-        upcoming = {row[0] for row in cur.fetchall()}
+        recent = [row[0] for row in cur.fetchall()]
 
         cur.close()
-        return sorted(recent | upcoming)
+        return sorted(recent)
     finally:
         conn.close()
 
