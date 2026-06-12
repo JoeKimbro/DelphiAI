@@ -1,0 +1,49 @@
+name: Weekly Data Update
+
+on:
+  schedule:
+    # Tuesdays at 6am UTC — UFCStats is ready 24-48h after Saturday events
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+    # Also allow manual trigger from GitHub Actions tab
+    inputs:
+      skip_scrape:
+        description: "Skip scraping (use existing CSVs)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Apply migrations
+        working-directory: .
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
+
+      - name: Run weekly update
+        working-directory: DelphiAIApp/Models
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ "${{ inputs.skip_scrape }}" = "true" ]; then
+            python -m ml.weekly_update --skip-scrape
+          else
+            python -m ml.weekly_update
+          fi
