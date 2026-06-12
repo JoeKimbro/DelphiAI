@@ -36,8 +36,10 @@ if str(_MODELS_DIR) not in sys.path:
 
 from db.sql_identifiers import safe_identifier, ALLOWED_TABLES
 
-# Database connection settings
-DB_CONFIG = {
+# Database connection — DATABASE_URL takes priority (CI/production),
+# individual DB_* vars are the local-dev fallback.
+_DATABASE_URL = os.getenv('DATABASE_URL', '')
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
