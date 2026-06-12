@@ -1,21 +1,15 @@
-name: Weekly Data Update
+name: Prefetch Upcoming Predictions
 
 on:
   schedule:
-    # Tuesdays at 6am UTC — UFCStats is ready 24-48h after Saturday events
-    - cron: "0 6 * * 2"
+    # Fridays at 6pm UTC — catch late cancellations before Saturday events
+    - cron: "0 18 * * 5"
   workflow_dispatch:
-    inputs:
-      skip_scrape:
-        description: "Skip scraping (use existing CSVs)"
-        required: false
-        default: "false"
-        type: boolean
 
 jobs:
-  update:
+  prefetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
@@ -49,18 +43,6 @@ jobs:
               f.write("\n".join(lines) + "\n")
           print("DB vars exported.")
           EOF
-
-      - name: Apply migrations
-        run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
-
-      - name: Run weekly update
-        working-directory: DelphiAIApp/Models
-        run: |
-          if [ "${{ inputs.skip_scrape }}" = "true" ]; then
-            python -m ml.weekly_update --skip-scrape
-          else
-            python -m ml.weekly_update
-          fi
 
       - name: Prefetch predictions for top 4 upcoming events
         working-directory: DelphiAIApp/Models
