@@ -38,6 +38,10 @@ CREATE TABLE FighterStats (
     DaysSinceLastFight INTEGER,
     IsActive BOOLEAN DEFAULT TRUE, -- Fought within last 2 years
     FightingStyle VARCHAR(50), -- striker, wrestler, grappler, balanced
+    Nationality VARCHAR(50),
+    LastInjuryCheckDate TIMESTAMP,
+    InjuryDetails JSONB,
+    UFCRanking INTEGER,
     Source VARCHAR(50), -- 'ufcstats', 'tapology', etc.
     ScrapedAt TIMESTAMP,
     FightUpdatedAt TIMESTAMP
@@ -71,6 +75,10 @@ CREATE TABLE CareerStats (
     Sub_Round3_Pct DECIMAL(5,2),
     EloRating DECIMAL(8,2),
     PeakEloRating DECIMAL(8,2),
+    InactivityPenalty INTEGER DEFAULT 0,
+    InjuryPenalty INTEGER DEFAULT 0,
+    AdjustedEloRating DECIMAL(8,2),
+    AdjustmentsCalculatedAt TIMESTAMP,
     Source VARCHAR(50),
     ScrapedAt TIMESTAMP,
     FOREIGN KEY (FighterID) REFERENCES FighterStats(FighterID) ON DELETE CASCADE
@@ -426,6 +434,80 @@ CREATE INDEX idx_matchups_fighter1 ON Matchups(Fighter1ID);
 CREATE INDEX idx_matchups_fighter2 ON Matchups(Fighter2ID);
 CREATE INDEX idx_matchups_eventdate ON Matchups(EventDate);
 CREATE INDEX idx_matchups_modelversion ON Matchups(ModelVersion);
+
+-- ============================================================================
+-- INJURY CHECK LOG TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS InjuryCheckLog (
+    id SERIAL PRIMARY KEY,
+    FighterID INTEGER,
+    FighterName VARCHAR(100),
+    InjuryFound BOOLEAN,
+    InjuryKeyword VARCHAR(100),
+    InjurySeverity VARCHAR(50),
+    EstimatedInjuryDate VARCHAR(50),
+    DaysSinceInjury INTEGER,
+    ElopenaltyApplied INTEGER,
+    NewsArticlesChecked INTEGER DEFAULT 0,
+    SourceURL VARCHAR(500),
+    RawDetails JSONB,
+    Error TEXT,
+    CheckedAt TIMESTAMP DEFAULT NOW(),
+    FOREIGN KEY (FighterID) REFERENCES FighterStats(FighterID) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_injurychecklog_fighterid ON InjuryCheckLog(FighterID);
+CREATE INDEX idx_injurychecklog_checkedat ON InjuryCheckLog(CheckedAt);
+
+-- ============================================================================
+-- PREDICTION LOG TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS PredictionLog (
+    id SERIAL PRIMARY KEY,
+    FighterAName VARCHAR(100),
+    FighterBName VARCHAR(100),
+    FighterAID INTEGER,
+    FighterBID INTEGER,
+    PredictedWinnerName VARCHAR(100),
+    ProbabilityA DECIMAL(5,4),
+    ProbabilityB DECIMAL(5,4),
+    EloProbabilityA DECIMAL(5,4),
+    EloProbabilityB DECIMAL(5,4),
+    EloA DECIMAL(8,2),
+    EloB DECIMAL(8,2),
+    ModelVersion VARCHAR(50),
+    ProbabilitySource VARCHAR(50),
+    Features JSONB,
+    ConfidenceLevel VARCHAR(10),
+    PredictedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- ============================================================================
+-- STYLE MATCHUP RECORD TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS StyleMatchupRecord (
+    id SERIAL PRIMARY KEY,
+    FighterID INTEGER NOT NULL,
+    FighterURL VARCHAR(255),
+    OpponentStyle VARCHAR(50) NOT NULL,
+    Wins INTEGER DEFAULT 0,
+    Losses INTEGER DEFAULT 0,
+    Draws INTEGER DEFAULT 0,
+    TotalFights INTEGER DEFAULT 0,
+    WinRate DECIMAL(5,2),
+    KOWins INTEGER DEFAULT 0,
+    SubWins INTEGER DEFAULT 0,
+    DecWins INTEGER DEFAULT 0,
+    KOLosses INTEGER DEFAULT 0,
+    SubLosses INTEGER DEFAULT 0,
+    DecLosses INTEGER DEFAULT 0,
+    AvgFightDuration DECIMAL(6,2),
+    CalculatedAt TIMESTAMP,
+    CONSTRAINT unique_fighter_opp_style UNIQUE (FighterID, OpponentStyle),
+    FOREIGN KEY (FighterID) REFERENCES FighterStats(FighterID) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_stylematchup_fighterid ON StyleMatchupRecord(FighterID);
 
 -- ============================================================================
 -- TABLE COMMENTS
