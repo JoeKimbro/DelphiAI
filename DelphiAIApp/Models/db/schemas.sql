@@ -37,6 +37,7 @@ CREATE TABLE FighterStats (
     LastFightDate DATE, -- Date of most recent fight
     DaysSinceLastFight INTEGER,
     IsActive BOOLEAN DEFAULT TRUE, -- Fought within last 2 years
+    FightingStyle VARCHAR(50), -- striker, wrestler, grappler, balanced
     Source VARCHAR(50), -- 'ufcstats', 'tapology', etc.
     ScrapedAt TIMESTAMP,
     FightUpdatedAt TIMESTAMP
