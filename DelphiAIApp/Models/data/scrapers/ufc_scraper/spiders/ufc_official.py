@@ -19,6 +19,7 @@ Usage:
 import re
 import json
 from datetime import datetime
+from pathlib import Path
 from urllib.parse import urljoin, quote
 
 import scrapy
@@ -28,27 +29,38 @@ from ufc_scraper.items import FighterItem, CareerStatsItem, FightItem
 class UFCOfficialSpider(scrapy.Spider):
     name = "ufc_official"
     allowed_domains = ["ufc.com", "ufcstats.com"]
-    
+
     # Base URL for athlete listings
     base_url = "https://www.ufc.com/athletes/all"
     ufcstats_base = "http://www.ufcstats.com"
-    
+
     # Custom settings
     custom_settings = {
         'DOWNLOAD_DELAY': 1.5,
         'CONCURRENT_REQUESTS': 2,
         'ROBOTSTXT_OBEY': False,  # UFC.com blocks pagination URLs in robots.txt, but data is public
     }
-    
+
+    def __init__(self, *args, fighter_urls_file=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fighter_urls_file = fighter_urls_file
+
     def start_requests(self):
         """
-        Start with the athletes listing page.
+        Full scrape: start from the athletes listing page.
+        Incremental scrape: start directly from known fighter profile URLs.
         """
-        yield scrapy.Request(
-            self.base_url,
-            callback=self.parse_athlete_list,
-            meta={'page': 0}
-        )
+        if self.fighter_urls_file:
+            urls = [u.strip() for u in Path(self.fighter_urls_file).read_text().splitlines() if u.strip()]
+            self.logger.info(f"[INCREMENTAL] Seeding {len(urls)} specific fighter URLs")
+            for url in urls:
+                yield scrapy.Request(url, callback=self.parse_athlete_profile)
+        else:
+            yield scrapy.Request(
+                self.base_url,
+                callback=self.parse_athlete_list,
+                meta={'page': 0}
+            )
     
     def parse_athlete_list(self, response):
         """
