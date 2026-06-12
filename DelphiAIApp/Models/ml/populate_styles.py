@@ -17,6 +17,7 @@ from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
 import psycopg2
+from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 # Import canonical style classifier
@@ -93,13 +94,13 @@ def update_fighter_styles(conn, fighters, dry_run=False):
     """Write FightingStyle to FighterStats for all fighters."""
     if dry_run:
         return
-    
+
     cur = conn.cursor()
-    for f in fighters:
-        cur.execute(
-            'UPDATE fighterstats SET fightingstyle = %s WHERE fighterid = %s',
-            (f['style'], f['id'])
-        )
+    execute_values(cur, """
+        UPDATE fighterstats SET fightingstyle = data.style
+        FROM (VALUES %s) AS data(style, fighter_id)
+        WHERE fighterstats.fighterid = data.fighter_id
+    """, [(f['style'], f['id']) for f in fighters])
     conn.commit()
     cur.close()
 
@@ -231,55 +232,48 @@ def write_style_matchup_records(conn, records, fighters, dry_run=False):
     
     cur = conn.cursor()
     url_lookup = {f['id']: f['url'] for f in fighters}
-    
-    rows_written = 0
-    
+
+    rows = []
+    now = datetime.now()
+
     for fighter_id, style_records in records.items():
         fighter_url = url_lookup.get(fighter_id)
-        
         for opp_style, rec in style_records.items():
             if rec['fight_count'] == 0:
                 continue
-            
             total = rec['wins'] + rec['losses'] + rec['draws']
             win_rate = (rec['wins'] / total * 100) if total > 0 else 0
             avg_duration = rec['total_duration'] / rec['fight_count'] if rec['fight_count'] > 0 else 0
-            
-            cur.execute('''
-                INSERT INTO stylematchuprecord (
-                    fighterid, fighterurl, opponentstyle,
-                    wins, losses, draws, totalfights, winrate,
-                    kowins, subwins, decwins,
-                    kolosses, sublosses, declosses,
-                    avgfightduration, calculatedat
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (fighterid, opponentstyle) DO UPDATE SET
-                    wins = EXCLUDED.wins,
-                    losses = EXCLUDED.losses,
-                    draws = EXCLUDED.draws,
-                    totalfights = EXCLUDED.totalfights,
-                    winrate = EXCLUDED.winrate,
-                    kowins = EXCLUDED.kowins,
-                    subwins = EXCLUDED.subwins,
-                    decwins = EXCLUDED.decwins,
-                    kolosses = EXCLUDED.kolosses,
-                    sublosses = EXCLUDED.sublosses,
-                    declosses = EXCLUDED.declosses,
-                    avgfightduration = EXCLUDED.avgfightduration,
-                    calculatedat = EXCLUDED.calculatedat
-            ''', (
+            rows.append((
                 fighter_id, fighter_url, opp_style,
                 rec['wins'], rec['losses'], rec['draws'],
                 total, round(win_rate, 2),
                 rec['ko_wins'], rec['sub_wins'], rec['dec_wins'],
                 rec['ko_losses'], rec['sub_losses'], rec['dec_losses'],
-                round(avg_duration, 2), datetime.now()
+                round(avg_duration, 2), now,
             ))
-            rows_written += 1
-    
+
+    execute_values(cur, '''
+        INSERT INTO stylematchuprecord (
+            fighterid, fighterurl, opponentstyle,
+            wins, losses, draws, totalfights, winrate,
+            kowins, subwins, decwins,
+            kolosses, sublosses, declosses,
+            avgfightduration, calculatedat
+        ) VALUES %s
+        ON CONFLICT (fighterid, opponentstyle) DO UPDATE SET
+            wins = EXCLUDED.wins, losses = EXCLUDED.losses, draws = EXCLUDED.draws,
+            totalfights = EXCLUDED.totalfights, winrate = EXCLUDED.winrate,
+            kowins = EXCLUDED.kowins, subwins = EXCLUDED.subwins, decwins = EXCLUDED.decwins,
+            kolosses = EXCLUDED.kolosses, sublosses = EXCLUDED.sublosses,
+            declosses = EXCLUDED.declosses,
+            avgfightduration = EXCLUDED.avgfightduration,
+            calculatedat = EXCLUDED.calculatedat
+    ''', rows, page_size=200)
+
     conn.commit()
     cur.close()
-    return rows_written
+    return len(rows)
 
 
 def run_migration(conn):

@@ -48,6 +48,7 @@ if sys.platform == 'win32':
     sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import psycopg2
+from psycopg2.extras import execute_values
 from dotenv import load_dotenv
 
 env_path = Path(__file__).parent.parent.parent.parent / '.env'
@@ -209,20 +210,19 @@ def _fetch_cached_fingerprints(conn, event_name):
 
 def _store_fingerprints(conn, event_name, fingerprints):
     """Write per-fight fingerprints to the rows save_predictions just upserted."""
+    rows = [(fp, event_name, f1, f2) for (f1, f2), fp in fingerprints.items() if fp]
+    if not rows:
+        return 0
     cur = conn.cursor()
-    written = 0
-    for (f1, f2), fp in fingerprints.items():
-        if not fp:
-            continue
-        cur.execute("""
-            UPDATE PredictionTracking
-            SET input_fingerprint = %s
-            WHERE event_name = %s
-              AND fighter1_name = %s
-              AND fighter2_name = %s
-              AND prediction_type = 'live'
-        """, (fp, event_name, f1, f2))
-        written += cur.rowcount
+    execute_values(cur, """
+        UPDATE PredictionTracking AS pt SET input_fingerprint = data.fp
+        FROM (VALUES %s) AS data(fp, event_name, f1, f2)
+        WHERE pt.event_name = data.event_name
+          AND pt.fighter1_name = data.f1
+          AND pt.fighter2_name = data.f2
+          AND pt.prediction_type = 'live'
+    """, rows)
+    written = cur.rowcount
     conn.commit()
     cur.close()
     return written
