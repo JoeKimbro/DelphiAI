@@ -66,7 +66,8 @@ def connect_db():
     """Connect to PostgreSQL database."""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
-        print(f"[OK] Connected to database: {DB_CONFIG['dbname']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}")
+        db_label = DB_CONFIG.get('dbname', DB_CONFIG.get('dsn', 'db')[:40])
+        print(f"[OK] Connected to database: {db_label}")
         return conn
     except Exception as e:
         print(f"[ERROR] Database connection failed: {e}")
