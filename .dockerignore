@@ -1,0 +1,19 @@
+.git
+.gitignore
+.env
+.venv/
+**/__pycache__/
+**/*.pyc
+# Frontend is deployed separately on Vercel.
+DelphiAIApp/Views/
+**/node_modules/
+# Model is pulled from R2 at boot — never baked into the image.
+*.pkl
+*.pkl.disabled
+DelphiAIApp/Models/ml/artifacts/
+# Bulk data / logs / local backups have no place in the image.
+DelphiAIApp/Models/data/output/
+**/logs/
+backups/
+*.csv
+docs/
