@@ -32,14 +32,16 @@ from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 
 
-def run_spiders(stats_only=False, test_mode=False, fresh=False):
+def run_spiders(stats_only=False, test_mode=False, fresh=False, fighters_file=None):
     """
     Run the UFC scrapers.
-    
+
     Args:
         stats_only: Legacy mode - only run standalone UFCStats spider
         test_mode: Run with limited pages for testing
         fresh: Clear output files before scraping (start fresh)
+        fighters_file: Path to a file of UFC.com fighter URLs for incremental scrape.
+                       When provided, only those fighters are scraped (skips full listing crawl).
     """
     # Clear output files if fresh mode
     output_dir = scrapers_dir.parent / 'output'
@@ -79,17 +81,23 @@ def run_spiders(stats_only=False, test_mode=False, fresh=False):
         # Default: run the unified spider that scrapes both sources
         spiders_to_run.append('ufc_official')
     
+    if fighters_file:
+        print(f"[INCREMENTAL] Using fighter list: {fighters_file}")
+
     print("=" * 60)
     print("UFC DATA SCRAPER")
     print("=" * 60)
     print(f"Spiders to run: {', '.join(spiders_to_run)}")
     print("=" * 60)
     print()
-    
+
     # Queue spiders
     for spider_name in spiders_to_run:
         print(f"[QUEUE] Adding spider: {spider_name}")
-        process.crawl(spider_name)
+        spider_kwargs = {}
+        if fighters_file and spider_name == 'ufc_official':
+            spider_kwargs['fighter_urls_file'] = fighters_file
+        process.crawl(spider_name, **spider_kwargs)
     
     # Run all spiders
     print("\n[START] Beginning scrape...\n")
@@ -142,13 +150,22 @@ Examples:
         action='store_true',
         help='Clear existing output files before scraping (start fresh)'
     )
-    
+
+    parser.add_argument(
+        '--fighters-file',
+        metavar='PATH',
+        default=None,
+        help='Path to a file of UFC.com fighter URLs (one per line) for incremental scraping. '
+             'Skips the full athlete listing crawl.'
+    )
+
     args = parser.parse_args()
-    
+
     run_spiders(
         stats_only=args.stats_only,
         test_mode=args.test,
-        fresh=args.fresh
+        fresh=args.fresh,
+        fighters_file=args.fighters_file,
     )
 
 

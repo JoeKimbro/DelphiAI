@@ -14,6 +14,9 @@ import os
 import sys
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 DEFAULT_MODEL = (
     Path(__file__).resolve().parents[1]
     / "DelphiAIApp" / "Models" / "ml" / "artifacts" / "model_latest.pkl"

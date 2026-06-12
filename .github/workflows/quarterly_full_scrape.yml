@@ -1,26 +1,16 @@
-name: Weekly Data Update
+name: Quarterly Full Fighter Scrape
 
 on:
   schedule:
-    # Tuesdays at 6am UTC — UFCStats is ready 24-48h after Saturday events
-    - cron: "0 6 * * 2"
+    # 1st of Jan, Jun, Nov at 6am UTC — full roster refresh every ~5 months
+    - cron: "0 6 1 1,6,11 *"
   workflow_dispatch:
-    inputs:
-      skip_scrape:
-        description: "Skip scraping (use existing CSVs)"
-        required: false
-        default: "false"
-        type: boolean
-      full_scrape:
-        description: "Run full scrape of all ~946 fighters (default: incremental, ~20-30 fighters)"
-        required: false
-        default: "false"
-        type: boolean
+    # Manual trigger if you want to force a full scrape outside the schedule
 
 jobs:
-  update:
+  full-scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 120
 
     steps:
       - name: Checkout repo
@@ -58,16 +48,9 @@ jobs:
       - name: Apply migrations
         run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
 
-      - name: Run weekly update
+      - name: Run full weekly update (all ~946 fighters)
         working-directory: DelphiAIApp/Models
-        run: |
-          if [ "${{ inputs.skip_scrape }}" = "true" ]; then
-            python -m ml.weekly_update --skip-scrape
-          elif [ "${{ inputs.full_scrape }}" = "true" ]; then
-            python -m ml.weekly_update
-          else
-            python -m ml.weekly_update --incremental
-          fi
+        run: python -m ml.weekly_update
 
       - name: Prefetch predictions for top 4 upcoming events
         working-directory: DelphiAIApp/Models
