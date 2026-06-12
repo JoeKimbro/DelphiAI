@@ -36,8 +36,8 @@ class UFCOfficialSpider(scrapy.Spider):
 
     # Custom settings
     custom_settings = {
-        'DOWNLOAD_DELAY': 1.5,
-        'CONCURRENT_REQUESTS': 2,
+        'DOWNLOAD_DELAY': 2,
+        'CONCURRENT_REQUESTS': 1,
         'ROBOTSTXT_OBEY': False,  # UFC.com blocks pagination URLs in robots.txt, but data is public
     }
 
