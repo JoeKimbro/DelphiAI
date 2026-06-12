@@ -62,6 +62,7 @@ def get_active_fighter_urls() -> list:
                 OR pt.fighter2_id = fs.FighterID
             )
             WHERE pt.event_date IS NOT NULL
+              AND pt.event_date <> ''
               AND pt.event_date::date > CURRENT_DATE
               AND pt.was_correct IS NULL
               AND fs.UFCUrl IS NOT NULL
