@@ -1,21 +1,16 @@
-name: Weekly Data Update
+name: Resolve Past Event Results
 
 on:
   schedule:
-    # Tuesdays at 6am UTC — UFCStats is ready 24-48h after Saturday events
-    - cron: "0 6 * * 2"
+    # Sundays at 10am UTC — resolves Saturday night's results
+    - cron: "0 10 * * 0"
   workflow_dispatch:
-    inputs:
-      skip_scrape:
-        description: "Skip scraping (use existing CSVs)"
-        required: false
-        default: "false"
-        type: boolean
+    # Manual trigger if you want to resolve immediately after an event
 
 jobs:
-  update:
+  resolve:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 30
 
     steps:
       - name: Checkout repo
@@ -50,14 +45,5 @@ jobs:
           print("DB vars exported.")
           EOF
 
-      - name: Apply migrations
-        run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
-
-      - name: Run weekly update
-        working-directory: DelphiAIApp/Models
-        run: |
-          if [ "${{ inputs.skip_scrape }}" = "true" ]; then
-            python -m ml.weekly_update --skip-scrape
-          else
-            python -m ml.weekly_update
-          fi
+      - name: Resolve past event predictions
+        run: python scripts/resolve_past_events.py
