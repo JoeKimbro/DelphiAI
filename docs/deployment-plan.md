@@ -48,25 +48,36 @@ Vercel (Next.js)  ──HTTP+X-API-Key──►  Railway (FastAPI container)
 - Missing config raises a clean `EnvironmentError` (no more `FileNotFoundError`).
 - Default model path still loads bundled model; `DELPHI_MODEL_PATH` override is honored.
 
-## Phase A — Containerize backend (+ wire Vercel)
-- ⬜ **A.1** `Dockerfile` (root): `python:3.12-slim`, install `requirements.txt`, copy `DelphiAIApp/`,
-  run `uvicorn DelphiAIApp.main:app --host 0.0.0.0 --port $PORT`.
-- ⬜ **A.2** `.dockerignore`: exclude `node_modules`, `Views/`, `__pycache__`, `*.pkl`, scraper logs, `.git`.
-- ⬜ **A.3** `railway.toml` (or Render blueprint): Docker build, `$PORT`, env vars, release command = migrations.
-- ⬜ **A.4** Vercel: project root = `DelphiAIApp/Views`; env `FASTAPI_URL`, `DELPHI_API_KEY`, `AUTH_SECRET`,
-  Neon **pooled** `DATABASE_URL`.
-- ⬜ **A.5** Keep `docker-compose.yml` as local-dev only (Postgres + pgAdmin).
+## Phase A — Containerize backend (+ wire Vercel) — ✅ COMPLETE
+- ✅ **A.1** `Dockerfile` (root): `python:3.12-slim`, install `requirements-api.txt` (light — no
+  Scrapy/Playwright), copy `DelphiAIApp/` + `scripts/` + `yoyo.ini`, start via `scripts/entrypoint.sh`
+  (fetch model → `uvicorn DelphiAIApp.main:app --host 0.0.0.0 --port $PORT`).
+- ✅ **A.2** `.dockerignore`: excludes `node_modules`, `Views/`, `__pycache__`, `*.pkl`, artifacts, scraper
+  logs, `.git`, `docs/`.
+- ✅ **A.3** `railway.toml`: Docker build, `$PORT`, release command = `yoyo apply` migrations.
+- ✅ **A.4** Vercel: documented in `docs/DEPLOY.md` (project root `DelphiAIApp/Views`; env `FASTAPI_URL`,
+  `DELPHI_API_KEY`, `AUTH_SECRET`, Neon **pooled** `DATABASE_URL`).
+- ✅ **A.5** `docker-compose.yml` unchanged — remains local-dev only (Postgres + pgAdmin).
 
-## Phase B — Model delivery via R2
-- ⬜ **B.1** Boot-time fetch: pull `model_latest.pkl` from R2 if `MODEL_URL` set and local copy missing/stale.
-- ⬜ **B.2** `scripts/publish_model.py`: upload `model_latest.pkl` to R2 after local retraining.
-- ⬜ **B.3** Add `MODEL_URL`/R2 creds to Railway env. Model never enters the repo.
+> Verified locally: image builds, boots against the docker-compose Postgres, `/health` → 200; `pip freeze`
+> in the image shows no Scrapy/Playwright. **Boot note:** the app eagerly opens the connection pool at
+> lifespan startup, so a reachable `DATABASE_URL` is required at boot (captured in `docs/DEPLOY.md`).
 
-## Phase C — Migrations (yoyo-migrations)
-- ⬜ **C.1** Add `yoyo-migrations`; create `migrations/`.
-- ⬜ **C.2** Baseline `0001_initial.sql` = current `db/schemas.sql` (replaces lost `docker-entrypoint-initdb`).
-- ⬜ **C.3** Runner: Railway release command `yoyo apply --database $DATABASE_URL`; manual for local; guard step in cron.
-- ⬜ **C.4** Going forward: every schema change is a new numbered file; stop editing `schemas.sql` in place.
+## Phase B — Model delivery via R2 — ✅ COMPLETE
+- ✅ **B.1** `scripts/fetch_model.py`: boot-time pull of `model_latest.pkl` from `MODEL_URL` (plain HTTPS via
+  `requests`, no S3 SDK in the image) if set and local copy missing/stale; no-op otherwise.
+- ✅ **B.2** `scripts/publish_model.py`: upload `model_latest.pkl` to R2 after local retraining (lazy `boto3`,
+  dev-only via `requirements-dev.txt`).
+- ✅ **B.3** `MODEL_URL`/R2 creds env wiring documented in `docs/DEPLOY.md`. Model never enters the repo/image.
+
+## Phase C — Migrations (yoyo-migrations) — ✅ COMPLETE
+- ✅ **C.1** Added `yoyo-migrations==9.0.0` + `yoyo.ini`; created `DelphiAIApp/Models/migrations/`.
+- ✅ **C.2** Baseline `0001_initial.py` runs the current `db/schemas.sql` + `db/schemas_auth.sql`
+  (Python step, executed in one shot to avoid statement-splitting).
+- ✅ **C.3** Runner: Railway release command `yoyo apply --batch --database $DATABASE_URL DelphiAIApp/Models/migrations`;
+  same command for local. Verified by applying to a fresh scratch DB (21 tables) and confirming an idempotent re-apply.
+- ✅ **C.4** Going forward: every schema change is a new numbered file in `migrations/`; pre-yoyo deltas
+  (`db/migrations/001-006`) retired to history (see that dir's `README.md`).
 
 ## Phase D — Scraper cron
 - ⬜ **D.1** `.github/workflows/weekly_update.yml`: scheduled `setup-python`, install deps,
