@@ -1,0 +1,63 @@
+name: Weekly Data Update
+
+on:
+  schedule:
+    # Tuesdays at 6am UTC — UFCStats is ready 24-48h after Saturday events
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+    inputs:
+      skip_scrape:
+        description: "Skip scraping (use existing CSVs)"
+        required: false
+        default: "false"
+        type: boolean
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Export DB_* vars from DATABASE_URL
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          python - <<'EOF'
+          import os, urllib.parse
+          url = urllib.parse.urlparse(os.environ["DATABASE_URL"])
+          lines = [
+            f"DB_HOST={url.hostname}",
+            f"DB_PORT={url.port or 5432}",
+            f"DB_NAME={url.path.lstrip('/')}",
+            f"DB_USER={url.username}",
+            f"DB_PASSWORD={url.password}",
+            f"DATABASE_URL={os.environ['DATABASE_URL']}",
+          ]
+          with open(os.environ["GITHUB_ENV"], "a") as f:
+              f.write("\n".join(lines) + "\n")
+          print("DB vars exported.")
+          EOF
+
+      - name: Apply migrations
+        run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
+
+      - name: Run weekly update
+        working-directory: DelphiAIApp/Models
+        run: |
+          if [ "${{ inputs.skip_scrape }}" = "true" ]; then
+            python -m ml.weekly_update --skip-scrape
+          else
+            python -m ml.weekly_update
+          fi
