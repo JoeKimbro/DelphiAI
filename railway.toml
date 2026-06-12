@@ -1,0 +1,10 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+# Apply pending migrations once per deploy, before the new version takes traffic.
+releaseCommand = "yoyo apply --batch --database \"$DATABASE_URL\" DelphiAIApp/Models/migrations"
+startCommand = "sh scripts/entrypoint.sh"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
