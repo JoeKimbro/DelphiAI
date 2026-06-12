@@ -8,12 +8,15 @@
 DelphiAIApp/Views/
 **/node_modules/
 # Model is pulled from R2 at boot — never baked into the image.
-*.pkl
-*.pkl.disabled
+# NB: .dockerignore globs match the context root only, so '**/' is required to
+# catch nested model files (e.g. DelphiAIApp/Models/artifacts/model.pkl).
+**/*.pkl
+**/*.pkl.disabled
 DelphiAIApp/Models/ml/artifacts/
+DelphiAIApp/Models/artifacts/
 # Bulk data / logs / local backups have no place in the image.
 DelphiAIApp/Models/data/output/
 **/logs/
 backups/
-*.csv
+**/*.csv
 docs/
