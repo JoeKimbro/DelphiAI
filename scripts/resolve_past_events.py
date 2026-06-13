@@ -25,6 +25,7 @@ def get_unresolved_events():
           AND event_url IS NOT NULL
           AND event_url <> ''
           AND event_date IS NOT NULL
+          AND event_date ~ '^\d{4}-\d{2}-\d{2}'
           AND event_date::date < CURRENT_DATE
         ORDER BY event_url
     """)
