@@ -604,69 +604,44 @@ def load_elo_history(conn, fighter_url_to_id, dry_run=False):
         print(df.head())
         return
     
-    cursor = conn.cursor()
-    inserted = 0
+    now = datetime.now()
+    rows = []
     skipped = 0
-    
+
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
-        opponent_url = row.get('opponent_url')
-        
         fighter_id = fighter_url_to_id.get(fighter_url)
-        opponent_id = fighter_url_to_id.get(opponent_url) if pd.notna(opponent_url) else None
-        
         if not fighter_id:
             skipped += 1
             continue
-        
         fight_date = parse_date(row.get('fight_date'))
-        
-        def safe_float(val):
-            if pd.isna(val):
-                return None
-            try:
-                return float(val)
-            except:
-                return None
-        
-        # Skip records without valid fight_date
         if fight_date is None:
             skipped += 1
             continue
-        
-        try:
-            cursor.execute("""
-                INSERT INTO EloHistory (
-                    FighterID, FighterURL, FightDate, OpponentID, OpponentURL,
-                    EloBeforeFight, OpponentEloBeforeFight, EloAfterFight, EloChange,
-                    Result, Method, ExpectedWinProb, EloSource, CalculatedAt
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter_id,
-                fighter_url,
-                fight_date,
-                opponent_id,
-                opponent_url if pd.notna(opponent_url) else None,
-                safe_float(row.get('elo_before_fight')),
-                safe_float(row.get('opponent_elo_before_fight')),
-                safe_float(row.get('elo_after_fight')),
-                safe_float(row.get('elo_change')),
-                row.get('result') if pd.notna(row.get('result')) else None,
-                row.get('method') if pd.notna(row.get('method')) else None,
-                safe_float(row.get('expected_win_prob')),
-                row.get('elo_source', 'ufc_fights'),
-                datetime.now(),
-            ))
-            inserted += 1
-        except Exception as e:
-            conn.rollback()  # Rollback to continue processing
-            if skipped < 5:  # Only print first 5 errors
-                print(f"   [ERROR] ELO History insert failed: {e}")
-            skipped += 1
-    
+        opponent_url = row.get('opponent_url')
+        opponent_id = fighter_url_to_id.get(opponent_url) if pd.notna(opponent_url) else None
+        rows.append((
+            fighter_id, fighter_url, fight_date, opponent_id,
+            opponent_url if pd.notna(opponent_url) else None,
+            _sf(row.get('elo_before_fight')), _sf(row.get('opponent_elo_before_fight')),
+            _sf(row.get('elo_after_fight')), _sf(row.get('elo_change')),
+            row.get('result') if pd.notna(row.get('result')) else None,
+            row.get('method') if pd.notna(row.get('method')) else None,
+            _sf(row.get('expected_win_prob')),
+            row.get('elo_source', 'ufc_fights'), now,
+        ))
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO EloHistory (
+            FighterID, FighterURL, FightDate, OpponentID, OpponentURL,
+            EloBeforeFight, OpponentEloBeforeFight, EloAfterFight, EloChange,
+            Result, Method, ExpectedWinProb, EloSource, CalculatedAt
+        ) VALUES %s
+    """, rows, page_size=500)
     conn.commit()
     cursor.close()
-    print(f"   [OK] ELO History: {inserted} inserted, {skipped} skipped")
+    print(f"   [OK] ELO History: {len(rows)} inserted, {skipped} skipped")
 
 
 def load_pre_ufc_career(conn, fighter_url_to_id, dry_run=False):
@@ -684,103 +659,59 @@ def load_pre_ufc_career(conn, fighter_url_to_id, dry_run=False):
         print(df.head())
         return
     
-    cursor = conn.cursor()
-    inserted = 0
-    updated = 0
+    import json as _json
+    now = datetime.now()
+    rows = []
     skipped = 0
-    
+
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
         fighter_id = fighter_url_to_id.get(fighter_url)
-        
         if not fighter_id:
             skipped += 1
             continue
-        
-        def safe_float(val):
-            if pd.isna(val):
-                return None
-            try:
-                return float(val)
-            except:
-                return None
-        
-        def safe_int(val):
-            if pd.isna(val):
-                return None
-            try:
-                return int(val)
-            except:
-                return None
-        
-        # Check if exists
-        cursor.execute("SELECT PreUfcID FROM PreUfcCareer WHERE FighterID = %s", (fighter_id,))
-        existing = cursor.fetchone()
-        
-        # Build breakdown JSON
-        import json
-        breakdown = {
-            'record_adjustment': safe_float(row.get('record_adjustment')),
-            'win_rate_bonus': safe_float(row.get('win_rate_bonus')),
-            'career_efficiency_adj': safe_float(row.get('career_efficiency_adj')),
-            'age_factor_adj': safe_float(row.get('age_factor_adj')),
-            'recency_adj': safe_float(row.get('recency_adj')),
-            'total_adjustment': safe_float(row.get('total_adjustment')),
-        }
-        
-        if existing:
-            cursor.execute("""
-                UPDATE PreUfcCareer SET
-                    FighterURL = %s, PreUfcWins = %s, PreUfcLosses = %s, PreUfcDraws = %s,
-                    PreUfcTotalFights = %s, EstimatedInitialElo = %s, EloEstimationMethod = %s,
-                    EloEstimationBreakdown = %s, OrgQualityTier = %s, PrimaryOrg = %s,
-                    DataConfidence = %s, UpdatedAt = %s
-                WHERE FighterID = %s
-            """, (
-                fighter_url,
-                safe_int(row.get('pre_ufc_wins')),
-                safe_int(row.get('pre_ufc_losses')),
-                safe_int(row.get('pre_ufc_draws')),
-                safe_int(row.get('pre_ufc_total_fights')),
-                safe_float(row.get('estimated_initial_elo')),
-                row.get('elo_estimation_method', 'enhanced'),
-                json.dumps(breakdown),
-                safe_int(row.get('org_quality_tier')),
-                row.get('primary_org') if pd.notna(row.get('primary_org')) else None,
-                row.get('data_confidence', 'medium'),
-                datetime.now(),
-                fighter_id,
-            ))
-            updated += 1
-        else:
-            cursor.execute("""
-                INSERT INTO PreUfcCareer (
-                    FighterID, FighterURL, PreUfcWins, PreUfcLosses, PreUfcDraws,
-                    PreUfcTotalFights, EstimatedInitialElo, EloEstimationMethod,
-                    EloEstimationBreakdown, OrgQualityTier, PrimaryOrg,
-                    DataConfidence, CreatedAt, UpdatedAt
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter_id,
-                fighter_url,
-                safe_int(row.get('pre_ufc_wins')),
-                safe_int(row.get('pre_ufc_losses')),
-                safe_int(row.get('pre_ufc_draws')),
-                safe_int(row.get('pre_ufc_total_fights')),
-                safe_float(row.get('estimated_initial_elo')),
-                row.get('elo_estimation_method', 'enhanced'),
-                json.dumps(breakdown),
-                safe_int(row.get('org_quality_tier')),
-                row.get('primary_org') if pd.notna(row.get('primary_org')) else None,
-                row.get('data_confidence', 'medium'),
-                datetime.now(),
-                datetime.now(),
-            ))
-            inserted += 1
-    
+        breakdown = _json.dumps({
+            'record_adjustment': _sf(row.get('record_adjustment')),
+            'win_rate_bonus': _sf(row.get('win_rate_bonus')),
+            'career_efficiency_adj': _sf(row.get('career_efficiency_adj')),
+            'age_factor_adj': _sf(row.get('age_factor_adj')),
+            'recency_adj': _sf(row.get('recency_adj')),
+            'total_adjustment': _sf(row.get('total_adjustment')),
+        })
+        rows.append((
+            fighter_id, fighter_url,
+            _si(row.get('pre_ufc_wins')), _si(row.get('pre_ufc_losses')),
+            _si(row.get('pre_ufc_draws')), _si(row.get('pre_ufc_total_fights')),
+            _sf(row.get('estimated_initial_elo')),
+            row.get('elo_estimation_method', 'enhanced'),
+            breakdown,
+            _si(row.get('org_quality_tier')),
+            row.get('primary_org') if pd.notna(row.get('primary_org')) else None,
+            row.get('data_confidence', 'medium'),
+            now, now,
+        ))
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO PreUfcCareer (
+            FighterID, FighterURL, PreUfcWins, PreUfcLosses, PreUfcDraws,
+            PreUfcTotalFights, EstimatedInitialElo, EloEstimationMethod,
+            EloEstimationBreakdown, OrgQualityTier, PrimaryOrg,
+            DataConfidence, CreatedAt, UpdatedAt
+        ) VALUES %s
+        ON CONFLICT (FighterID) DO UPDATE SET
+            FighterURL = EXCLUDED.FighterURL,
+            PreUfcWins = EXCLUDED.PreUfcWins, PreUfcLosses = EXCLUDED.PreUfcLosses,
+            PreUfcDraws = EXCLUDED.PreUfcDraws, PreUfcTotalFights = EXCLUDED.PreUfcTotalFights,
+            EstimatedInitialElo = EXCLUDED.EstimatedInitialElo,
+            EloEstimationMethod = EXCLUDED.EloEstimationMethod,
+            EloEstimationBreakdown = EXCLUDED.EloEstimationBreakdown,
+            OrgQualityTier = EXCLUDED.OrgQualityTier, PrimaryOrg = EXCLUDED.PrimaryOrg,
+            DataConfidence = EXCLUDED.DataConfidence, UpdatedAt = EXCLUDED.UpdatedAt
+    """, rows, page_size=500)
     conn.commit()
     cursor.close()
-    print(f"   [OK] Pre-UFC Career: {inserted} inserted, {updated} updated, {skipped} skipped")
+    print(f"   [OK] Pre-UFC Career: {len(rows)} upserted, {skipped} skipped")
 
 
 def load_opponent_quality(conn, fighter_url_to_id, dry_run=False):
@@ -798,115 +729,66 @@ def load_opponent_quality(conn, fighter_url_to_id, dry_run=False):
         print(df.head())
         return
     
-    cursor = conn.cursor()
-    inserted = 0
-    updated = 0
+    now = datetime.now()
+    rows = []
     skipped = 0
-    
+
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
         fighter_id = fighter_url_to_id.get(fighter_url)
-        
         if not fighter_id:
             skipped += 1
             continue
-        
-        def safe_float(val):
-            if pd.isna(val):
-                return None
-            try:
-                return float(val)
-            except:
-                return None
-        
-        def safe_int(val):
-            if pd.isna(val):
-                return None
-            try:
-                return int(val)
-            except:
-                return None
-        
-        # Check if exists
-        cursor.execute("SELECT OQID FROM OpponentQuality WHERE FighterID = %s", (fighter_id,))
-        existing = cursor.fetchone()
-        
-        if existing:
-            cursor.execute("""
-                UPDATE OpponentQuality SET
-                    FighterURL = %s, AvgOpponentElo = %s, AvgOpponentEloAtFightTime = %s,
-                    EliteOpponentWins = %s, EliteOpponentLosses = %s,
-                    GoodOpponentWins = %s, GoodOpponentLosses = %s,
-                    AverageOpponentWins = %s, AverageOpponentLosses = %s,
-                    BelowAverageWins = %s, BelowAverageLosses = %s,
-                    EliteWinRate = %s, QualityWinIndex = %s,
-                    RecentAvgOpponentElo = %s, RecentEliteWins = %s,
-                    ScheduleStrengthRank = %s, ScheduleStrengthPercentile = %s,
-                    LastCalculated = %s, FightsAnalyzed = %s
-                WHERE FighterID = %s
-            """, (
-                fighter_url,
-                safe_float(row.get('avg_opponent_elo')),
-                safe_float(row.get('avg_opponent_elo_at_fight_time')),
-                safe_int(row.get('elite_wins')),
-                safe_int(row.get('elite_losses')),
-                safe_int(row.get('good_wins')),
-                safe_int(row.get('good_losses')),
-                safe_int(row.get('average_wins')),
-                safe_int(row.get('average_losses')),
-                safe_int(row.get('below_average_wins')),
-                safe_int(row.get('below_average_losses')),
-                safe_float(row.get('elite_win_rate')),
-                safe_float(row.get('quality_win_index')),
-                safe_float(row.get('recent_avg_opponent_elo')),
-                safe_int(row.get('recent_elite_wins')),
-                safe_int(row.get('schedule_strength_rank')),
-                safe_float(row.get('schedule_strength_percentile')),
-                datetime.now(),
-                safe_int(row.get('fights_analyzed')),
-                fighter_id,
-            ))
-            updated += 1
-        else:
-            cursor.execute("""
-                INSERT INTO OpponentQuality (
-                    FighterID, FighterURL, AvgOpponentElo, AvgOpponentEloAtFightTime,
-                    EliteOpponentWins, EliteOpponentLosses,
-                    GoodOpponentWins, GoodOpponentLosses,
-                    AverageOpponentWins, AverageOpponentLosses,
-                    BelowAverageWins, BelowAverageLosses,
-                    EliteWinRate, QualityWinIndex,
-                    RecentAvgOpponentElo, RecentEliteWins,
-                    ScheduleStrengthRank, ScheduleStrengthPercentile,
-                    LastCalculated, FightsAnalyzed
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter_id,
-                fighter_url,
-                safe_float(row.get('avg_opponent_elo')),
-                safe_float(row.get('avg_opponent_elo_at_fight_time')),
-                safe_int(row.get('elite_wins')),
-                safe_int(row.get('elite_losses')),
-                safe_int(row.get('good_wins')),
-                safe_int(row.get('good_losses')),
-                safe_int(row.get('average_wins')),
-                safe_int(row.get('average_losses')),
-                safe_int(row.get('below_average_wins')),
-                safe_int(row.get('below_average_losses')),
-                safe_float(row.get('elite_win_rate')),
-                safe_float(row.get('quality_win_index')),
-                safe_float(row.get('recent_avg_opponent_elo')),
-                safe_int(row.get('recent_elite_wins')),
-                safe_int(row.get('schedule_strength_rank')),
-                safe_float(row.get('schedule_strength_percentile')),
-                datetime.now(),
-                safe_int(row.get('fights_analyzed')),
-            ))
-            inserted += 1
-    
+        rows.append((
+            fighter_id, fighter_url,
+            _sf(row.get('avg_opponent_elo')), _sf(row.get('avg_opponent_elo_at_fight_time')),
+            _si(row.get('elite_wins')), _si(row.get('elite_losses')),
+            _si(row.get('good_wins')), _si(row.get('good_losses')),
+            _si(row.get('average_wins')), _si(row.get('average_losses')),
+            _si(row.get('below_average_wins')), _si(row.get('below_average_losses')),
+            _sf(row.get('elite_win_rate')), _sf(row.get('quality_win_index')),
+            _sf(row.get('recent_avg_opponent_elo')), _si(row.get('recent_elite_wins')),
+            _si(row.get('schedule_strength_rank')), _sf(row.get('schedule_strength_percentile')),
+            now, _si(row.get('fights_analyzed')),
+        ))
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO OpponentQuality (
+            FighterID, FighterURL, AvgOpponentElo, AvgOpponentEloAtFightTime,
+            EliteOpponentWins, EliteOpponentLosses,
+            GoodOpponentWins, GoodOpponentLosses,
+            AverageOpponentWins, AverageOpponentLosses,
+            BelowAverageWins, BelowAverageLosses,
+            EliteWinRate, QualityWinIndex,
+            RecentAvgOpponentElo, RecentEliteWins,
+            ScheduleStrengthRank, ScheduleStrengthPercentile,
+            LastCalculated, FightsAnalyzed
+        ) VALUES %s
+        ON CONFLICT (FighterID) DO UPDATE SET
+            FighterURL = EXCLUDED.FighterURL,
+            AvgOpponentElo = EXCLUDED.AvgOpponentElo,
+            AvgOpponentEloAtFightTime = EXCLUDED.AvgOpponentEloAtFightTime,
+            EliteOpponentWins = EXCLUDED.EliteOpponentWins,
+            EliteOpponentLosses = EXCLUDED.EliteOpponentLosses,
+            GoodOpponentWins = EXCLUDED.GoodOpponentWins,
+            GoodOpponentLosses = EXCLUDED.GoodOpponentLosses,
+            AverageOpponentWins = EXCLUDED.AverageOpponentWins,
+            AverageOpponentLosses = EXCLUDED.AverageOpponentLosses,
+            BelowAverageWins = EXCLUDED.BelowAverageWins,
+            BelowAverageLosses = EXCLUDED.BelowAverageLosses,
+            EliteWinRate = EXCLUDED.EliteWinRate,
+            QualityWinIndex = EXCLUDED.QualityWinIndex,
+            RecentAvgOpponentElo = EXCLUDED.RecentAvgOpponentElo,
+            RecentEliteWins = EXCLUDED.RecentEliteWins,
+            ScheduleStrengthRank = EXCLUDED.ScheduleStrengthRank,
+            ScheduleStrengthPercentile = EXCLUDED.ScheduleStrengthPercentile,
+            LastCalculated = EXCLUDED.LastCalculated,
+            FightsAnalyzed = EXCLUDED.FightsAnalyzed
+    """, rows, page_size=500)
     conn.commit()
     cursor.close()
-    print(f"   [OK] Opponent Quality: {inserted} inserted, {updated} updated, {skipped} skipped")
+    print(f"   [OK] Opponent Quality: {len(rows)} upserted, {skipped} skipped")
 
 
 def load_matchup_features(conn, fighter_url_to_id, dry_run=False):
@@ -924,129 +806,70 @@ def load_matchup_features(conn, fighter_url_to_id, dry_run=False):
         print(df.head())
         return
     
-    cursor = conn.cursor()
-    inserted = 0
-    updated = 0
+    now = datetime.now()
+    rows = []
     skipped = 0
-    
+
     for _, row in df.iterrows():
         fighter1_url = row.get('fighter1_url')
         fighter2_url = row.get('fighter2_url')
-        
         fighter1_id = fighter_url_to_id.get(fighter1_url)
         fighter2_id = fighter_url_to_id.get(fighter2_url)
-        
         if not fighter1_id or not fighter2_id:
             skipped += 1
             continue
-        
-        def safe_float(val):
-            if pd.isna(val):
-                return None
-            try:
-                return float(val)
-            except:
-                return None
-        
-        def safe_int(val):
-            if pd.isna(val):
-                return None
-            try:
-                return int(val)
-            except:
-                return None
-        
-        # Check if exists
-        cursor.execute(
-            "SELECT MatchupFeatureID FROM MatchupFeatures WHERE Fighter1ID = %s AND Fighter2ID = %s",
-            (fighter1_id, fighter2_id)
-        )
-        existing = cursor.fetchone()
-        
-        if existing:
-            cursor.execute("""
-                UPDATE MatchupFeatures SET
-                    HeightDiff_cm = %s, ReachDiff_cm = %s, LegReachDiff_cm = %s, AgeDiff = %s,
-                    EloDiff = %s, PeakEloDiff = %s,
-                    SLpMDiff = %s, SApMDiff = %s, StrAccDiff = %s, StrDefDiff = %s,
-                    TDAvgDiff = %s, TDAccDiff = %s, TDDefDiff = %s, SubAvgDiff = %s,
-                    OpponentQualityDiff = %s, WinStreakDiff = %s,
-                    DaysSinceLastFightDiff = %s, TotalFightsDiff = %s,
-                    Fighter1Style = %s, Fighter2Style = %s, StyleMatchupAdvantage = %s,
-                    CalculatedAt = %s, IsStale = %s
-                WHERE MatchupFeatureID = %s
-            """, (
-                safe_float(row.get('height_diff_cm')),
-                safe_float(row.get('reach_diff_cm')),
-                safe_float(row.get('leg_reach_diff_cm')),
-                safe_float(row.get('age_diff')),
-                safe_float(row.get('elo_diff')),
-                safe_float(row.get('peak_elo_diff')),
-                safe_float(row.get('slpm_diff')),
-                safe_float(row.get('sapm_diff')),
-                safe_float(row.get('str_acc_diff')),
-                safe_float(row.get('str_def_diff')),
-                safe_float(row.get('td_avg_diff')),
-                safe_float(row.get('td_acc_diff')),
-                safe_float(row.get('td_def_diff')),
-                safe_float(row.get('sub_avg_diff')),
-                safe_float(row.get('opponent_quality_diff')),
-                safe_int(row.get('win_streak_diff')),
-                safe_int(row.get('days_since_fight_diff')),
-                safe_int(row.get('total_fights_diff')),
-                row.get('fighter1_style') if pd.notna(row.get('fighter1_style')) else None,
-                row.get('fighter2_style') if pd.notna(row.get('fighter2_style')) else None,
-                safe_int(row.get('style_matchup_advantage')),
-                datetime.now(),
-                False,
-                existing[0],
-            ))
-            updated += 1
-        else:
-            cursor.execute("""
-                INSERT INTO MatchupFeatures (
-                    Fighter1ID, Fighter2ID,
-                    HeightDiff_cm, ReachDiff_cm, LegReachDiff_cm, AgeDiff,
-                    EloDiff, PeakEloDiff,
-                    SLpMDiff, SApMDiff, StrAccDiff, StrDefDiff,
-                    TDAvgDiff, TDAccDiff, TDDefDiff, SubAvgDiff,
-                    OpponentQualityDiff, WinStreakDiff,
-                    DaysSinceLastFightDiff, TotalFightsDiff,
-                    Fighter1Style, Fighter2Style, StyleMatchupAdvantage,
-                    CalculatedAt, IsStale
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter1_id,
-                fighter2_id,
-                safe_float(row.get('height_diff_cm')),
-                safe_float(row.get('reach_diff_cm')),
-                safe_float(row.get('leg_reach_diff_cm')),
-                safe_float(row.get('age_diff')),
-                safe_float(row.get('elo_diff')),
-                safe_float(row.get('peak_elo_diff')),
-                safe_float(row.get('slpm_diff')),
-                safe_float(row.get('sapm_diff')),
-                safe_float(row.get('str_acc_diff')),
-                safe_float(row.get('str_def_diff')),
-                safe_float(row.get('td_avg_diff')),
-                safe_float(row.get('td_acc_diff')),
-                safe_float(row.get('td_def_diff')),
-                safe_float(row.get('sub_avg_diff')),
-                safe_float(row.get('opponent_quality_diff')),
-                safe_int(row.get('win_streak_diff')),
-                safe_int(row.get('days_since_fight_diff')),
-                safe_int(row.get('total_fights_diff')),
-                row.get('fighter1_style') if pd.notna(row.get('fighter1_style')) else None,
-                row.get('fighter2_style') if pd.notna(row.get('fighter2_style')) else None,
-                safe_int(row.get('style_matchup_advantage')),
-                datetime.now(),
-                False,
-            ))
-            inserted += 1
-    
+        rows.append((
+            fighter1_id, fighter2_id,
+            _sf(row.get('height_diff_cm')), _sf(row.get('reach_diff_cm')),
+            _sf(row.get('leg_reach_diff_cm')), _sf(row.get('age_diff')),
+            _sf(row.get('elo_diff')), _sf(row.get('peak_elo_diff')),
+            _sf(row.get('slpm_diff')), _sf(row.get('sapm_diff')),
+            _sf(row.get('str_acc_diff')), _sf(row.get('str_def_diff')),
+            _sf(row.get('td_avg_diff')), _sf(row.get('td_acc_diff')),
+            _sf(row.get('td_def_diff')), _sf(row.get('sub_avg_diff')),
+            _sf(row.get('opponent_quality_diff')), _si(row.get('win_streak_diff')),
+            _si(row.get('days_since_fight_diff')), _si(row.get('total_fights_diff')),
+            row.get('fighter1_style') if pd.notna(row.get('fighter1_style')) else None,
+            row.get('fighter2_style') if pd.notna(row.get('fighter2_style')) else None,
+            _si(row.get('style_matchup_advantage')),
+            now, False,
+        ))
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO MatchupFeatures (
+            Fighter1ID, Fighter2ID,
+            HeightDiff_cm, ReachDiff_cm, LegReachDiff_cm, AgeDiff,
+            EloDiff, PeakEloDiff,
+            SLpMDiff, SApMDiff, StrAccDiff, StrDefDiff,
+            TDAvgDiff, TDAccDiff, TDDefDiff, SubAvgDiff,
+            OpponentQualityDiff, WinStreakDiff,
+            DaysSinceLastFightDiff, TotalFightsDiff,
+            Fighter1Style, Fighter2Style, StyleMatchupAdvantage,
+            CalculatedAt, IsStale
+        ) VALUES %s
+        ON CONFLICT (Fighter1ID, Fighter2ID) DO UPDATE SET
+            HeightDiff_cm = EXCLUDED.HeightDiff_cm,
+            ReachDiff_cm = EXCLUDED.ReachDiff_cm,
+            LegReachDiff_cm = EXCLUDED.LegReachDiff_cm,
+            AgeDiff = EXCLUDED.AgeDiff,
+            EloDiff = EXCLUDED.EloDiff, PeakEloDiff = EXCLUDED.PeakEloDiff,
+            SLpMDiff = EXCLUDED.SLpMDiff, SApMDiff = EXCLUDED.SApMDiff,
+            StrAccDiff = EXCLUDED.StrAccDiff, StrDefDiff = EXCLUDED.StrDefDiff,
+            TDAvgDiff = EXCLUDED.TDAvgDiff, TDAccDiff = EXCLUDED.TDAccDiff,
+            TDDefDiff = EXCLUDED.TDDefDiff, SubAvgDiff = EXCLUDED.SubAvgDiff,
+            OpponentQualityDiff = EXCLUDED.OpponentQualityDiff,
+            WinStreakDiff = EXCLUDED.WinStreakDiff,
+            DaysSinceLastFightDiff = EXCLUDED.DaysSinceLastFightDiff,
+            TotalFightsDiff = EXCLUDED.TotalFightsDiff,
+            Fighter1Style = EXCLUDED.Fighter1Style,
+            Fighter2Style = EXCLUDED.Fighter2Style,
+            StyleMatchupAdvantage = EXCLUDED.StyleMatchupAdvantage,
+            CalculatedAt = EXCLUDED.CalculatedAt, IsStale = FALSE
+    """, rows, page_size=500)
     conn.commit()
     cursor.close()
-    print(f"   [OK] Matchup Features: {inserted} inserted, {updated} updated, {skipped} skipped")
+    print(f"   [OK] Matchup Features: {len(rows)} upserted, {skipped} skipped")
 
 
 def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False):
@@ -1076,77 +899,43 @@ def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False):
         print(df.head())
         return
     
-    cursor = conn.cursor()
-    inserted = 0
+    now = datetime.now()
+    rows = []
     skipped = 0
-    
+
     for _, row in df.iterrows():
         fighter_url = row.get('fighter_url')
         fighter_id = fighter_url_to_id.get(fighter_url)
-        
         if not fighter_id:
             skipped += 1
             continue
-        
         fight_date = parse_date(row.get('fight_date'))
-        
         if fight_date is None:
             skipped += 1
             continue
-        
-        def safe_float(val):
-            if pd.isna(val):
-                return None
-            try:
-                return float(val)
-            except:
-                return None
-        
-        def safe_int(val):
-            if pd.isna(val):
-                return None
-            try:
-                return int(val)
-            except:
-                return None
-        
-        try:
-            cursor.execute("""
-                INSERT INTO PointInTimeStats (
-                    FighterID, FighterURL, FightDate,
-                    FightsBefore, WinsBefore, LossesBefore, WinRateBefore,
-                    PIT_SLpM, PIT_StrAcc, PIT_TDAvg, PIT_SubAvg, PIT_KDRate,
-                    RecentWinRate, AvgFightTime, FinishRate, HasPriorData, CalculatedAt
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (
-                fighter_id,
-                fighter_url,
-                fight_date,
-                safe_int(row.get('fights_before')),
-                safe_int(row.get('wins_before')),
-                safe_int(row.get('losses_before')),
-                safe_float(row.get('win_rate_before')),
-                safe_float(row.get('pit_slpm')),
-                safe_float(row.get('pit_str_acc')),
-                safe_float(row.get('pit_td_avg')),
-                safe_float(row.get('pit_sub_avg')),
-                safe_float(row.get('pit_kd_rate')),
-                safe_float(row.get('recent_win_rate')),
-                safe_float(row.get('avg_fight_time')),
-                safe_float(row.get('finish_rate')),
-                row.get('has_prior_data', False),
-                datetime.now(),
-            ))
-            inserted += 1
-        except Exception as e:
-            conn.rollback()
-            if skipped < 5:
-                print(f"   [ERROR] PIT Stats insert failed: {e}")
-            skipped += 1
-    
+        rows.append((
+            fighter_id, fighter_url, fight_date,
+            _si(row.get('fights_before')), _si(row.get('wins_before')),
+            _si(row.get('losses_before')), _sf(row.get('win_rate_before')),
+            _sf(row.get('pit_slpm')), _sf(row.get('pit_str_acc')),
+            _sf(row.get('pit_td_avg')), _sf(row.get('pit_sub_avg')),
+            _sf(row.get('pit_kd_rate')), _sf(row.get('recent_win_rate')),
+            _sf(row.get('avg_fight_time')), _sf(row.get('finish_rate')),
+            row.get('has_prior_data', False), now,
+        ))
+
+    cursor = conn.cursor()
+    execute_values(cursor, """
+        INSERT INTO PointInTimeStats (
+            FighterID, FighterURL, FightDate,
+            FightsBefore, WinsBefore, LossesBefore, WinRateBefore,
+            PIT_SLpM, PIT_StrAcc, PIT_TDAvg, PIT_SubAvg, PIT_KDRate,
+            RecentWinRate, AvgFightTime, FinishRate, HasPriorData, CalculatedAt
+        ) VALUES %s
+    """, rows, page_size=500)
     conn.commit()
     cursor.close()
-    print(f"   [OK] Point-in-Time Stats: {inserted} inserted, {skipped} skipped")
+    print(f"   [OK] Point-in-Time Stats: {len(rows)} inserted, {skipped} skipped")
 
 
 def show_summary(conn):
