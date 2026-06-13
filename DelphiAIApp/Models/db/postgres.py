@@ -79,43 +79,40 @@ def get_connection_pool(minconn=5, maxconn=20):
     return _connection_pool
 
 
-def _get_live_connection(p):
-    """Return a working connection from pool, retrying once on stale connections.
-
-    Neon closes idle connections server-side after ~5 min. psycopg2's pool
-    doesn't know until a query fails. A lightweight ping on checkout catches
-    dead connections before they reach real queries.
-    """
-    for attempt in range(2):
-        conn = p.getconn()
-        if conn.closed:
-            p.putconn(conn, close=True)
-            continue
-        try:
-            conn.cursor().execute("SELECT 1")
-            return conn
-        except psycopg2.OperationalError:
-            p.putconn(conn, close=True)
-            if attempt == 1:
-                raise
-    raise psycopg2.OperationalError("Could not obtain a live DB connection after 2 attempts")
-
-
 @contextmanager
 def get_db_connection():
     """Context manager for database connections.
 
-    Automatically returns connection to pool when done.
-    Uses _get_live_connection to discard stale connections from Neon idle timeout.
+    Creates a fresh connection per call and closes it on exit. This is the
+    correct pattern for Neon (serverless Postgres) — Neon is designed for
+    short-lived connections and aggressively closes idle pool connections,
+    making persistent pools unreliable without their own PgBouncer endpoint.
     """
-    conn = None
-    p = get_connection_pool()
+    if DATABASE_URL:
+        conn = psycopg2.connect(
+            DATABASE_URL,
+            keepalives=1,
+            keepalives_idle=60,
+            keepalives_interval=10,
+            keepalives_count=5,
+        )
+    else:
+        conn = psycopg2.connect(
+            **{
+                **DB_CONFIG,
+                "keepalives": 1,
+                "keepalives_idle": 60,
+                "keepalives_interval": 10,
+                "keepalives_count": 5,
+            }
+        )
     try:
-        conn = _get_live_connection(p)
         yield conn
     finally:
-        if conn:
-            p.putconn(conn)
+        try:
+            conn.close()
+        except Exception:
+            pass
 
 
 @contextmanager
