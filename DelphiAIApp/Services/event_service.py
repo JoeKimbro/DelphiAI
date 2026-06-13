@@ -292,40 +292,55 @@ def _enrich_with_odds(
 ) -> list[dict]:
     """Attach real American odds + edge_pct to each fight prediction.
 
-    Upcoming events draw from a live BestFightOdds homepage scrape (15-min
-    in-process cache). Past events fall back to the existing
-    historical_odds.json archive. Fights with no match get american=None and
-    `odds_source='unavailable'` — the UI renders these as '—' rather than
-    fake numbers.
+    Priority for upcoming events:
+      1. Stored DB snapshot from fight_odds (captured Wednesday / day_before).
+      2. Live BestFightOdds homepage scrape (15-min in-process cache).
+    Past events fall back to the historical_odds.json archive.
+    Fights with no match get american=None and odds_source='unavailable'.
     """
     from DelphiAIApp.Services.odds_provider import get_event_odds, _normalize_name
     from DelphiAIApp.Services.odds_math import compute_edge_pct
+    from DelphiAIApp.Models.ml.scrape_odds import lookup_best_odds
 
+    # Pre-load live/historical odds map (used as fallback for upcoming fights
+    # that don't have a stored snapshot yet, and as primary for past events).
     odds_map = get_event_odds(event_url, event_name, is_past=is_past) or {}
 
     enriched = []
-    for r in results:
-        item = dict(r)
-        key = (_normalize_name(r["fighter1"]), _normalize_name(r["fighter2"]))
-        m = odds_map.get(key)
-
-        if m and m.get("decimal_a") and m.get("decimal_b"):
-            dec_a = float(m["decimal_a"])
-            dec_b = float(m["decimal_b"])
+    with get_db_connection() as conn:
+        for r in results:
+            item = dict(r)
+            f1 = r.get("fighter1", "")
+            f2 = r.get("fighter2", "")
             f1_prob = float(r.get("f1_prob", 0.5))
-            item["f1_american"] = int(m["american_a"])
-            item["f2_american"] = int(m["american_b"])
-            item["f1_edge_pct"] = round(compute_edge_pct(f1_prob, dec_a, dec_b), 2)
-            item["f2_edge_pct"] = round(compute_edge_pct(1.0 - f1_prob, dec_b, dec_a), 2)
-            item["odds_source"] = m.get("source", "bestfightodds")
-        else:
-            item["f1_american"] = None
-            item["f2_american"] = None
-            item["f1_edge_pct"] = 0.0
-            item["f2_edge_pct"] = 0.0
-            item["odds_source"] = "unavailable"
 
-        enriched.append(_to_jsonable(item))
+            m: dict | None = None
+
+            # For upcoming events try the DB snapshot first.
+            if not is_past:
+                m = lookup_best_odds(conn, event_url, f1, f2)
+
+            # Fall through to live BFO / historical archive.
+            if m is None:
+                key = (_normalize_name(f1), _normalize_name(f2))
+                m = odds_map.get(key)
+
+            if m and m.get("decimal_a") and m.get("decimal_b"):
+                dec_a = float(m["decimal_a"])
+                dec_b = float(m["decimal_b"])
+                item["f1_american"] = int(m["american_a"])
+                item["f2_american"] = int(m["american_b"])
+                item["f1_edge_pct"] = round(compute_edge_pct(f1_prob, dec_a, dec_b), 2)
+                item["f2_edge_pct"] = round(compute_edge_pct(1.0 - f1_prob, dec_b, dec_a), 2)
+                item["odds_source"] = m.get("source", "bestfightodds")
+            else:
+                item["f1_american"] = None
+                item["f2_american"] = None
+                item["f1_edge_pct"] = 0.0
+                item["f2_edge_pct"] = 0.0
+                item["odds_source"] = "unavailable"
+
+            enriched.append(_to_jsonable(item))
     return enriched
 
 

@@ -1,0 +1,46 @@
+name: daily odds snapshot
+
+on:
+  schedule:
+    # Run at 10:00 UTC daily (covers Wednesday and day-before captures)
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+    inputs:
+      event:
+        description: "Event URL slug (optional, forces a specific capture)"
+        required: false
+      label:
+        description: "Capture label: wednesday or day_before"
+        required: false
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-api.txt
+
+      - name: Run migration (ensures fight_odds table exists)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
+
+      - name: Capture BFO odds snapshot
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -n "${{ github.event.inputs.event }}" ]; then
+            python -m ml.scrape_odds \
+              --event "${{ github.event.inputs.event }}" \
+              --label "${{ github.event.inputs.label }}"
+          else
+            python -m ml.scrape_odds
+          fi
+        working-directory: DelphiAIApp/Models
