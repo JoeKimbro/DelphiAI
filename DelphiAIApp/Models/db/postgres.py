@@ -29,7 +29,14 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 if DATABASE_URL:
     _POOL_ARGS: tuple = (DATABASE_URL,)
-    _POOL_KWARGS: dict = {}
+    # Keepalives prevent Neon from silently dropping idle connections.
+    # After 60 s idle the OS probes every 10 s; 5 missed probes = discard.
+    _POOL_KWARGS: dict = {
+        "keepalives": 1,
+        "keepalives_idle": 60,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    }
     DB_CONFIG: dict = {}  # unused in URL mode; defined so helpers can reference it
 else:
     REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
@@ -72,25 +79,43 @@ def get_connection_pool(minconn=5, maxconn=20):
     return _connection_pool
 
 
+def _get_live_connection(p):
+    """Return a working connection from pool, retrying once on stale connections.
+
+    Neon closes idle connections server-side after ~5 min. psycopg2's pool
+    doesn't know until a query fails. A lightweight ping on checkout catches
+    dead connections before they reach real queries.
+    """
+    for attempt in range(2):
+        conn = p.getconn()
+        if conn.closed:
+            p.putconn(conn, close=True)
+            continue
+        try:
+            conn.cursor().execute("SELECT 1")
+            return conn
+        except psycopg2.OperationalError:
+            p.putconn(conn, close=True)
+            if attempt == 1:
+                raise
+    raise psycopg2.OperationalError("Could not obtain a live DB connection after 2 attempts")
+
+
 @contextmanager
 def get_db_connection():
-    """
-    Context manager for database connections.
+    """Context manager for database connections.
+
     Automatically returns connection to pool when done.
-    
-    Usage:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT * FROM FighterStats")
-                results = cur.fetchall()
+    Uses _get_live_connection to discard stale connections from Neon idle timeout.
     """
     conn = None
+    p = get_connection_pool()
     try:
-        conn = get_connection_pool().getconn()
+        conn = _get_live_connection(p)
         yield conn
     finally:
         if conn:
-            get_connection_pool().putconn(conn)
+            p.putconn(conn)
 
 
 @contextmanager
