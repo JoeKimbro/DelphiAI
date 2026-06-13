@@ -79,35 +79,39 @@ def get_connection_pool(minconn=5, maxconn=20):
     return _connection_pool
 
 
+def _get_live_connection(p):
+    """Return a working connection from pool, retrying once on stale connections.
+
+    Neon closes idle connections server-side after ~5 min. psycopg2's pool
+    doesn't know until a query fails. A lightweight ping on checkout catches
+    dead connections before they reach real queries.
+    """
+    for attempt in range(2):
+        conn = p.getconn()
+        if conn.closed:
+            p.putconn(conn, close=True)
+            continue
+        try:
+            conn.cursor().execute("SELECT 1")
+            return conn
+        except psycopg2.OperationalError:
+            p.putconn(conn, close=True)
+            if attempt == 1:
+                raise
+    raise psycopg2.OperationalError("Could not obtain a live DB connection after 2 attempts")
+
+
 @contextmanager
 def get_db_connection():
-    """
-    Context manager for database connections.
-    Automatically returns connection to pool when done.
+    """Context manager for database connections.
 
-    Retries once on OperationalError (stale connection from Neon idle timeout)
-    by discarding the dead connection and obtaining a fresh one.
+    Automatically returns connection to pool when done.
+    Uses _get_live_connection to discard stale connections from Neon idle timeout.
     """
     conn = None
     p = get_connection_pool()
     try:
-        conn = p.getconn()
-        # Detect connections closed server-side (Neon idle timeout).
-        # conn.closed == 0 means psycopg2 thinks it's open but the server
-        # may have dropped it; a lightweight ping confirms liveness.
-        if conn.closed:
-            p.putconn(conn, close=True)
-            conn = p.getconn()
-        yield conn
-    except psycopg2.OperationalError:
-        # Stale connection slipped past the closed check — discard and retry once.
-        if conn:
-            try:
-                p.putconn(conn, close=True)
-            except Exception:
-                pass
-            conn = None
-        conn = p.getconn()
+        conn = _get_live_connection(p)
         yield conn
     finally:
         if conn:
