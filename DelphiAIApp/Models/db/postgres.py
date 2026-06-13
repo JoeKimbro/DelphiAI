@@ -29,7 +29,14 @@ DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 
 if DATABASE_URL:
     _POOL_ARGS: tuple = (DATABASE_URL,)
-    _POOL_KWARGS: dict = {}
+    # Keepalives prevent Neon from silently dropping idle connections.
+    # After 60 s idle the OS probes every 10 s; 5 missed probes = discard.
+    _POOL_KWARGS: dict = {
+        "keepalives": 1,
+        "keepalives_idle": 60,
+        "keepalives_interval": 10,
+        "keepalives_count": 5,
+    }
     DB_CONFIG: dict = {}  # unused in URL mode; defined so helpers can reference it
 else:
     REQUIRED_ENV_VARS = ["DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", "DB_PASSWORD"]
@@ -77,20 +84,34 @@ def get_db_connection():
     """
     Context manager for database connections.
     Automatically returns connection to pool when done.
-    
-    Usage:
-        with get_db_connection() as conn:
-            with conn.cursor() as cur:
-                cur.execute("SELECT * FROM FighterStats")
-                results = cur.fetchall()
+
+    Retries once on OperationalError (stale connection from Neon idle timeout)
+    by discarding the dead connection and obtaining a fresh one.
     """
     conn = None
+    p = get_connection_pool()
     try:
-        conn = get_connection_pool().getconn()
+        conn = p.getconn()
+        # Detect connections closed server-side (Neon idle timeout).
+        # conn.closed == 0 means psycopg2 thinks it's open but the server
+        # may have dropped it; a lightweight ping confirms liveness.
+        if conn.closed:
+            p.putconn(conn, close=True)
+            conn = p.getconn()
+        yield conn
+    except psycopg2.OperationalError:
+        # Stale connection slipped past the closed check — discard and retry once.
+        if conn:
+            try:
+                p.putconn(conn, close=True)
+            except Exception:
+                pass
+            conn = None
+        conn = p.getconn()
         yield conn
     finally:
         if conn:
-            get_connection_pool().putconn(conn)
+            p.putconn(conn)
 
 
 @contextmanager
