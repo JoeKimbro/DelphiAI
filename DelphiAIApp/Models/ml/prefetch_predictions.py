@@ -123,6 +123,23 @@ def _parse_event_date(date_str):
     return None
 
 
+def _date_from_event_url(url: str):
+    """Extract a date from date-based event slugs like ufc-fight-night-june-20-2026."""
+    import re
+    slug = url.rstrip('/').split('/event/')[-1]
+    m = re.search(
+        r'(january|february|march|april|may|june|july|august|september|october|november|december)'
+        r'[- ](\d{1,2})[- ](\d{4})',
+        slug, re.IGNORECASE
+    )
+    if not m:
+        return None
+    try:
+        return datetime.strptime(f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y").date()
+    except ValueError:
+        return None
+
+
 # ============================================================================
 # FIGHTER-STATE FINGERPRINT
 # ============================================================================
@@ -267,6 +284,14 @@ def _prefetch_one_event(conn, event_url, force=False):
     event_name = card.get('event_name', '')
     event_date_str = card.get('event_date', '')
     event_date = _parse_event_date(event_date_str)
+    # Fall back to parsing the date directly from the URL slug (e.g.
+    # ufc-fight-night-june-20-2026) when the scraped date string is missing
+    # or unparseable. This prevents the resolver from treating the event as
+    # having no date and incorrectly resolving it.
+    if event_date is None:
+        event_date = _date_from_event_url(event_url)
+        if event_date:
+            event_date_str = event_date.isoformat()
     fights = card.get('fights', [])
 
     if event_date and event_date < date.today():
