@@ -67,7 +67,8 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+_DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -261,8 +262,10 @@ def get_fighter_data(conn, name):
            OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER(fs.name),
                 'ñ','n'),'ć','c'),'č','c'),'š','s'),'ž','z') ILIKE %s
            {fold_or}
-        ORDER BY 
+        ORDER BY
             CASE WHEN fs.name ILIKE %s THEN 0 ELSE 1 END,
+            CASE WHEN cs.slpm IS NOT NULL THEN 0 ELSE 1 END,
+            fs.lastfightdate DESC NULLS LAST,
             fs.wins DESC
         LIMIT 1
     '''.format(fold_sql=fold_sql, fold_or=fold_or), (

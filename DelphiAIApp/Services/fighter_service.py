@@ -86,7 +86,32 @@ def _find_fighter(cur, slug: str) -> dict | None:
         (f"%{slug}%",),
     )
     rows = _rows(cur)
-    return rows[0] if rows else None
+    if rows:
+        return rows[0]
+
+    # 4. Apostrophe-stripped match — handles slugs like "sean-omalley" → "Sean O'Malley"
+    import re
+    stripped = re.sub(r"[^a-z0-9]", "", name_guess.lower())
+    if stripped:
+        cur.execute(
+            """
+            SELECT fs.*, cs.SLpM, cs.StrAcc, cs.SApM, cs.StrDef,
+                   cs.TDAvg, cs.TDAcc, cs.TDDef, cs.SubAvg,
+                   cs.AvgFightDuration, cs.FirstRoundFinishRate, cs.DecisionRate,
+                   cs.EloRating, cs.PeakEloRating
+            FROM FighterStats fs
+            LEFT JOIN CareerStats cs ON cs.FighterID = fs.FighterID
+            WHERE LOWER(REGEXP_REPLACE(fs.Name, '[^a-zA-Z0-9]', '', 'g')) LIKE %s
+            ORDER BY fs.TotalFights DESC NULLS LAST
+            LIMIT 1
+            """,
+            (f"%{stripped}%",),
+        )
+        rows = _rows(cur)
+        if rows:
+            return rows[0]
+
+    return None
 
 
 def get_fighter_profile(slug: str, recent_n: int = 10, elo_n: int = 30) -> dict | None:
