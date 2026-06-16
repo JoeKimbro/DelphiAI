@@ -180,7 +180,8 @@ def get_fighter_data(conn, name):
             pitf.pit_kdrate,
             pitf.recentwinrate   AS pit_recent_win_rate,
             pitf.avgfighttime    AS pit_avg_fight_time,
-            pitf.finishrate      AS pit_finish_rate
+            pitf.finishrate      AS pit_finish_rate,
+            fs.weightclass
         FROM fighterstats fs
         LEFT JOIN careerstats cs ON fs.fighterid = cs.fighterid
         LEFT JOIN LATERAL (
@@ -326,6 +327,7 @@ def get_fighter_data(conn, name):
         'age': float(row[41]) if row[41] is not None else float('nan'),
         'finish_rate': float(row[42]) if row[42] is not None else max(0.0, min(1.0, 1.0 - (float(row[21]) if row[21] is not None else 50.0) / 100.0)),
         'recent_form': float(row[43]) if row[43] is not None else float('nan'),
+        'weight_class': row[52] or None,
     }
 
     # Override career stats with most-recent PointInTimeStats when available.
@@ -399,9 +401,60 @@ def recalibrate_probabilities(prob):
     return max(0.10, min(0.90, float(prob)))
 
 
+# Canonical weight class order (ascending), men's and women's divisions tracked
+# separately since they're not comparable on the same scale.
+MENS_WEIGHT_CLASS_ORDER = [
+    'Flyweight', 'Bantamweight', 'Featherweight', 'Lightweight',
+    'Welterweight', 'Middleweight', 'Light Heavyweight', 'Heavyweight',
+]
+WOMENS_WEIGHT_CLASS_ORDER = [
+    "Women's Strawweight", "Women's Flyweight",
+    "Women's Bantamweight", "Women's Featherweight",
+]
+# Per weight class skipped, in ELO-equivalent points (same scale as ring rust/injury).
+WEIGHT_CLASS_PENALTY_PER_DIVISION = 20
+WEIGHT_CLASS_PENALTY_CAP = 60
+
+_WEIGHT_CLASS_LOOKUP = {
+    name.lower(): name
+    for name in MENS_WEIGHT_CLASS_ORDER + WOMENS_WEIGHT_CLASS_ORDER
+}
+
+
+def _normalize_weight_class_name(weight_class):
+    """Case-insensitive lookup to the canonical division name, or None if unrecognized."""
+    if not weight_class:
+        return None
+    return _WEIGHT_CLASS_LOOKUP.get(str(weight_class).strip().lower())
+
+
+def calculate_weight_class_penalty(last_weight_class, fight_weight_class):
+    """
+    Penalty for a fighter debuting in a new weight class, scaled by how many
+    divisions they skipped (either direction). Returns 0 if either division
+    is unknown or they match (no class change) — same "graceful no-op when
+    data is missing" philosophy as injury/ring-rust adjustments.
+    """
+    last_weight_class = _normalize_weight_class_name(last_weight_class)
+    fight_weight_class = _normalize_weight_class_name(fight_weight_class)
+    if not last_weight_class or not fight_weight_class:
+        return 0
+    if last_weight_class == fight_weight_class:
+        return 0
+
+    for order in (MENS_WEIGHT_CLASS_ORDER, WOMENS_WEIGHT_CLASS_ORDER):
+        if last_weight_class in order and fight_weight_class in order:
+            divisions_skipped = abs(order.index(fight_weight_class) - order.index(last_weight_class))
+            return min(WEIGHT_CLASS_PENALTY_PER_DIVISION * divisions_skipped, WEIGHT_CLASS_PENALTY_CAP)
+
+    # Men's/women's mismatch — treat as unknown rather than guessing.
+    return 0
+
+
 def calculate_elo_adjustments(fighter_data, force_injury_refresh=False):
     """
-    Build adjusted ELO using inactivity decay + optional injury scrape.
+    Build adjusted ELO using inactivity decay + injury scrape + weight class
+    debut penalty.
 
     Returns:
         {
@@ -409,6 +462,7 @@ def calculate_elo_adjustments(fighter_data, force_injury_refresh=False):
             'adjusted_elo': float,
             'injury_penalty': int,
             'inactivity_penalty': int,
+            'weight_class_penalty': int,
         }
     """
     raw_elo = float(fighter_data.get('elo', 1500.0) or 1500.0)
@@ -482,10 +536,18 @@ def calculate_elo_adjustments(fighter_data, force_injury_refresh=False):
             # Never break prediction flow due to scrape issues.
             injury_penalty = 0
 
-    adjusted_elo = raw_elo - inactivity_penalty - injury_penalty
+    # Weight class debut penalty: compare fighter's last known division
+    # against the division of the fight being predicted, if provided.
+    weight_class_penalty = calculate_weight_class_penalty(
+        fighter_data.get('weight_class'),
+        fighter_data.get('fight_weight_class'),
+    )
+
+    adjusted_elo = raw_elo - inactivity_penalty - injury_penalty - weight_class_penalty
 
     return {
         'raw_elo': raw_elo,
+        'weight_class_penalty': weight_class_penalty,
         'adjusted_elo': adjusted_elo,
         'injury_penalty': injury_penalty,
         'inactivity_penalty': inactivity_penalty,
@@ -741,10 +803,13 @@ def format_comparison(label, f1_val, f2_val, f1_name, f2_name, higher_better=Tru
     return f"  {label:<20} {f1_str:>10} {adv:^5} {f2_str:<10}"
 
 
-def analyze_matchup(f1, f2, force_injury_refresh=False, conn=None):
+def analyze_matchup(f1, f2, force_injury_refresh=False, conn=None, fight_weight_class=None):
     """Run full matchup analysis with automatic ELO adjustments."""
 
-    
+    if fight_weight_class:
+        f1['fight_weight_class'] = fight_weight_class
+        f2['fight_weight_class'] = fight_weight_class
+
     # Calculate ELO adjustments (uses database values + refreshes injuries if stale)
     f1_adj = calculate_elo_adjustments(f1, force_injury_refresh)
     f2_adj = calculate_elo_adjustments(f2, force_injury_refresh)
@@ -791,12 +856,16 @@ def analyze_matchup(f1, f2, force_injury_refresh=False, conn=None):
         f1_notes.append(f"ring rust")
     if f1_adj['injury_penalty'] > 0:
         f1_notes.append(f"injury")
-    
+    if f1_adj['weight_class_penalty'] > 0:
+        f1_notes.append(f"weight class debut")
+
     f2_notes = []
     if f2_adj['inactivity_penalty'] > 0:
         f2_notes.append(f"ring rust")
     if f2_adj['injury_penalty'] > 0:
         f2_notes.append(f"injury")
+    if f2_adj['weight_class_penalty'] > 0:
+        f2_notes.append(f"weight class debut")
     
     f1_note_str = f" ({', '.join(f1_notes)})" if f1_notes else ""
     f2_note_str = f" ({', '.join(f2_notes)})" if f2_notes else ""
@@ -957,12 +1026,16 @@ Note: ELOs automatically include adjustments for inactivity (ring rust) and inju
     parser.add_argument('fighter2', nargs='?', help='Second fighter name')
     parser.add_argument('--refresh', '-r', action='store_true',
                         help='Force fresh injury check from UFC.com (slower)')
+    parser.add_argument('--weight-class', '-w', default=None,
+                        help='Weight class this fight is contested at (e.g. "Heavyweight"). '
+                             'If a fighter is debuting in this division, applies a penalty.')
 
 
 
-    
+
     args = parser.parse_args()
     force_refresh = args.refresh
+    fight_weight_class = args.weight_class
     
     if force_refresh:
         print("\n[INFO] Forcing fresh injury check from UFC.com...")
@@ -988,7 +1061,8 @@ Note: ELOs automatically include adjustments for inactivity (ring rust) and inju
                 print(f"[ERROR] Fighter not found: '{args.fighter2}'")
                 sys.exit(1)
             
-            analyze_matchup(f1, f2, force_injury_refresh=force_refresh, conn=conn)
+            analyze_matchup(f1, f2, force_injury_refresh=force_refresh, conn=conn,
+                             fight_weight_class=fight_weight_class)
 
 
         else:

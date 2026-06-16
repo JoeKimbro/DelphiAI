@@ -153,7 +153,16 @@ Examples:
     steps.append((step_num, "Update Adjusted ELOs",
                    f"python -m ml.update_adjusted_elos",
                    MODELS_DIR))
-    
+
+    # Point-in-time trend features (opponent-ELO history, ELO velocity, win
+    # streaks, finish/quality trends). Derived purely from Fights + EloHistory,
+    # so it must run AFTER the ELO recalc. Without this step the table stays
+    # empty and five model features are 100% NaN at train time.
+    step_num += 1
+    steps.append((step_num, "Build Historical Features",
+                   f"python build_historical_features.py",
+                   DATA_DIR))
+
     total_steps = len(steps)
     
     # Show plan

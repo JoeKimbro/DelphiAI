@@ -1177,32 +1177,55 @@ class CsvExportPipeline:
             updated_count = self.item_counts['updated'][key]
             spider.logger.info(f"CSV Pipeline: {config['filename']} - {total} total ({new_count} new, {updated_count} updated)")
     
+    # Fields that should never be blanked out by a re-scrape from a source
+    # that doesn't collect them (e.g. the legacy standalone `ufcstats` spider
+    # never visits UFC.com and has no way to populate these). Without this
+    # guard, running `scrape_all.py --stats-only` after a full `ufc_official`
+    # run silently destroys weight_class/nickname/etc. for every fighter
+    # because CsvExportPipeline keys both spiders' output by the same
+    # fighter_url (UFCStats URL) and blindly overwrites the stored dict.
+    _PRESERVE_IF_BLANK = {
+        'fighters': [
+            'weight_class', 'nickname', 'place_of_birth', 'leg_reach', 'ufc_url',
+        ],
+    }
+
     def process_item(self, item, spider):
         """Store items in memory, updating existing or adding new."""
         adapter = ItemAdapter(item)
         item_dict = adapter.asdict()
-        
+
         # Determine which data store to use
         for key, config in self.csv_configs.items():
             if isinstance(item, config['item_class']):
                 unique_key = config['unique_key']
                 unique_val = item_dict.get(unique_key)
-                
+
                 if not unique_val:
                     # No unique key - can't deduplicate, skip
                     spider.logger.warning(f"Item missing unique key {unique_key}: {item_dict.get('name', 'Unknown')}")
                     return item
-                
+
                 # Check if this is an update or new record
-                if unique_val in self.data[key]:
+                existing = self.data[key].get(unique_val)
+                if existing is not None:
                     self.item_counts['updated'][key] += 1
+
+                    # Don't let a blank/missing value in the new item clobber
+                    # a previously-scraped, populated value for fields that
+                    # are only ever sourced from UFC.com.
+                    for field in self._PRESERVE_IF_BLANK.get(key, []):
+                        new_val = item_dict.get(field)
+                        old_val = existing.get(field)
+                        if (new_val is None or new_val == '') and old_val not in (None, ''):
+                            item_dict[field] = old_val
                 else:
                     self.item_counts['new'][key] += 1
-                
+
                 # Store/update the item
                 self.data[key][unique_val] = item_dict
                 return item
-        
+
         # If item type doesn't match any config, log warning
         spider.logger.warning(f"Unknown item type: {type(item).__name__}")
         return item

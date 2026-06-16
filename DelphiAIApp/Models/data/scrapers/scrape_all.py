@@ -75,7 +75,17 @@ def run_spiders(stats_only=False, test_mode=False, fresh=False, fighters_file=No
     spiders_to_run = []
     
     if stats_only:
-        # Legacy mode: run only the standalone UFCStats spider
+        # Legacy mode: run only the standalone UFCStats spider.
+        # WARNING: UFCStats never visits UFC.com, so it cannot populate
+        # weight_class, nickname, place_of_birth, or leg_reach. The CSV
+        # pipeline preserves previously-scraped values for those fields
+        # (see CsvExportPipeline._PRESERVE_IF_BLANK), but if this is the
+        # FIRST scrape ever run, those fields will be left blank for every
+        # fighter. Prefer the default `ufc_official` spider for routine use.
+        print("[WARNING] --stats-only does not collect weight_class/nickname/")
+        print("          place_of_birth/leg_reach (UFC.com-only fields).")
+        print("          Existing values for those fields are preserved, but")
+        print("          this mode cannot fill them in for new fighters.")
         spiders_to_run.append('ufcstats')
     else:
         # Default: run the unified spider that scrapes both sources

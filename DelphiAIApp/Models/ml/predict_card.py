@@ -55,7 +55,8 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+_DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -743,6 +744,11 @@ def predict_full_card(conn, fights, event_name='', event_date='',
         if is_title:
             f1['is_title_fight'] = True
             f2['is_title_fight'] = True
+
+        fight_weight_class = fight.get('weight_class') or None
+        if fight_weight_class:
+            f1['fight_weight_class'] = fight_weight_class
+            f2['fight_weight_class'] = fight_weight_class
         
         if detail:
             # Full detailed analysis for each fight
@@ -815,9 +821,9 @@ def predict_full_card(conn, fights, event_name='', event_date='',
                         ml_weight = max(0.15, min(0.50, ml_weight))
                         blended = ml_weight * corrected + (1 - ml_weight) * elo_prob_f1
                         
-                        # Injury/ring-rust shifts
-                        f1_pen = f1_adj['inactivity_penalty'] + f1_adj['injury_penalty']
-                        f2_pen = f2_adj['inactivity_penalty'] + f2_adj['injury_penalty']
+                        # Injury/ring-rust/weight-class-debut shifts
+                        f1_pen = f1_adj['inactivity_penalty'] + f1_adj['injury_penalty'] + f1_adj['weight_class_penalty']
+                        f2_pen = f2_adj['inactivity_penalty'] + f2_adj['injury_penalty'] + f2_adj['weight_class_penalty']
                         f1_shift = min(f1_pen / 400 * 0.5, 0.10)
                         f2_shift = min(f2_pen / 400 * 0.5, 0.10)
                         blended = blended - f1_shift + f2_shift
@@ -863,7 +869,7 @@ def predict_full_card(conn, fights, event_name='', event_date='',
         all_methods = {'KO/TKO': method['ko'], 'Sub': method['sub'], 'Dec': method['dec']}
         best_method = max(all_methods, key=all_methods.get)
         
-        # Notes (injuries/ring rust)
+        # Notes (injuries/ring rust/weight class debut)
         notes = []
         if f1_adj['injury_penalty'] > 0:
             notes.append(f"{f1['name'].split()[-1]} inj")
@@ -873,6 +879,10 @@ def predict_full_card(conn, fights, event_name='', event_date='',
             notes.append(f"{f1['name'].split()[-1]} rust")
         if f2_adj['inactivity_penalty'] > 0:
             notes.append(f"{f2['name'].split()[-1]} rust")
+        if f1_adj['weight_class_penalty'] > 0:
+            notes.append(f"{f1['name'].split()[-1]} wc debut")
+        if f2_adj['weight_class_penalty'] > 0:
+            notes.append(f"{f2['name'].split()[-1]} wc debut")
         
         results.append({
             'fight_num': i,

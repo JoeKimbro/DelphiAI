@@ -68,7 +68,8 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+_DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -221,9 +222,14 @@ def parse_height_inches(height_str):
     try:
         height_str = str(height_str).replace('"', '').replace("'", ' ').strip()
         parts = height_str.split()
+        # Two formats occur in the wild:
+        #   feet-inches ("5 11" after quote stripping) -> 5*12 + 11
+        #   decimal inches ("66.00", how FighterStats actually stores it) -> 66.0
+        # The decimal form must go through float(): int("66.00") raises
+        # ValueError, which previously dropped height for ~98% of rows.
         if len(parts) >= 2:
-            return int(parts[0]) * 12 + int(parts[1])
-        return int(parts[0]) if parts else np.nan
+            return int(float(parts[0])) * 12 + int(float(parts[1]))
+        return float(parts[0]) if parts else np.nan
     except (ValueError, IndexError):
         return np.nan
 

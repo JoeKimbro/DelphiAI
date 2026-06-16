@@ -43,8 +43,9 @@ def get_active_fighter_urls() -> list:
     conn = psycopg2.connect(_DATABASE_URL)
     try:
         cur = conn.cursor()
+        urls: set[str] = set()
 
-        # Fighters who fought in the last 21 days — their stats need refreshing
+        # Fighters who fought in the last 21 days — their stats need refreshing.
         cur.execute("""
             SELECT DISTINCT fs.UFCUrl
             FROM Fights f
@@ -53,10 +54,32 @@ def get_active_fighter_urls() -> list:
               AND fs.UFCUrl IS NOT NULL
               AND fs.UFCUrl <> ''
         """)
-        recent = [row[0] for row in cur.fetchall()]
+        urls.update(row[0] for row in cur.fetchall())
+
+        # Fighters booked on upcoming events or who fought very recently, taken
+        # from PredictionTracking (which the prefetch/resolve jobs keep current).
+        #
+        # This is essential: the recent-fights query above derives "active" from
+        # the Fights table, but Fights only advances when the incremental scrape
+        # runs against active fighters — a circular dependency. Once Fights fell
+        # >21 days stale, that query returned zero fighters and the scrape stalled
+        # permanently. PredictionTracking does NOT depend on Fights, so it seeds
+        # the right fighters (upcoming cards + recently-resolved ones) regardless
+        # of how stale Fights is, breaking the cycle.
+        cur.execute("""
+            SELECT DISTINCT fs.UFCUrl
+            FROM PredictionTracking pt
+            JOIN FighterStats fs
+              ON fs.FighterID IN (pt.fighter1_id, pt.fighter2_id)
+            WHERE (pt.was_correct IS NULL
+                   OR pt.predicted_at >= CURRENT_DATE - INTERVAL '45 days')
+              AND fs.UFCUrl IS NOT NULL
+              AND fs.UFCUrl <> ''
+        """)
+        urls.update(row[0] for row in cur.fetchall())
 
         cur.close()
-        return sorted(recent)
+        return sorted(urls)
     finally:
         conn.close()
 
