@@ -15,6 +15,7 @@ Requirements:
 """
 
 import os
+import re
 import sys
 import argparse
 from datetime import datetime
@@ -155,16 +156,27 @@ def normalize_name(name):
     
     # Lowercase and strip
     name = name.lower().strip()
-    
-    # Remove suffixes
+
+    # Remove suffixes (before punctuation stripping, while "." still marks them)
     suffixes = [' jr.', ' jr', ' sr.', ' sr', ' iii', ' ii', ' iv']
     for suffix in suffixes:
         if name.endswith(suffix):
             name = name[:-len(suffix)]
-    
+
+    # Hyphens become spaces ("Marc-Andre" -> "marc andre") so hyphen-vs-space
+    # formatting differences between sources don't produce different keys.
+    name = name.replace('-', ' ')
+
+    # Strip remaining punctuation (apostrophes, periods, etc.) so formatting
+    # differences between sources ("O'Malley" vs "O'Malley") always normalize
+    # to the same key. A prior bare-apostrophe-only strip here let UFC.com and
+    # UFCStats rows for the same fighter slip past each other and get inserted
+    # as separate ghost FighterStats rows.
+    name = re.sub(r"[^a-z0-9\s]", "", name)
+
     # Remove extra whitespace
     name = ' '.join(name.split())
-    
+
     return name
 
 
