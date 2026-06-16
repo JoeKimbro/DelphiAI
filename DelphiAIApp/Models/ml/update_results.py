@@ -201,19 +201,38 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
     for r in results:
         pick_id = r.get('f1_id') if r['pick'] == r['fighter1'] else r.get('f2_id')
 
-        # Dedup check: same event + same fighter pair + same type
-        cur.execute("""
-            SELECT id FROM PredictionTracking
-            WHERE event_name = %s
-              AND fighter1_name = %s AND fighter2_name = %s
-              AND prediction_type = %s
-        """, (event_name, r['fighter1'], r['fighter2'], prediction_type))
+        # Dedup check: same event + same fighter pair (either order) + same type.
+        # Key on event_url when available since event_name can legitimately
+        # change between scrapes (page title formatting, brand prefixes) for
+        # the same event_url, which previously caused duplicate rows. The
+        # fighter pair match is order-independent because corner assignment
+        # (who scrapes as fighter1 vs fighter2) can flip between scrape runs
+        # for the same matchup, which also caused duplicate rows.
+        if event_url:
+            cur.execute("""
+                SELECT id FROM PredictionTracking
+                WHERE event_url = %s
+                  AND ((fighter1_name = %s AND fighter2_name = %s)
+                       OR (fighter1_name = %s AND fighter2_name = %s))
+                  AND prediction_type = %s
+            """, (event_url, r['fighter1'], r['fighter2'], r['fighter2'], r['fighter1'], prediction_type))
+        else:
+            cur.execute("""
+                SELECT id FROM PredictionTracking
+                WHERE event_name = %s
+                  AND ((fighter1_name = %s AND fighter2_name = %s)
+                       OR (fighter1_name = %s AND fighter2_name = %s))
+                  AND prediction_type = %s
+            """, (event_name, r['fighter1'], r['fighter2'], r['fighter2'], r['fighter1'], prediction_type))
 
         existing = cur.fetchone()
 
         if existing:
             cur.execute("""
                 UPDATE PredictionTracking SET
+                    fighter1_name = %s, fighter2_name = %s,
+                    fighter1_id = %s, fighter2_id = %s,
+                    is_title_fight = %s,
                     pick_name = %s, pick_fighter_id = %s,
                     pick_probability = %s, fighter1_probability = %s,
                     confidence = %s, prob_source = %s,
@@ -225,6 +244,9 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
                     predicted_at = CURRENT_TIMESTAMP
                 WHERE id = %s
             """, (
+                r['fighter1'], r['fighter2'],
+                r.get('f1_id'), r.get('f2_id'),
+                r.get('is_title', False),
                 r['pick'], pick_id,
                 r['pick_pct'], r['f1_prob'],
                 r['confidence'], r['prob_source'],
