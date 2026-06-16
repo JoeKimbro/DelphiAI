@@ -361,6 +361,18 @@ def _shape_cached_rows(rows: list[dict]) -> list[dict]:
     """Convert raw PredictionTracking dicts into the [meta, *fights] shape."""
     if not rows:
         return []
+
+    # Defensive dedup: collapse rows for the same fighter pair (regardless of
+    # order) down to the most recent one. Rows arrive ordered by id ascending,
+    # so the last write for a given pair wins. This guards the UI against
+    # legacy duplicate rows already in PredictionTracking (e.g. created
+    # before save_predictions started keying its dedup check on event_url).
+    deduped: dict[frozenset, dict] = {}
+    for p in rows:
+        key = frozenset((p["fighter1_name"], p["fighter2_name"]))
+        deduped[key] = p
+    rows = list(deduped.values())
+
     out = []
     for p in rows:
         f1_prob = float(p["fighter1_probability"]) if p["fighter1_probability"] else 0.5
