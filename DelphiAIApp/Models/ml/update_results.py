@@ -45,7 +45,8 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+_DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -65,6 +66,39 @@ logger = logging.getLogger(__name__)
 UFC_LIVE_EVENT_API = (
     'https://d29dxerjsp82wz.cloudfront.net/api/v3/event/live/{event_fmid}.json'
 )
+
+_SLUG_DATE_RE = re.compile(
+    r'(january|february|march|april|may|june|july|august|september|october|'
+    r'november|december)[- ](\d{1,2})[- ](\d{4})',
+    re.IGNORECASE,
+)
+
+
+def _definitive_event_date(event_url, event_date):
+    """Explicit-year date for the event, or None if we don't have one.
+
+    Trusts only sources that carry a year: the URL slug
+    (ufc-fight-night-june-20-2026) and an ISO event_date. Used to keep
+    _fetch_results_from_db from matching a *different*, earlier meeting
+    between the same two fighters (e.g. a rematch) to the wrong event.
+    """
+    slug = (event_url or '').rstrip('/').split('/event/')[-1]
+    m = _SLUG_DATE_RE.search(slug)
+    if m:
+        try:
+            return datetime.strptime(
+                f"{m.group(1)} {m.group(2)} {m.group(3)}", "%B %d %Y"
+            ).date()
+        except ValueError:
+            pass
+
+    s = (event_date or '').strip().split('/')[0].strip().split('T')[0]
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+        try:
+            return datetime.strptime(s, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    return None
 
 
 # ============================================================================
@@ -276,14 +310,50 @@ def list_tracked_events(conn):
     return events
 
 
-def find_event_predictions(conn, search_term):
+def find_event_predictions(conn, search_term, event_url=None):
     """
-    Find stored predictions by event name (fuzzy keyword search).
+    Find stored predictions for an event.
+
+    When `event_url` is given, look up predictions by that URL directly —
+    it's the unique key. This matters because `event_name` is frequently a
+    generic string like "UFC Fight Night" shared by many distinct events
+    (different dates, different cards); a name-only lookup would silently
+    pull in predictions from an unrelated event of the same name (including
+    ones that haven't happened yet), and a Fights-table fallback in
+    `_fetch_results_from_db` could then "resolve" a future fight using a
+    completely different historical meeting between the same two fighters.
+
+    Falls back to fuzzy keyword search over event_name only when no URL is
+    available (e.g. ad-hoc CLI lookups like `update_results "Strickland vs
+    Hernandez"`).
 
     Returns: (event_name, list_of_prediction_dicts)
     """
     ensure_tracking_table(conn)
     cur = conn.cursor()
+
+    select_cols = """
+        SELECT id, event_name, event_date, event_url,
+               fighter1_name, fighter2_name, fighter1_id, fighter2_id,
+               is_title_fight,
+               pick_name, pick_fighter_id, pick_probability, fighter1_probability,
+               confidence, prob_source,
+               predicted_method, predicted_ko, predicted_sub, predicted_dec,
+               predicted_r1, predicted_r2, predicted_r3,
+               fighter1_elo, fighter2_elo,
+               actual_winner_name, actual_winner_id, actual_method, actual_round,
+               was_correct, predicted_at, resolved_at
+        FROM PredictionTracking
+    """
+
+    if event_url:
+        cur.execute(f"{select_cols} WHERE event_url = %s ORDER BY id", (event_url,))
+        columns = [desc[0] for desc in cur.description]
+        predictions = [dict(zip(columns, row)) for row in cur.fetchall()]
+        cur.close()
+        if not predictions:
+            return None, []
+        return predictions[0]['event_name'], predictions
 
     # Extract keywords for flexible matching
     keywords = re.split(r'\s+(?:vs\.?|versus)\s+|\s+', search_term.strip())
@@ -319,23 +389,7 @@ def find_event_predictions(conn, search_term):
     # Use the first match (most relevant)
     chosen_event = event_names[0]
 
-    # Get all predictions for this event
-    cur.execute("""
-        SELECT id, event_name, event_date, event_url,
-               fighter1_name, fighter2_name, fighter1_id, fighter2_id,
-               is_title_fight,
-               pick_name, pick_fighter_id, pick_probability, fighter1_probability,
-               confidence, prob_source,
-               predicted_method, predicted_ko, predicted_sub, predicted_dec,
-               predicted_r1, predicted_r2, predicted_r3,
-               fighter1_elo, fighter2_elo,
-               actual_winner_name, actual_winner_id, actual_method, actual_round,
-               was_correct, predicted_at, resolved_at
-        FROM PredictionTracking
-        WHERE event_name = %s
-        ORDER BY id
-    """, (chosen_event,))
-
+    cur.execute(f"{select_cols} WHERE event_name = %s ORDER BY id", (chosen_event,))
     columns = [desc[0] for desc in cur.description]
     predictions = [dict(zip(columns, row)) for row in cur.fetchall()]
 
@@ -351,12 +405,27 @@ def _fetch_results_from_db(conn, predictions):
     """
     Try to find actual results in the Fights table for each prediction.
 
+    Two fighters who have fought before (a rematch) will have multiple rows
+    in `fights` for the same pair. Without a date floor, `ORDER BY date DESC
+    LIMIT 1` is fine for genuinely resolving the most recent meeting — but if
+    the event being resolved is itself the *upcoming* rematch, "most recent"
+    still finds their earlier meeting and wrongly marks the new card resolved
+    before it happens. So any match must be on/after the event's own date;
+    if we can't determine that date, we skip the DB fallback for that
+    prediction entirely (the UFC.com scrape step is still tried).
+
     Returns: dict mapping prediction_id -> result_dict
     """
     cur = conn.cursor()
     results = {}
 
     for pred in predictions:
+        event_date = _definitive_event_date(pred.get('event_url'), pred.get('event_date'))
+        if event_date is None:
+            # No trustworthy date to guard against a stale rematch result —
+            # better to skip than risk resolving the wrong fight.
+            continue
+
         f1_id = pred['fighter1_id']
         f2_id = pred['fighter2_id']
 
@@ -371,9 +440,10 @@ def _fetch_results_from_db(conn, predictions):
                     (fighterid = %s AND opponentid = %s) OR
                     (fighterid = %s AND opponentid = %s)
                 )
+                AND date >= %s
                 ORDER BY date DESC
                 LIMIT 1
-            """, (f1_id, f2_id, f2_id, f1_id))
+            """, (f1_id, f2_id, f2_id, f1_id, event_date))
             row = cur.fetchone()
 
         if not row:
@@ -387,11 +457,13 @@ def _fetch_results_from_db(conn, predictions):
                     (fightername ILIKE %s AND opponentname ILIKE %s) OR
                     (fightername ILIKE %s AND opponentname ILIKE %s)
                 )
+                AND date >= %s
                 ORDER BY date DESC
                 LIMIT 1
             """, (
                 f'%{f1_last}%', f'%{f2_last}%',
                 f'%{f2_last}%', f'%{f1_last}%',
+                event_date,
             ))
             row = cur.fetchone()
 
@@ -842,7 +914,7 @@ def resolve_event(conn, search_term, event_url=None, force=False):
     Returns:
         (event_name, predictions) -- predictions list updated with results
     """
-    event_name, predictions = find_event_predictions(conn, search_term)
+    event_name, predictions = find_event_predictions(conn, search_term, event_url=event_url)
 
     if not event_name or not predictions:
         print(f"  No stored predictions found for: \"{search_term}\"")
