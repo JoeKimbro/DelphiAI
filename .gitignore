@@ -24,9 +24,11 @@ Thumbs.db
 
 # Model artifacts (large files)
 *.pkl
+*.pkl.disabled
 *.h5
 *.pt
 
 # Logs
 *.log
 logs/
+.vercel

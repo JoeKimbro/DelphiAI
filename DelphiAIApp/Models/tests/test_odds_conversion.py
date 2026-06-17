@@ -17,9 +17,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 sys.path.insert(0, str(Path(__file__).parent.parent / 'ml'))
 
 
+@pytest.mark.skip(
+    reason="Requires data.scrapers.scrape_odds.BestFightOddsScraper which is not implemented; "
+    "equivalent math is covered by test_odds_math.py"
+)
 class TestOddsConversion:
     """Test odds conversion functions."""
-    
+
     def test_american_to_decimal_favorite(self):
         """Test converting favorite American odds to decimal."""
         # -200 means bet $200 to win $100, so decimal = 1.5
