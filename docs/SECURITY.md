@@ -28,6 +28,10 @@ with **Cloudflare** available in front of the Railway API.
 3. **Resource exhaustion:** 256 KB request-body cap (FastAPI → 413), 15 s `apiFetch`
    timeout, and Neon's **pooled** connection endpoint to avoid connection exhaustion.
 
+> **Caveat:** the FastAPI sliding-window limiter is **in-memory and per-process** —
+> it is not shared across instances and resets on cold start/redeploy. Treat it as
+> a cheap second layer; the **edge WAF rate limits are the real volumetric defense**.
+
 ## 4. Authentication
 - Login: 5 failed attempts per (email, IP) in 15 min → lockout (generic failure).
 - Signup: 3 accounts per IP / 15 min → 429.
@@ -37,6 +41,32 @@ with **Cloudflare** available in front of the Railway API.
 - Client IP for throttling prefers the edge-set `x-real-ip` (Vercel) / `cf-connecting-ip`
   (Cloudflare); the leftmost `x-forwarded-for` hop is only a fallback for local dev,
   so a client cannot forge an IP to evade lockout in production.
+- **CSRF:** the next-auth session is a JWT cookie with the default **`SameSite=Lax`,
+  `HttpOnly`, `Secure`** flags. All state-changing bet endpoints are `POST`/`PATCH`/
+  `DELETE`, which `SameSite=Lax` does **not** send cross-site — so they are not
+  CSRF-triggerable. (Bet data is a non-sensitive personal tracker; no anti-tamper
+  beyond injection-safe input validation is warranted.)
+- **Privilege separation:** expensive/mutating routes (`POST /api/results/*` — model
+  runs, scrapes, bulk writes) honor an optional **`DELPHI_ADMIN_API_KEY`**. When set,
+  they require it via `X-Admin-Key` on top of the read `DELPHI_API_KEY`, so a leaked
+  read key (deployed broadly in the web tier) can't trigger them. Unset = falls back
+  to the read key (non-breaking). The frontend never calls these routes.
+
+## 4a. Model artifact integrity (anti-RCE)
+- The XGBoost+calibrator artifact is loaded with `pickle`, which executes arbitrary
+  code — so a tampered model from the R2 bucket would be RCE in the API container.
+- `model_loader` verifies a **SHA-256 before unpickling**, against a trusted digest
+  from `DELPHI_MODEL_SHA256` (pinned at deploy; survives a fully compromised bucket)
+  or a `<model>.sha256` sidecar (corruption/partial-tamper guard). Mismatch ⇒ refuse
+  to load. `publish_model` prints the digest + uploads the sidecar; `fetch_model`
+  verifies the download against the pin (and disables redirect-following).
+
+## 4b. SSRF / server-side fetches
+- The on-demand fighter scraper follows a detail URL taken as an `<a href>` off a
+  scraped page, so the target isn't always one we constructed. `ml/net_guard.safe_get`
+  restricts scheme to http(s), host to a **data-source allowlist**, and resolved IPs
+  to **public space** (blocks `169.254.169.254`/loopback/RFC-1918, incl. DNS rebind),
+  and re-validates every redirect hop. Reusable for the other request-path fetches.
 
 ## 5. Backups
 - Primary: Neon point-in-time restore / branching.
@@ -55,4 +85,10 @@ with **Cloudflare** available in front of the Railway API.
 - **Cadence:** triage critical/high CVEs within 72h; merge grouped minor/patch PRs weekly.
 
 ## Future hardening (not yet implemented)
-MFA/TOTP, OAuth providers, secret-manager vault, nonce-based strict CSP, IaC.
+MFA/TOTP, OAuth providers, secret-manager vault + key rotation, nonce-based strict
+CSP, IaC. Extend `net_guard.safe_get` to the remaining request-path fetches
+(event-page scrapes in `predict_card` / `update_results` / `upcoming_predictor`).
+
+> Deliberately out of scope: account lifecycle (email verify/MFA/reset) and bet
+> anti-tampering — bets are a non-sensitive personal tracker, so confidentiality
+> and result-integrity controls there add no security value.
