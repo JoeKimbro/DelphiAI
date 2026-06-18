@@ -23,6 +23,8 @@ import requests
 from bs4 import BeautifulSoup
 import psycopg2
 
+from ml.net_guard import safe_get, DisallowedURLError
+
 logger = logging.getLogger(__name__)
 
 UFCSTATS_LISTING = "http://www.ufcstats.com/statistics/fighters?char={char}&page=all"
@@ -62,7 +64,9 @@ def _fetch(url, allow_404=False):
     for attempt in range(MAX_RETRIES + 1):
         try:
             _rate_limit()
-            resp = requests.get(url, headers=_HEADERS, timeout=REQUEST_TIMEOUT)
+            # safe_get enforces the SSRF allowlist: `url` may be an href scraped
+            # off a listing page, so it isn't necessarily one we constructed.
+            resp = safe_get(url, headers=_HEADERS, timeout=REQUEST_TIMEOUT)
             if resp.status_code == 429:
                 wait = 5 * (attempt + 1)
                 logger.warning(f"Rate-limited, waiting {wait}s...")
@@ -74,6 +78,10 @@ def _fetch(url, allow_404=False):
                 logger.warning(f"HTTP {resp.status_code} for {url}")
                 return None, resp.status_code
             return BeautifulSoup(resp.text, 'html.parser'), 200
+        except DisallowedURLError as e:
+            # Blocked by the SSRF guard — don't retry, it'll never be allowed.
+            logger.warning(f"Refusing to fetch disallowed URL: {e}")
+            return None, 0
         except requests.exceptions.RequestException as e:
             logger.warning(f"Request failed (attempt {attempt+1}): {e}")
             if attempt < MAX_RETRIES:
