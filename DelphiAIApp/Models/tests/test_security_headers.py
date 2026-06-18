@@ -56,3 +56,52 @@ def test_oversized_body_rejected(client):
         headers={"Content-Type": "application/json"},
     )
     assert r.status_code == 413
+
+
+@pytest.fixture
+def admin_client(monkeypatch):
+    """Client with both a read key and a separate admin key configured."""
+    monkeypatch.setenv("DELPHI_DISABLE_RATELIMIT", "1")
+    monkeypatch.setenv("DELPHI_API_KEY", "read-key")
+    monkeypatch.setenv("DELPHI_ADMIN_API_KEY", "admin-key")
+    monkeypatch.delenv("DELPHI_ENV", raising=False)
+    import DelphiAIApp.security as sec
+    importlib.reload(sec)
+    import DelphiAIApp.main as main
+    importlib.reload(main)
+    yield TestClient(main.app)
+    # Reset module state for other tests.
+    monkeypatch.delenv("DELPHI_API_KEY", raising=False)
+    monkeypatch.delenv("DELPHI_ADMIN_API_KEY", raising=False)
+    importlib.reload(sec)
+
+
+def test_admin_endpoint_rejects_read_key_only(admin_client):
+    # Valid read key but no admin key -> 401 on an admin (expensive) route.
+    r = admin_client.post(
+        "/api/results/update",
+        json={"event_name": "UFC 300"},
+        headers={"X-API-Key": "read-key"},
+    )
+    assert r.status_code == 401
+    assert "admin key" in r.json()["detail"].lower()
+
+
+def test_admin_endpoint_accepts_admin_key(admin_client):
+    # With both keys present, the admin check passes (any non-auth failure
+    # downstream is fine — we only assert it's NOT a 401 from the admin gate).
+    r = admin_client.post(
+        "/api/results/update",
+        json={"event_name": "UFC 300"},
+        headers={"X-API-Key": "read-key", "X-Admin-Key": "admin-key"},
+    )
+    assert r.status_code != 401
+
+
+def test_read_endpoint_unaffected_by_admin_gate(admin_client):
+    # Non-admin routes need only the read key, not the admin key.
+    r = admin_client.get(
+        "/api/performance/summary",
+        headers={"X-API-Key": "read-key"},
+    )
+    assert r.status_code != 401
