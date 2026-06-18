@@ -82,21 +82,30 @@ export default async function PerformancePage({
               accent="gold"
               icon={<Crosshair className="h-4 w-4" />}
             />
-            <StatCard
-              label="ROI · High-Conf"
-              value={
-                stats.paper_trading?.high_conf?.roi != null
-                  ? `${stats.paper_trading.high_conf.roi >= 0 ? "+" : ""}${stats.paper_trading.high_conf.roi.toFixed(1)}%`
-                  : "—"
-              }
-              sublabel="Flat-stake paper trading"
-              accent={
-                (stats.paper_trading?.high_conf?.roi ?? 0) >= 0
-                  ? "success"
-                  : "danger"
-              }
-              icon={<TrendingUp className="h-4 w-4" />}
-            />
+            {(() => {
+              const hc = stats.paper_trading?.high_conf;
+              const reportable = hc?.reportable ?? false;
+              const roi = reportable ? hc!.roi : null;
+              return (
+                <StatCard
+                  label="Paper ROI · High-Conf"
+                  value={
+                    roi != null
+                      ? `${roi >= 0 ? "+" : ""}${roi.toFixed(1)}%`
+                      : "—"
+                  }
+                  sublabel={
+                    roi != null
+                      ? "Model-implied odds · flat stake"
+                      : `Need ${stats.min_roi_bets ?? 100}+ resolved bets (${hc?.bets ?? 0} so far)`
+                  }
+                  accent={
+                    roi == null ? "default" : roi >= 0 ? "success" : "danger"
+                  }
+                  icon={<TrendingUp className="h-4 w-4" />}
+                />
+              );
+            })()}
             <StatCard
               label="Events"
               value={stats.num_events}

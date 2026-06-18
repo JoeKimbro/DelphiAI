@@ -32,6 +32,13 @@ from starlette.responses import JSONResponse
 # ----------------------------------------------------------------------------
 
 API_KEY = os.environ.get("DELPHI_API_KEY", "").strip() or None
+# Separate, higher-privilege key for expensive/mutating endpoints (model runs,
+# scrapes, bulk DB writes). The read key (API_KEY) is deployed broadly — it
+# lives in the Next.js server env for every dashboard fetch — so gating the
+# costly write paths behind a DIFFERENT secret means a leaked read key still
+# can't trigger them. When unset, those paths fall back to the read key (current
+# behaviour) so this is non-breaking until an operator opts in.
+ADMIN_API_KEY = os.environ.get("DELPHI_ADMIN_API_KEY", "").strip() or None
 RATE_LIMIT_DISABLED = os.environ.get("DELPHI_DISABLE_RATELIMIT", "").strip().lower() in {
     "1", "true", "yes", "on",
 }
@@ -54,6 +61,13 @@ MAX_BODY_BYTES = int(os.environ.get("DELPHI_MAX_BODY_BYTES", str(256 * 1024)))
 
 # Paths that bypass auth + rate limit (health checks must always succeed).
 _PUBLIC_PATHS: frozenset[str] = frozenset({"/", "/health"})
+
+# Expensive / state-mutating routes that require the admin key (when configured)
+# on top of the normal API key. Matched by (method, path-prefix); "*" = any
+# method. The frontend never calls these — they're ops/cron only.
+_ADMIN_RULES: tuple[tuple[str, str], ...] = (
+    ("POST", "/api/results/"),
+)
 
 # Per-endpoint rate buckets: (max_requests, window_seconds). Matched by
 # (method, path-prefix). First match wins; longest prefix first.
@@ -141,6 +155,28 @@ def _check_api_key(request: Request) -> None:
         )
 
 
+def _is_admin_path(method: str, path: str) -> bool:
+    return any(
+        (m == "*" or m == method) and path.startswith(prefix)
+        for m, prefix in _ADMIN_RULES
+    )
+
+
+def _check_admin_key(request: Request) -> None:
+    """Require the admin key on expensive/mutating routes when one is set."""
+    if ADMIN_API_KEY is None:
+        return  # separation not configured — normal key check already applied
+    if not _is_admin_path(request.method, request.url.path):
+        return
+    presented = request.headers.get("x-admin-key", "")
+    if not presented or not hmac.compare_digest(presented, ADMIN_API_KEY):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing or invalid admin key for this operation.",
+            headers={"WWW-Authenticate": "X-Admin-Key"},
+        )
+
+
 # ----------------------------------------------------------------------------
 # Response security headers
 # ----------------------------------------------------------------------------
@@ -198,6 +234,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         try:
             _check_api_key(request)
+            _check_admin_key(request)
             _check_rate_limit(request)
         except HTTPException as e:
             resp = JSONResponse(
@@ -219,6 +256,13 @@ def warn_if_unconfigured() -> None:
         print(
             "[security] DELPHI_API_KEY not set — API is open. "
             "Set it in .env before exposing publicly.",
+            flush=True,
+        )
+    if ADMIN_API_KEY is None:
+        print(
+            "[security] DELPHI_ADMIN_API_KEY not set — expensive endpoints "
+            "(/api/results/*) fall back to the shared read key. Set a separate "
+            "admin key to require it for those operations.",
             flush=True,
         )
     if RATE_LIMIT_DISABLED:

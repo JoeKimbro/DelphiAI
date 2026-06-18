@@ -38,3 +38,26 @@ def test_non_decimal_scalars_pass_through():
     assert _jsonable(42) == 42
     assert _jsonable("hello") == "hello"
     assert _jsonable(None) is None
+
+
+def _fake_picks(n, prob=0.70, correct=True):
+    return [
+        {"pick_probability": prob, "was_correct": correct}
+        for _ in range(n)
+    ]
+
+
+def test_paper_roi_not_reportable_below_threshold():
+    from ml.performance_summary import _calculate_paper_trading, MIN_ROI_BETS
+
+    result = _calculate_paper_trading(_fake_picks(MIN_ROI_BETS - 1))
+    assert result["high_conf"]["bets"] == MIN_ROI_BETS - 1
+    assert result["high_conf"]["reportable"] is False
+
+
+def test_paper_roi_reportable_at_threshold():
+    from ml.performance_summary import _calculate_paper_trading, MIN_ROI_BETS
+
+    result = _calculate_paper_trading(_fake_picks(MIN_ROI_BETS))
+    assert result["high_conf"]["bets"] == MIN_ROI_BETS
+    assert result["high_conf"]["reportable"] is True

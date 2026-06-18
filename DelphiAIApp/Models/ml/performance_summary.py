@@ -40,7 +40,8 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+_DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -269,6 +270,7 @@ def calculate_stats(predictions):
         'high_conf_correct': hc_correct,
         'high_conf_accuracy': hc_accuracy,
         'paper_trading': paper_trading,
+        'min_roi_bets': MIN_ROI_BETS,
         'num_events': len(event_stats),
     }
 
@@ -295,6 +297,11 @@ def _calculate_paper_trading(predictions):
             'returned': returned,
             'profit': returned - wagered,
             'roi': (returned - wagered) / wagered * 100 if wagered > 0 else 0,
+            # Paper ROI is computed against the model's OWN implied odds (1/prob),
+            # not real market lines. Below MIN_ROI_BETS the figure is noise, so
+            # flag whether it's worth surfacing instead of gating it away here
+            # (callers — CLI and dashboard — decide how to present it).
+            'reportable': len(filtered) >= MIN_ROI_BETS,
         }
 
     return results

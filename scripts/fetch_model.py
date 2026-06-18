@@ -10,6 +10,8 @@ Usage:
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import os
 import sys
 import time
@@ -38,16 +40,55 @@ def should_fetch(target: Path, max_age_hours: float) -> bool:
     return age_hours > max_age_hours
 
 
-def download(url: str, target: Path) -> None:
-    """Stream the model to a temp file, then atomically rename into place."""
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def download(url: str, target: Path) -> str:
+    """Stream the model to a temp file, verify integrity, then atomically rename.
+
+    Returns the SHA-256 of the downloaded artifact. If MODEL_SHA256 (or
+    DELPHI_MODEL_SHA256) is set, the download MUST match it or we delete the temp
+    file and raise — a tampered/corrupt artifact never reaches the load path. The
+    verified digest is also written to a `<target>.sha256` sidecar so the loader
+    re-checks it at pickle time.
+    """
     target.parent.mkdir(parents=True, exist_ok=True)
     tmp = target.with_suffix(target.suffix + ".part")
-    with requests.get(url, stream=True, timeout=60) as r:
+    # No redirects: a model URL should resolve directly to object storage, not
+    # bounce through an attacker-influenced Location header.
+    with requests.get(url, stream=True, timeout=60, allow_redirects=False) as r:
         r.raise_for_status()
         with open(tmp, "wb") as f:
             for chunk in r.iter_content(chunk_size=1 << 20):
                 f.write(chunk)
+
+    digest = _sha256(tmp)
+    expected = (
+        os.getenv("MODEL_SHA256", "").strip()
+        or os.getenv("DELPHI_MODEL_SHA256", "").strip()
+    ).lower()
+    if expected:
+        if not hmac.compare_digest(digest, expected):
+            tmp.unlink(missing_ok=True)
+            raise ValueError(
+                f"Model integrity check failed: downloaded sha256 {digest} "
+                f"!= expected {expected}. Refusing to install (possible tampering)."
+            )
+    else:
+        print(
+            "[model] WARNING: MODEL_SHA256 not set — installing without verifying "
+            "the download against a pinned digest.",
+            file=sys.stderr,
+        )
+
     tmp.replace(target)
+    Path(str(target) + ".sha256").write_text(digest + "\n")
+    return digest
 
 
 def main() -> int:
@@ -61,11 +102,11 @@ def main() -> int:
         return 0
     print(f"[model] downloading {url} -> {target} ...", flush=True)
     try:
-        download(url, target)
+        digest = download(url, target)
     except Exception as e:  # noqa: BLE001 — boot must not crash on a transient pull
         print(f"[model] download failed: {e}", file=sys.stderr)
         return 1
-    print(f"[model] OK ({target.stat().st_size} bytes)", flush=True)
+    print(f"[model] OK ({target.stat().st_size} bytes, sha256 {digest})", flush=True)
     return 0
 
 

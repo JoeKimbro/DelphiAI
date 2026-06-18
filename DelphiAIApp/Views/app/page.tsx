@@ -57,7 +57,13 @@ export default async function DashboardPage() {
   const stats = summary?.stats;
   const highConf = stats?.high_conf_accuracy ?? null;
   const overall = stats?.accuracy ?? null;
-  const highConfROI = stats?.paper_trading?.high_conf?.roi ?? null;
+  // Paper ROI is computed against the model's own implied odds, not real market
+  // lines — and it's only meaningful once the sample clears min_roi_bets.
+  const highConfPaper = stats?.paper_trading?.high_conf ?? null;
+  const paperROIReportable = highConfPaper?.reportable ?? false;
+  const highConfROI = paperROIReportable ? highConfPaper!.roi : null;
+  const minRoiBets = stats?.min_roi_bets ?? 100;
+  const highConfBets = highConfPaper?.bets ?? 0;
   const totalResolved = stats?.total ?? 0;
 
   return (
@@ -144,7 +150,7 @@ export default async function DashboardPage() {
           icon={<Target className="h-4 w-4" />}
         />
         <StatCard
-          label="ROI · High-Conf"
+          label="Paper ROI · High-Conf"
           value={
             highConfROI != null ? (
               <NumberCounter
@@ -157,8 +163,18 @@ export default async function DashboardPage() {
               "—"
             )
           }
-          sublabel="Flat-stake paper trading"
-          accent={highConfROI != null && highConfROI < 0 ? "danger" : "success"}
+          sublabel={
+            highConfROI != null
+              ? "Model-implied odds · flat stake"
+              : `Need ${minRoiBets}+ resolved bets (${highConfBets} so far)`
+          }
+          accent={
+            highConfROI == null
+              ? "default"
+              : highConfROI < 0
+                ? "danger"
+                : "success"
+          }
           icon={<TrendingUp className="h-4 w-4" />}
         />
         <StatCard

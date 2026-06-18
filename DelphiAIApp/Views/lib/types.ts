@@ -139,6 +139,9 @@ export type PaperBucket = {
   returned: number;
   profit: number;
   roi: number;
+  // True once `bets` clears the min-sample threshold (min_roi_bets). Paper ROI
+  // below that is statistical noise and should not be shown as a real figure.
+  reportable: boolean;
 };
 
 export type PerformanceStats = {
@@ -153,6 +156,7 @@ export type PerformanceStats = {
   high_conf_correct: number;
   high_conf_accuracy: number;
   paper_trading: Record<string, PaperBucket>;
+  min_roi_bets: number;
   num_events: number;
 };
 
