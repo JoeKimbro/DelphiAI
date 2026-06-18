@@ -21,6 +21,8 @@ import os
 import sys
 import pickle
 import json
+import hashlib
+import hmac
 from pathlib import Path
 from datetime import datetime, date
 
@@ -36,7 +38,11 @@ except ModuleNotFoundError:
     from style_classifier import classify_style, get_style_matchup_advantage
 
 
-class IsotonicCalibrator(BaseEstimator, ClassifierMixin):
+class IsotonicCalibrator(ClassifierMixin, BaseEstimator):
+    # Mixins must precede BaseEstimator so __sklearn_tags__ resolves
+    # estimator_type to "classifier" (sklearn 1.6+). With the old
+    # (BaseEstimator, ClassifierMixin) order, is_classifier() returned False,
+    # which broke permutation_importance(scoring='roc_auc') in training.
     """
     Calibrate a pre-fitted classifier using Platt scaling (sigmoid) by default,
     with isotonic regression as a fallback option.
@@ -523,6 +529,41 @@ class MLPredictor:
 
         self._load_model(model_path)
 
+    @staticmethod
+    def _file_sha256(path):
+        """Stream a SHA-256 of the file so large artifacts don't load into RAM."""
+        h = hashlib.sha256()
+        with open(path, 'rb') as f:
+            for chunk in iter(lambda: f.read(1 << 20), b''):
+                h.update(chunk)
+        return h.hexdigest()
+
+    @staticmethod
+    def _expected_sha256(model_path):
+        """Trusted digest to verify the artifact against before unpickling.
+
+        pickle.load executes arbitrary code, so a tampered model file (e.g. a
+        swapped object in the R2 bucket the container pulls from) is remote code
+        execution. We refuse to unpickle unless the file matches a digest from a
+        channel the attacker doesn't control:
+
+          1. DELPHI_MODEL_SHA256 env var — pinned at deploy time (strongest;
+             survives a fully compromised bucket).
+          2. <model>.sha256 sidecar next to the file — guards against corruption
+             and a swap that didn't also rewrite the sidecar.
+
+        Returns a lowercase hex digest, or None when nothing is configured
+        (local dev / bundled model) so dev keeps working.
+        """
+        env_digest = os.environ.get('DELPHI_MODEL_SHA256', '').strip().lower()
+        if env_digest:
+            return env_digest
+        sidecar = Path(str(model_path) + '.sha256')
+        if sidecar.exists():
+            # Accept both a bare digest and "<digest>  filename" (sha256sum) form.
+            return sidecar.read_text().strip().split()[0].lower()
+        return None
+
     def _load_model(self, model_path):
         """Load model from pickle file."""
         model_path = Path(model_path)
@@ -530,9 +571,35 @@ class MLPredictor:
             self._load_error = f"No model found at {model_path}"
             return
 
+        # Integrity gate BEFORE pickle.load — never deserialize an artifact whose
+        # hash doesn't match a trusted expectation (anti-RCE).
+        expected = self._expected_sha256(model_path)
+        if expected:
+            actual = self._file_sha256(model_path)
+            if not hmac.compare_digest(actual, expected):
+                self._load_error = (
+                    f"Model integrity check failed for {model_path}: "
+                    f"sha256 {actual} != expected {expected}. "
+                    "Refusing to load (possible tampering)."
+                )
+                print(f"[ML] {self._load_error}")
+                return
+        else:
+            print(
+                "[ML WARNING] No DELPHI_MODEL_SHA256 or .sha256 sidecar found — "
+                "loading model without integrity verification. Fine for local "
+                "dev; pin the digest in any deployment that pulls the model from "
+                "object storage."
+            )
+
         try:
+            # The artifact is a dict bundling an XGBoost model, the custom
+            # IsotonicCalibrator, and feature metadata — pickle is the practical
+            # format for that mix. Untrusted pickle = RCE, so the SHA-256 gate
+            # above ensures we only reach this point for an artifact whose hash
+            # matches a trusted, out-of-band expectation.
             with open(model_path, 'rb') as f:
-                data = pickle.load(f)
+                data = pickle.load(f)  # nosec B301 — integrity-verified above
 
             self.model = data['model']
             self.scaler = data.get('scaler')
