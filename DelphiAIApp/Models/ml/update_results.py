@@ -30,11 +30,13 @@ import random
 import logging
 import unicodedata
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 
 if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import psycopg2
 import requests
@@ -74,12 +76,36 @@ _SLUG_DATE_RE = re.compile(
 )
 
 
-def _definitive_event_date(event_url, event_date):
+def _normalize_event_name(name):
+    """Canonical key for an event name.
+
+    Collapses punctuation ('vs.' vs 'vs'), case, accents, and whitespace so the
+    same card stored under variant spellings maps to one key. Used both to dedup
+    on save and to group name-variants together when resolving, so a card can't
+    end up split across two never-fully-resolved batches.
+    """
+    base = unicodedata.normalize('NFKD', (name or ''))
+    base = base.encode('ascii', 'ignore').decode('ascii').lower()
+    base = re.sub(r'[^a-z0-9]+', ' ', base)
+    return base.strip()
+
+
+def _select_variant_names(all_names, chosen):
+    """All names in `all_names` that are the same event as `chosen` (by
+    normalized key). Lets the resolver gather every spelling variant of one
+    event instead of resolving only the first alphabetically."""
+    key = _normalize_event_name(chosen)
+    return [n for n in all_names if _normalize_event_name(n) == key]
+
+
+def _definitive_event_date(event_url, event_date, predicted_at=None):
     """Explicit-year date for the event, or None if we don't have one.
 
     Trusts only sources that carry a year: the URL slug
-    (ufc-fight-night-june-20-2026) and an ISO event_date. Used to keep
-    _fetch_results_from_db from matching a *different*, earlier meeting
+    (ufc-fight-night-june-20-2026), an ISO event_date, or — for a display-format
+    date like 'Sat, Mar 28 / 8:00 PM' that omits the year — the year anchored to
+    `predicted_at` (predictions are always made shortly before the event). Used
+    to keep _fetch_results_from_db from matching a *different*, earlier meeting
     between the same two fighters (e.g. a rematch) to the wrong event.
     """
     slug = (event_url or '').rstrip('/').split('/event/')[-1]
@@ -92,12 +118,36 @@ def _definitive_event_date(event_url, event_date):
         except ValueError:
             pass
 
-    s = (event_date or '').strip().split('/')[0].strip().split('T')[0]
-    if re.match(r'^\d{4}-\d{2}-\d{2}$', s):
+    s = (event_date or '').strip().split('/')[0].strip()
+    # Only strip an ISO time suffix here — splitting the whole string on 'T'
+    # would mangle weekday-prefixed display dates ("Thu, Jan 2" -> "").
+    iso_candidate = s.split('T')[0]
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', iso_candidate):
         try:
-            return datetime.strptime(s, '%Y-%m-%d').date()
+            return datetime.strptime(iso_candidate, '%Y-%m-%d').date()
         except ValueError:
             pass
+
+    # Display date without a year: only trustworthy if we can anchor the year to
+    # predicted_at, which keeps the rematch guard intact (a stale prior meeting
+    # falls below the inferred floor).
+    if predicted_at is not None and s:
+        ss = s
+        if ',' in ss:
+            head, tail = ss.split(',', 1)
+            if head.strip().lower()[:3] in {'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'}:
+                ss = tail.strip()
+        for fmt in ('%b %d', '%B %d'):
+            try:
+                md = datetime.strptime(ss, fmt)
+            except ValueError:
+                continue
+            cand = date(predicted_at.year, md.month, md.day)
+            # Event is on/after the prediction; if the candidate lands well
+            # before it, the event belongs to the next year (Dec predict → Jan).
+            if (cand - predicted_at.date()).days < -7:
+                cand = date(predicted_at.year + 1, md.month, md.day)
+            return cand
     return None
 
 
@@ -217,13 +267,19 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
                   AND prediction_type = %s
             """, (event_url, r['fighter1'], r['fighter2'], r['fighter2'], r['fighter1'], prediction_type))
         else:
+            # Match the event name on a punctuation/case-insensitive key so a
+            # re-scrape under a variant spelling ('vs' vs 'vs.') updates the
+            # existing row instead of creating a duplicate batch. The same
+            # transform is applied to both sides (strip all non-alphanumerics),
+            # which also folds accents identically.
+            name_key = re.sub(r'[^a-z0-9]', '', (event_name or '').lower())
             cur.execute("""
                 SELECT id FROM PredictionTracking
-                WHERE event_name = %s
+                WHERE regexp_replace(lower(event_name), '[^a-z0-9]', '', 'g') = %s
                   AND ((fighter1_name = %s AND fighter2_name = %s)
                        OR (fighter1_name = %s AND fighter2_name = %s))
                   AND prediction_type = %s
-            """, (event_name, r['fighter1'], r['fighter2'], r['fighter2'], r['fighter1'], prediction_type))
+            """, (name_key, r['fighter1'], r['fighter2'], r['fighter2'], r['fighter1'], prediction_type))
 
         existing = cur.fetchone()
 
@@ -240,6 +296,8 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
                     predicted_ko = %s, predicted_sub = %s, predicted_dec = %s,
                     predicted_r1 = %s, predicted_r2 = %s, predicted_r3 = %s,
                     fighter1_elo = %s, fighter2_elo = %s,
+                    event_name = COALESCE(NULLIF(%s, ''), event_name),
+                    event_date = COALESCE(NULLIF(%s, ''), event_date),
                     event_url = COALESCE(NULLIF(%s, ''), event_url),
                     predicted_at = CURRENT_TIMESTAMP
                 WHERE id = %s
@@ -254,6 +312,8 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
                 r['ko_pct'], r['sub_pct'], r['dec_pct'],
                 r['r1_finish'], r['r2_finish'], r['r3_finish'],
                 r['f1_elo'], r['f2_elo'],
+                event_name or '',
+                event_date or '',
                 event_url or '',
                 existing[0],
             ))
@@ -411,7 +471,13 @@ def find_event_predictions(conn, search_term, event_url=None):
     # Use the first match (most relevant)
     chosen_event = event_names[0]
 
-    cur.execute(f"{select_cols} WHERE event_name = %s ORDER BY id", (chosen_event,))
+    # Resolve ALL spelling variants of the chosen event together (e.g.
+    # 'Adesanya vs Pyfer' and 'Adesanya vs. Pyfer'), so a card can't be split
+    # into one resolved batch and an orphaned never-resolved twin.
+    variant_names = _select_variant_names(event_names, chosen_event)
+    cur.execute(
+        f"{select_cols} WHERE event_name = ANY(%s) ORDER BY id", (variant_names,)
+    )
     columns = [desc[0] for desc in cur.description]
     predictions = [dict(zip(columns, row)) for row in cur.fetchall()]
 
@@ -442,7 +508,9 @@ def _fetch_results_from_db(conn, predictions):
     results = {}
 
     for pred in predictions:
-        event_date = _definitive_event_date(pred.get('event_url'), pred.get('event_date'))
+        event_date = _definitive_event_date(
+            pred.get('event_url'), pred.get('event_date'), pred.get('predicted_at')
+        )
         if event_date is None:
             # No trustworthy date to guard against a stale rematch result —
             # better to skip than risk resolving the wrong fight.

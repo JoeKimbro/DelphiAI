@@ -72,7 +72,8 @@ def _find_pending_past_events(conn) -> list[tuple[str, str | None, str | None]]:
         """
         SELECT event_name,
                MAX(event_url)  AS event_url,
-               MAX(event_date) AS event_date
+               MAX(event_date) AS event_date,
+               MIN(predicted_at) AS first_predicted_at
         FROM PredictionTracking
         WHERE COALESCE(prediction_type, 'live') = 'live'
         GROUP BY event_name
@@ -83,11 +84,23 @@ def _find_pending_past_events(conn) -> list[tuple[str, str | None, str | None]]:
     cur.close()
 
     today = date.today()
+    # Predictions are made shortly before an event, so a prediction older than
+    # this almost certainly belongs to a past card — used as a fallback "is past"
+    # signal when event_date is blank/unparseable (previously such events were
+    # skipped forever). The resolver is safe on a not-yet-happened event: it
+    # finds no result and leaves the row NULL.
+    grace = 3
     out: list[tuple[str, str | None, str | None]] = []
-    for name, url, date_str in rows:
+    for name, url, date_str, first_predicted in rows:
         parsed = _parse_event_date(date_str)
         if parsed is None:
-            logger.debug("auto_resolve: skipping '%s' — unparseable date %r", name, date_str)
+            if first_predicted is not None and (datetime.now() - first_predicted).days >= grace:
+                out.append((name, url, date_str))
+            else:
+                logger.debug(
+                    "auto_resolve: skipping '%s' — unparseable date %r, prediction too recent",
+                    name, date_str,
+                )
             continue
         if parsed >= today:
             continue  # event hasn't happened yet

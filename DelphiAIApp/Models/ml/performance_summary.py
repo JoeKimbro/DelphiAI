@@ -30,8 +30,10 @@ from pathlib import Path
 from collections import defaultdict
 
 if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import psycopg2
 from dotenv import load_dotenv
@@ -139,6 +141,15 @@ def _event_sort_key(event_date_str, predicted_at):
     string is missing or unparseable.
     """
     from datetime import datetime as _dt
+
+    # ISO date (e.g. '2026-06-20' or '2026-06-20T20:00') — sort by the real
+    # event date, not the predicted_at fallback.
+    if event_date_str:
+        iso = event_date_str.split('/')[0].strip().split('T')[0]
+        try:
+            return _dt.strptime(iso, '%Y-%m-%d')
+        except ValueError:
+            pass
 
     if event_date_str and predicted_at is not None:
         head = event_date_str.split('/')[0].strip()  # 'Sat, May 16'

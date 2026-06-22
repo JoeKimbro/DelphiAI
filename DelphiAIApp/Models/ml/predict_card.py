@@ -36,8 +36,12 @@ from datetime import datetime
 
 # Fix Windows console encoding for fighter names with accents (e.g. Uroš Medić)
 if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    # Guard hasattr: stdout may be a StringIO (e.g. captured under
+    # contextlib.redirect_stdout during auto-resolve), which has no reconfigure.
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import psycopg2
 import requests
@@ -235,6 +239,23 @@ def scrape_upcoming_events():
 
 
 
+def _derive_event_name(raw_name, fights):
+    """Label a generically-titled card by its main event.
+
+    UFC.com titles Fight Nights generically ('UFC Fight Night'); appending the
+    main-event matchup ('UFC Fight Night: Kape vs Horiguchi') makes the card
+    findable by the names people actually use (and visible as such in Past
+    Events). No-op when a subtitle is already present (':' in the name).
+    """
+    name = (raw_name or '').strip()
+    if fights and ':' not in name:
+        f1 = (fights[0].get('fighter1') or '').strip()
+        f2 = (fights[0].get('fighter2') or '').strip()
+        if f1 and f2:
+            return f"{name}: {f1.split()[-1]} vs {f2.split()[-1]}"
+    return name
+
+
 def scrape_event_card(event_url, delay=True):
     """
     Scrape a specific UFC.com event page for the fight card.
@@ -427,8 +448,9 @@ def scrape_event_card(event_url, delay=True):
         print(f"[WARNING] Could not parse any fights from {event_url}")
         print("  The page structure may have changed. Try --manual mode.")
     
+    resolved_name = event_name or event_url.split('/event/')[-1].replace('-', ' ').title()
     return {
-        'event_name': event_name or event_url.split('/event/')[-1].replace('-', ' ').title(),
+        'event_name': _derive_event_name(resolved_name, fights),
         'event_date': event_date,
         'location': location,
         'fights': fights,
