@@ -33,8 +33,10 @@ from pathlib import Path
 from datetime import datetime, date
 
 if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-    sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    if hasattr(sys.stderr, 'reconfigure'):
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
 
 import psycopg2
 import requests
@@ -294,6 +296,8 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
                     predicted_ko = %s, predicted_sub = %s, predicted_dec = %s,
                     predicted_r1 = %s, predicted_r2 = %s, predicted_r3 = %s,
                     fighter1_elo = %s, fighter2_elo = %s,
+                    event_name = COALESCE(NULLIF(%s, ''), event_name),
+                    event_date = COALESCE(NULLIF(%s, ''), event_date),
                     event_url = COALESCE(NULLIF(%s, ''), event_url),
                     predicted_at = CURRENT_TIMESTAMP
                 WHERE id = %s
@@ -308,6 +312,8 @@ def save_predictions(conn, results, event_name, event_date='', event_url='',
                 r['ko_pct'], r['sub_pct'], r['dec_pct'],
                 r['r1_finish'], r['r2_finish'], r['r3_finish'],
                 r['f1_elo'], r['f2_elo'],
+                event_name or '',
+                event_date or '',
                 event_url or '',
                 existing[0],
             ))
