@@ -87,7 +87,10 @@ Examples:
     parser.add_argument('--incremental', action='store_true',
                         help='Scrape only fighters from recent/upcoming events (~20-30 fighters) '
                              'instead of all 946. Use this for weekly runs; full scrape runs quarterly.')
-    
+    parser.add_argument('--lookback-days', type=int, default=21,
+                        help='Incremental mode: scrape fighters active in the last N days (default: 21). '
+                             'Raise it to backfill missed events.')
+
     args = parser.parse_args()
 
     # Incremental mode: resolve a temp file path for the fighter URL list
@@ -103,7 +106,7 @@ Examples:
     if args.dry_run:
         print("\n  *** DRY RUN MODE - No changes will be made ***")
     if args.incremental:
-        print("\n  *** INCREMENTAL MODE - Only scraping recently active fighters ***")
+        print(f"\n  *** INCREMENTAL MODE - Only scraping fighters active in the last {args.lookback_days} days ***")
 
     # Calculate total steps
     steps = []
@@ -115,7 +118,7 @@ Examples:
             _get_fighters_script = Path(__file__).resolve().parents[3] / "scripts" / "get_active_fighters.py"
             step_num += 1
             steps.append((step_num, "Identify Active Fighters",
-                           f"python {_get_fighters_script} --output {_fighters_tmp}",
+                           f"python {_get_fighters_script} --output {_fighters_tmp} --days {args.lookback_days}",
                            MODELS_DIR))
             # Step 1b: incremental scrape
             step_num += 1
