@@ -32,3 +32,9 @@ Thumbs.db
 *.log
 logs/
 .vercel
+
+# Local database dumps (may contain prediction history / user data)
+*_dump.sql
+
+# Playwright MCP debug snapshots
+.playwright-mcp/
