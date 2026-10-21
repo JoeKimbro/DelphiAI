@@ -23,11 +23,31 @@ from pathlib import Path
 from urllib.parse import urljoin, quote
 
 import scrapy
+from scrapy_playwright.page import PageMethod
 from ufc_scraper.items import FighterItem, CareerStatsItem, FightItem
+
+_STEALTH_JS = """
+(function() {
+    Object.defineProperty(navigator, 'webdriver', {get: () => false});
+    Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
+    Object.defineProperty(navigator, 'languages', {get: () => ['en-US','en']});
+    if (!window.chrome) window.chrome = {runtime: {}};
+    if (navigator.permissions) {
+        const orig = navigator.permissions.query;
+        navigator.permissions.__proto__.query = function(p) {
+            return p.name === 'notifications'
+                ? Promise.resolve({state: 'prompt', onchange: null})
+                : orig(p);
+        };
+    }
+})();
+"""
 
 
 class UFCOfficialSpider(scrapy.Spider):
     name = "ufc_official"
+
+    _STEALTH = [PageMethod("add_init_script", _STEALTH_JS)]
     allowed_domains = ["ufc.com", "ufcstats.com"]
 
     # Base URL for athlete listings
@@ -54,12 +74,16 @@ class UFCOfficialSpider(scrapy.Spider):
             urls = [u.strip() for u in Path(self.fighter_urls_file).read_text().splitlines() if u.strip()]
             self.logger.info(f"[INCREMENTAL] Seeding {len(urls)} specific fighter URLs")
             for url in urls:
-                yield scrapy.Request(url, callback=self.parse_athlete_profile)
+                yield scrapy.Request(
+                    url,
+                    callback=self.parse_athlete_profile,
+                    meta={"playwright": True, "playwright_page_goto_kwargs": {"wait_until": "networkidle"}, "playwright_page_methods": self._STEALTH},
+                )
         else:
             yield scrapy.Request(
                 self.base_url,
                 callback=self.parse_athlete_list,
-                meta={'page': 0}
+                meta={"page": 0, "playwright": True, "playwright_page_goto_kwargs": {"wait_until": "networkidle"}, "playwright_page_methods": self._STEALTH},
             )
     
     def parse_athlete_list(self, response):
@@ -80,23 +104,27 @@ class UFCOfficialSpider(scrapy.Spider):
         self.logger.info(f"Found {len(unique_links)} athletes on page {response.meta.get('page', 0)}")
         
         for link in unique_links:
-            yield scrapy.Request(link, callback=self.parse_athlete_profile)
-        
+            yield scrapy.Request(
+                link,
+                callback=self.parse_athlete_profile,
+                meta={"playwright": True, "playwright_page_goto_kwargs": {"wait_until": "networkidle"}, "playwright_page_methods": self._STEALTH},
+            )
+
         # Check for pagination - UFC.com uses query parameter ?page=N
         current_page = response.meta.get('page', 0)
-        
+
         # Only continue if we found athletes on this page
-        if len(unique_links) > 0 and current_page < 500:  # Safety limit of 500 pages (~5500 fighters max)
+        if len(unique_links) > 0 and current_page < 500:
             next_page = current_page + 1
             next_url = f"{self.base_url}?page={next_page}"
-            
+
             self.logger.info(f"Requesting next page: {next_page}")
-            
+
             yield scrapy.Request(
                 next_url,
                 callback=self.parse_athlete_list,
-                meta={'page': next_page},
-                dont_filter=True  # Ensure pagination requests aren't filtered
+                meta={"page": next_page, "playwright": True, "playwright_page_goto_kwargs": {"wait_until": "networkidle"}, "playwright_page_methods": self._STEALTH},
+                dont_filter=True,
             )
     
     def parse_athlete_profile(self, response):
@@ -288,6 +316,9 @@ class UFCOfficialSpider(scrapy.Spider):
                         'first_char': first_char,
                         'last_char': last_char,
                         'tried_last_name': False,
+                        'playwright': True,
+                        'playwright_page_goto_kwargs': {'wait_until': 'networkidle'},
+                        'playwright_page_methods': self._STEALTH,
                     },
                     dont_filter=True,
                 )
@@ -397,7 +428,12 @@ class UFCOfficialSpider(scrapy.Spider):
             yield scrapy.Request(
                 best_match_url,
                 callback=self.parse_ufcstats_and_merge,
-                meta={'ufc_fighter': ufc_fighter},
+                meta={
+                    'ufc_fighter': ufc_fighter,
+                    'playwright': True,
+                    'playwright_page_goto_kwargs': {'wait_until': 'networkidle'},
+                    'playwright_page_methods': self._STEALTH,
+                },
                 dont_filter=True,
             )
         elif not tried_last_name and last_char != first_char:
@@ -412,6 +448,9 @@ class UFCOfficialSpider(scrapy.Spider):
                     'first_char': first_char,
                     'last_char': last_char,
                     'tried_last_name': True,
+                    'playwright': True,
+                    'playwright_page_goto_kwargs': {'wait_until': 'networkidle'},
+                    'playwright_page_methods': self._STEALTH,
                 },
                 dont_filter=True,
             )
