@@ -16,6 +16,11 @@ on:
         required: false
         default: "false"
         type: boolean
+      lookback_days:
+        description: "Incremental only: scrape fighters active in the last N days (raise to backfill missed events, e.g. 130)"
+        required: false
+        default: 21
+        type: number
 
 jobs:
   update:
@@ -65,13 +70,15 @@ jobs:
 
       - name: Run weekly update
         working-directory: DelphiAIApp/Models
+        env:
+          LOOKBACK_DAYS: ${{ inputs.lookback_days || 21 }}
         run: |
           if [ "${{ inputs.skip_scrape }}" = "true" ]; then
             python -m ml.weekly_update --skip-scrape
           elif [ "${{ inputs.full_scrape }}" = "true" ]; then
             python -m ml.weekly_update
           else
-            python -m ml.weekly_update --incremental
+            python -m ml.weekly_update --incremental --lookback-days "$LOOKBACK_DAYS"
           fi
 
       - name: Prefetch predictions for top 4 upcoming events
