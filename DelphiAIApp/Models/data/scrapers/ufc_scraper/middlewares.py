@@ -41,8 +41,9 @@ class UfcScraperSpiderMiddleware:
     def process_spider_input(self, response):
         return None
 
-    def process_spider_output(self, response, result):
-        for i in result:
+    # Must be an async generator: Scrapy 2.18+ refuses to start with a sync one.
+    async def process_spider_output(self, response, result):
+        async for i in result:
             yield i
 
     def process_spider_exception(self, response, exception):

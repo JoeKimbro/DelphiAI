@@ -44,6 +44,9 @@ jobs:
           python - <<'EOF'
           import os, urllib.parse
           url = urllib.parse.urlparse(os.environ["DATABASE_URL"])
+          # The password is derived from the secret, so GitHub won't mask it on its own.
+          print(f"::add-mask::{url.password}")
+          print(f"::add-mask::{os.environ['DATABASE_URL']}")
           lines = [
             f"DB_HOST={url.hostname}",
             f"DB_PORT={url.port or 5432}",
