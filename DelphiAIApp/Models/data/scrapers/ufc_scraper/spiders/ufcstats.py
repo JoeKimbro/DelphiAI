@@ -16,12 +16,32 @@ import string
 from datetime import datetime
 
 import scrapy
+from scrapy_playwright.page import PageMethod
 from ufc_scraper.items import FighterItem, CareerStatsItem, FightItem
+
+_STEALTH_JS = """
+(function() {
+    Object.defineProperty(navigator, 'webdriver', {get: () => false});
+    Object.defineProperty(navigator, 'plugins', {get: () => [1,2,3,4,5]});
+    Object.defineProperty(navigator, 'languages', {get: () => ['en-US','en']});
+    if (!window.chrome) window.chrome = {runtime: {}};
+    if (navigator.permissions) {
+        const orig = navigator.permissions.query;
+        navigator.permissions.__proto__.query = function(p) {
+            return p.name === 'notifications'
+                ? Promise.resolve({state: 'prompt', onchange: null})
+                : orig(p);
+        };
+    }
+})();
+"""
 
 
 class UFCStatsSpider(scrapy.Spider):
     name = "ufcstats"
     allowed_domains = ["ufcstats.com"]
+
+    _STEALTH = [PageMethod("add_init_script", _STEALTH_JS)]
     
     # Base URL for fighter listings
     base_url = "http://www.ufcstats.com/statistics/fighters"
@@ -32,7 +52,15 @@ class UFCStatsSpider(scrapy.Spider):
         """
         for char in string.ascii_lowercase:
             url = f"{self.base_url}?char={char}&page=all"
-            yield scrapy.Request(url, callback=self.parse_fighter_list)
+            yield scrapy.Request(
+                url,
+                callback=self.parse_fighter_list,
+                meta={
+                    "playwright": True,
+                    "playwright_page_goto_kwargs": {"wait_until": "networkidle"},
+                    "playwright_page_methods": self._STEALTH,
+                },
+            )
     
     def parse_fighter_list(self, response):
         """
@@ -48,7 +76,15 @@ class UFCStatsSpider(scrapy.Spider):
         
         for link in unique_links:
             if link and 'fighter-details' in link:
-                yield scrapy.Request(link, callback=self.parse_fighter_detail)
+                yield scrapy.Request(
+                    link,
+                    callback=self.parse_fighter_detail,
+                    meta={
+                        "playwright": True,
+                        "playwright_page_goto_kwargs": {"wait_until": "networkidle"},
+                        "playwright_page_methods": self._STEALTH,
+                    },
+                )
     
     def parse_fighter_detail(self, response):
         """

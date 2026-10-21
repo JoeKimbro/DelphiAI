@@ -10,7 +10,7 @@ SPIDER_MODULES = ["ufc_scraper.spiders"]
 NEWSPIDER_MODULE = "ufc_scraper.spiders"
 
 # Crawl responsibly by identifying yourself
-USER_AGENT = "DelphiAI Research Bot (+https://github.com/JoeKimbro/DelphiAI)"
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 # Obey robots.txt rules
 ROBOTSTXT_OBEY = True
@@ -23,7 +23,7 @@ CONCURRENT_REQUESTS = 1
 DOWNLOAD_DELAY = 2
 
 # Disable cookies (enabled by default)
-COOKIES_ENABLED = False
+COOKIES_ENABLED = True
 
 # Disable Telnet Console (enabled by default)
 TELNETCONSOLE_ENABLED = False
@@ -54,8 +54,8 @@ DOWNLOADER_MIDDLEWARES = {
     # Retry with exponential backoff
     "ufc_scraper.middlewares.RetryWithBackoffMiddleware": 550,
     
-    # Random user agent rotation (optional - uncomment to enable)
-    # "ufc_scraper.middlewares.RandomUserAgentMiddleware": 400,
+    # Random user agent rotation
+    "ufc_scraper.middlewares.RandomUserAgentMiddleware": 400,
     
     # Proxy rotation (optional - uncomment and configure PROXY_LIST to enable)
     # "ufc_scraper.middlewares.ProxyRotationMiddleware": 350,
@@ -137,11 +137,7 @@ AUTOTHROTTLE_DEBUG = False
 # HTTP CACHE SETTINGS
 # =============================================================================
 # Useful during development to avoid hammering servers
-HTTPCACHE_ENABLED = True
-HTTPCACHE_EXPIRATION_SECS = 86400  # 24 hours
-HTTPCACHE_DIR = "httpcache"
-HTTPCACHE_IGNORE_HTTP_CODES = []
-HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
+HTTPCACHE_ENABLED = False
 
 # =============================================================================
 # RETRY SETTINGS
@@ -158,17 +154,17 @@ RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429]
 # Note: Requires scrapy-playwright: pip install scrapy-playwright
 #       Then run: playwright install chromium
 #
-# DOWNLOAD_HANDLERS = {
-#     "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-#     "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
-# }
-# 
-# PLAYWRIGHT_BROWSER_TYPE = "chromium"
-# PLAYWRIGHT_LAUNCH_OPTIONS = {
-#     "headless": True,
-#     "timeout": 30000,  # 30 seconds
-# }
-# PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000  # 30 seconds
+DOWNLOAD_HANDLERS = {
+    "http": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+    "https": "scrapy_playwright.handler.ScrapyPlaywrightDownloadHandler",
+}
+
+PLAYWRIGHT_BROWSER_TYPE = "chromium"
+PLAYWRIGHT_LAUNCH_OPTIONS = {
+    "headless": True,
+    "timeout": 30000,
+}
+PLAYWRIGHT_DEFAULT_NAVIGATION_TIMEOUT = 30000
 
 # =============================================================================
 # TWISTED SETTINGS
