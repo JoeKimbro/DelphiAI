@@ -3,7 +3,7 @@ Get UFC.com profile URLs for fighters who recently fought or have upcoming bouts
 
 Queries the database for:
   - Fighters who fought in the last 21 days (recent event window)
-  - Fighters booked on upcoming events (unresolved PredictionTracking rows)
+  - Fighters on cards predicted or resolved in the last 21 days (PredictionTracking)
 
 Output is written to a file (one URL per line) for use by scrape_all.py --fighters-file.
 
@@ -53,10 +53,26 @@ def get_active_fighter_urls() -> list:
               AND fs.UFCUrl IS NOT NULL
               AND fs.UFCUrl <> ''
         """)
-        recent = [row[0] for row in cur.fetchall()]
+        recent = {row[0] for row in cur.fetchall()}
+
+        # Fighters on cards predicted or resolved in the last 21 days. Fights only
+        # gains rows via this scrape, so relying on it alone stalls permanently once
+        # it falls 21 days behind; PredictionTracking is filled independently.
+        # predicted_at/resolved_at are used because event_date is often blank or
+        # display-formatted. GREATEST ignores NULLs, so unresolved rows still count.
+        cur.execute("""
+            SELECT DISTINCT fs.UFCUrl
+            FROM PredictionTracking pt
+            JOIN FighterStats fs
+              ON fs.FighterID IN (pt.fighter1_id, pt.fighter2_id)
+            WHERE GREATEST(pt.predicted_at, pt.resolved_at) >= CURRENT_DATE - INTERVAL '21 days'
+              AND fs.UFCUrl IS NOT NULL
+              AND fs.UFCUrl <> ''
+        """)
+        booked = {row[0] for row in cur.fetchall()}
 
         cur.close()
-        return sorted(recent)
+        return sorted(recent | booked)
     finally:
         conn.close()
 
@@ -82,7 +98,7 @@ def main():
             print(url)
     else:
         Path(args.output).write_text("\n".join(urls) + "\n", encoding="utf-8")
-        print(f"[get_active_fighters] {len(urls)} fighter URLs → {args.output}")
+        print(f"[get_active_fighters] {len(urls)} fighter URLs -> {args.output}")
 
 
 if __name__ == "__main__":
