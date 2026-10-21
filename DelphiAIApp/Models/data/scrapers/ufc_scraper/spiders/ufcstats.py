@@ -46,6 +46,11 @@ class UFCStatsSpider(scrapy.Spider):
     # Base URL for fighter listings
     base_url = "http://www.ufcstats.com/statistics/fighters"
     
+    async def start(self):
+        # Scrapy 2.13+ entry point; 2.18 no longer calls start_requests().
+        for request in self.start_requests():
+            yield request
+
     def start_requests(self):
         """
         Generate requests for fighter listing pages A-Z.

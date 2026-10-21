@@ -92,17 +92,37 @@ def run_spiders(stats_only=False, test_mode=False, fresh=False, fighters_file=No
     print()
 
     # Queue spiders
+    crawlers = []
     for spider_name in spiders_to_run:
         print(f"[QUEUE] Adding spider: {spider_name}")
         spider_kwargs = {}
         if fighters_file and spider_name == 'ufc_official':
             spider_kwargs['fighter_urls_file'] = fighters_file
-        process.crawl(spider_name, **spider_kwargs)
-    
+        crawler = process.create_crawler(spider_name)
+        crawlers.append(crawler)
+        process.crawl(crawler, **spider_kwargs)
+
     # Run all spiders
     print("\n[START] Beginning scrape...\n")
     process.start()
-    
+
+    # Scrapy swallows startup errors (e.g. middleware incompatibilities) and
+    # still exits 0, so check each crawler actually ran and produced items.
+    failed = []
+    for crawler in crawlers:
+        finish_reason = crawler.stats.get_value('finish_reason')
+        item_count = crawler.stats.get_value('item_scraped_count', 0)
+        if finish_reason is None or item_count == 0:
+            failed.append(f"{crawler.spidercls.name} (finish_reason={finish_reason}, items={item_count})")
+
+    if failed:
+        print("\n" + "=" * 60)
+        print("[FAILED] Scrape produced no data:")
+        for f in failed:
+            print(f"  - {f}")
+        print("=" * 60)
+        return False
+
     print("\n" + "=" * 60)
     print("[DONE] All spiders completed!")
     print("=" * 60)
@@ -118,6 +138,7 @@ def run_spiders(stats_only=False, test_mode=False, fresh=False, fighters_file=No
     print("\nNext steps:")
     print("  1. Review the CSV files in the output directory")
     print("  2. Run 'python load_to_db.py' to load data into PostgreSQL")
+    return True
 
 
 def main():
@@ -161,12 +182,14 @@ Examples:
 
     args = parser.parse_args()
 
-    run_spiders(
+    ok = run_spiders(
         stats_only=args.stats_only,
         test_mode=args.test,
         fresh=args.fresh,
         fighters_file=args.fighters_file,
     )
+    if not ok:
+        sys.exit(1)
 
 
 if __name__ == '__main__':

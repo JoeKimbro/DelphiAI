@@ -65,6 +65,11 @@ class UFCOfficialSpider(scrapy.Spider):
         super().__init__(*args, **kwargs)
         self.fighter_urls_file = fighter_urls_file
 
+    async def start(self):
+        # Scrapy 2.13+ entry point; 2.18 no longer calls start_requests().
+        for request in self.start_requests():
+            yield request
+
     def start_requests(self):
         """
         Full scrape: start from the athletes listing page.
