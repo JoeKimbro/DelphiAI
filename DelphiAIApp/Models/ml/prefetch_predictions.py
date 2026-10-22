@@ -420,6 +420,7 @@ def main():
             return 0
 
         processed = 0
+        failed = 0
         for ev in upcoming:
             if processed >= args.top:
                 break
@@ -434,6 +435,9 @@ def main():
             except Exception as e:
                 logger.exception("prefetch failed for %s", url)
                 status = f"  ERROR: {e}"
+                failed += 1
+                # Clear any aborted transaction so later events can still run.
+                conn.rollback()
             print(status)
             processed += 1
     finally:
@@ -441,6 +445,9 @@ def main():
 
     elapsed = (datetime.now() - started).total_seconds()
     print(f"\n[prefetch] Done in {elapsed:.1f}s.")
+    if failed:
+        print(f"[prefetch] {failed}/{processed} events failed.")
+        return 1
     return 0
 
 
