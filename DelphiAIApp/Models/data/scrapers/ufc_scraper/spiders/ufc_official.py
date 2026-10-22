@@ -557,11 +557,22 @@ class UFCOfficialSpider(scrapy.Spider):
                 fighter_names = [self._clean_text(n) for n in cells[1].css('a::text').getall()]
                 fighter_links = cells[1].css('a::attr(href)').getall()
                 
+                # Identify the opponent by URL: UFC.com and UFCStats often spell
+                # the same fighter differently ("Michael Venom Page" / "Michael
+                # Page", accents), so a name comparison picked the fighter
+                # themselves as their own opponent. Name match is the fallback
+                # only when a link is missing.
+                own_url = (ufcstats_url or '').rstrip('/').lower()
                 for i, name in enumerate(fighter_names):
-                    if name and name.lower() != fighter.get('name', '').lower():
+                    link = fighter_links[i] if i < len(fighter_links) else None
+                    if link:
+                        is_self = link.rstrip('/').lower() == own_url
+                    else:
+                        is_self = name.lower() == fighter.get('name', '').lower()
+                    if name and not is_self:
                         fight['opponent_name'] = name
-                        if i < len(fighter_links):
-                            fight['opponent_url'] = fighter_links[i]
+                        if link:
+                            fight['opponent_url'] = link
                         break
                 
                 # Winner

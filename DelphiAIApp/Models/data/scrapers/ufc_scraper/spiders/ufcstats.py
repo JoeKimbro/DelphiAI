@@ -168,12 +168,19 @@ class UFCStatsSpider(scrapy.Spider):
                 fighter_links = cells[1].css('a::attr(href)').getall()
                 fighter_names = [self._clean_text(name) for name in cells[1].css('a::text').getall()]
                 
-                # Find opponent (the one that's not current fighter)
+                # Find opponent (the one that's not current fighter), by URL
+                # first since names can differ in spelling/accents.
+                own_url = response.url.rstrip('/').lower()
                 for i, name in enumerate(fighter_names):
-                    if name and name.lower() != fighter['name'].lower():
+                    link = fighter_links[i] if i < len(fighter_links) else None
+                    if link:
+                        is_self = link.rstrip('/').lower() == own_url
+                    else:
+                        is_self = name.lower() == fighter['name'].lower()
+                    if name and not is_self:
                         fight['opponent_name'] = name
-                        if i < len(fighter_links):
-                            fight['opponent_url'] = fighter_links[i]
+                        if link:
+                            fight['opponent_url'] = link
                         break
                 
                 # Set winner_name based on result

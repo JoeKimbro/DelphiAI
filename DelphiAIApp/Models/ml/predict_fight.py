@@ -356,7 +356,11 @@ def elo_to_probability(elo_a, elo_b):
 
 
 # ML/ELO blend. Shared by predict_card (live) and backtest so they can't drift.
-ML_WEIGHT_MAX = 0.50
+# 0.85 chosen through the backtest prediction path with the live model on 454
+# unseen 2026 fights: log loss 0.6519 -> 0.6439 vs the old 0.50 (better in
+# 98% of bootstraps). ELO alone was far weaker (0.6752), so it stays a minor
+# term that the missing-feature and asymmetry penalties can lean back on.
+ML_WEIGHT_MAX = 0.85
 ML_WEIGHT_MIN = 0.15
 MAX_SYM_ERROR = 0.60
 

@@ -1,6 +1,6 @@
 ======================================================================
 UFC DATA VALIDATION REPORT
-Generated: 2026-10-21 23:27:24
+Generated: 2026-10-22 01:44:19
 ======================================================================
 
 [SUMMARY]
@@ -16,7 +16,7 @@ Generated: 2026-10-21 23:27:24
   [career_stats] sapm unusually high (>20) (count: 16)
   [career_stats] td_avg unusually high (>20) (count: 3)
   [career_stats] sub_avg unusually high (>20) (count: 5)
-  [career_stats] Missing elo_rating (count: 450)
+  [career_stats] Missing elo_rating (count: 22)
   [fights] Round outside 1-5 range (count: 2)
 
 [i] INFO

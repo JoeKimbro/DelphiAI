@@ -1431,6 +1431,8 @@ Examples:
                         help='Print extra holdout diagnostics and sample predictions')
     parser.add_argument('--val-start', default=VAL_START_DEFAULT,
                         help=f'First date of the calibration window (default: {VAL_START_DEFAULT})')
+    parser.add_argument('--select-by-val-auc', action='store_true',
+                        help='Pick the model family by validation AUC instead of shipping XGBoost')
     parser.add_argument('--holdout-start', default=HOLDOUT_START_DEFAULT,
                         help=f'First date of the holdout window (default: {HOLDOUT_START_DEFAULT})')
     args = parser.parse_args()
@@ -1666,8 +1668,15 @@ Examples:
         print(f"   {r['name']:<40} {r['test_acc']:>8.3f} {r['test_auc']:>8.3f} "
               f"{brier:>8.4f} {gap:>+6.3f}")
 
-    # Select best model by validation AUC
-    best_result = max(results, key=lambda x: x['test_auc'])
+    # Ship XGBoost unless --select-by-val-auc. A single ~400-fight validation
+    # window is too noisy to choose between model families: on clean data it
+    # picked Random Forest, while a 1,170-fight walk-forward (2025-01..2026-10)
+    # put XGBoost ahead of LR on log loss in 100% of bootstraps.
+    xgb_results = [r for r in results if 'XGBoost' in r['name']]
+    if xgb_results and not args.select_by_val_auc:
+        best_result = xgb_results[0]
+    else:
+        best_result = max(results, key=lambda x: x['test_auc'])
     best_name = best_result['name']
     print(f"\n   Best model: {best_name} (AUC={best_result['test_auc']:.3f})")
 
