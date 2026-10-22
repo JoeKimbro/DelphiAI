@@ -1086,6 +1086,9 @@ def predict_full_card(conn, fights, event_name='', event_date='',
             print(f"\n  Predictions saved to database ({saved} fights)")
             print(f"  After event: python -m ml.update_results \"{event_name}\"")
         except Exception as e:
+            # Roll back so a failed save doesn't leave the caller's shared
+            # connection in an aborted transaction.
+            conn.rollback()
             logger.warning(f"Could not save predictions: {e}")
             print(f"\n  [NOTE] Could not save predictions for tracking: {e}")
     

@@ -155,9 +155,43 @@ def _definitive_event_date(event_url, event_date, predicted_at=None):
 # PREDICTION TRACKING TABLE
 # ============================================================================
 
+_TRACKING_COLUMNS = ('prediction_type', 'input_fingerprint')
+_TRACKING_INDEXES = ('idx_pt_event_name', 'idx_pt_was_correct', 'idx_pt_prediction_type')
+_tracking_table_ready = False
+
+
+def _tracking_schema_complete(cur):
+    """Read-only catalog check; takes no table locks."""
+    cur.execute("SELECT to_regclass('predictiontracking') IS NOT NULL")
+    if not cur.fetchone()[0]:
+        return False
+    cur.execute("""
+        SELECT count(*) FROM information_schema.columns
+        WHERE table_name = 'predictiontracking' AND column_name = ANY(%s)
+    """, (list(_TRACKING_COLUMNS),))
+    if cur.fetchone()[0] < len(_TRACKING_COLUMNS):
+        return False
+    cur.execute("SELECT count(*) FROM pg_indexes WHERE indexname = ANY(%s)",
+                (list(_TRACKING_INDEXES),))
+    return cur.fetchone()[0] >= len(_TRACKING_INDEXES)
+
+
 def ensure_tracking_table(conn):
-    """Create PredictionTracking table if it doesn't exist."""
+    """Create PredictionTracking table if it doesn't exist.
+
+    The DDL below takes an AccessExclusiveLock even when it is a no-op, and
+    running it on every save deadlocked concurrent writers (prefetch vs the
+    API). So only run it when the catalog says something is actually missing.
+    """
+    global _tracking_table_ready
+    if _tracking_table_ready:
+        return
     cur = conn.cursor()
+    if _tracking_schema_complete(cur):
+        conn.commit()
+        cur.close()
+        _tracking_table_ready = True
+        return
     cur.execute("""
         CREATE TABLE IF NOT EXISTS PredictionTracking (
             id SERIAL PRIMARY KEY,
@@ -222,6 +256,7 @@ def ensure_tracking_table(conn):
     """)
     conn.commit()
     cur.close()
+    _tracking_table_ready = True
 
 
 # ============================================================================
