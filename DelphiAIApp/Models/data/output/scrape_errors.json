@@ -1,61 +1,13 @@
 {
   "spider": "ufc_official",
-  "crawl_ended": "2026-10-22T04:26:54.728263",
+  "crawl_ended": "2026-10-22T06:44:03.262939",
   "stats": {
-    "total_requests": 1847,
-    "successful_requests": 1840,
-    "failed_requests": 7,
+    "total_requests": 87,
+    "successful_requests": 87,
+    "failed_requests": 0,
     "retried_requests": 0,
-    "errors_by_type": {
-      "TimeoutError": 6
-    },
-    "errors_by_domain": {
-      "www.ufc.com": 6
-    }
+    "errors_by_type": {},
+    "errors_by_domain": {}
   },
-  "errors": [
-    {
-      "timestamp": "2026-10-22T03:24:44.195336",
-      "url": "https://www.ufc.com/athlete/aoriqileng",
-      "error_type": "TimeoutError",
-      "message": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.ufc.com/athlete/aoriqileng\", waiting until \"networkidle\"\n"
-    },
-    {
-      "timestamp": "2026-10-22T03:25:16.017076",
-      "url": "https://www.ufc.com/athlete/arman-tsarukyan",
-      "error_type": "TimeoutError",
-      "message": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.ufc.com/athlete/arman-tsarukyan\", waiting until \"networkidle\"\n"
-    },
-    {
-      "timestamp": "2026-10-22T03:34:43.449480",
-      "url": "https://www.ufc.com/athlete/joseph-kropschot",
-      "error_type": "TimeoutError",
-      "message": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.ufc.com/athlete/joseph-kropschot\", waiting until \"networkidle\"\n"
-    },
-    {
-      "timestamp": "2026-10-22T03:35:14.981675",
-      "url": "https://www.ufc.com/athlete/joseph-morales",
-      "error_type": "TimeoutError",
-      "message": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.ufc.com/athlete/joseph-morales\", waiting until \"networkidle\"\n"
-    },
-    {
-      "timestamp": "2026-10-22T03:42:42.126921",
-      "url": "https://www.ufc.com/athlete/patricky-freire",
-      "error_type": "HTTP_403",
-      "message": "HTTP Error: 403",
-      "response_preview": "<!DOCTYPE html><html lang=\"en\" dir=\"ltr\" prefix=\"og: https://ogp.me/ns#\" class=\" js\" data-once=\"cacheableGlobals redDialog\"><head>\n    <meta charset=\"utf-8\">\n<link rel=\"shortlink\" href=\"https://www.ufc.com/\">\n<link rel=\"canonical\" href=\"https://www.ufc.com/\">\n<meta name=\"referrer\" content=\"origin\">\n<meta name=\"Generator\" content=\"Drupal 10 (https://www.drupal.org)\">\n<meta name=\"MobileOptimized\" content=\"width\">\n<meta name=\"HandheldFriendly\" content=\"true\">\n<meta name=\"viewport\" content=\"width=de"
-    },
-    {
-      "timestamp": "2026-10-22T03:44:43.696157",
-      "url": "https://www.ufc.com/athlete/robert-valentin-frey",
-      "error_type": "TimeoutError",
-      "message": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.ufc.com/athlete/robert-valentin-frey\", waiting until \"networkidle\"\n"
-    },
-    {
-      "timestamp": "2026-10-22T03:45:15.248585",
-      "url": "https://www.ufc.com/athlete/robert-whittaker",
-      "error_type": "TimeoutError",
-      "message": "Page.goto: Timeout 30000ms exceeded.\nCall log:\n  - navigating to \"https://www.ufc.com/athlete/robert-whittaker\", waiting until \"networkidle\"\n"
-    }
-  ]
+  "errors": []
 }

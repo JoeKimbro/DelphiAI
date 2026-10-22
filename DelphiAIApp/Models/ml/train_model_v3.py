@@ -68,7 +68,10 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+# DATABASE_URL takes priority (CI/production), matching load_to_db.py;
+# individual DB_* vars are the local-dev fallback.
+_DATABASE_URL = os.getenv('DATABASE_URL', '')
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -80,7 +83,12 @@ OUTPUT_DIR = Path(__file__).parent / 'artifacts'
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Temporal filter - only train on modern MMA
-MIN_YEAR_DEFAULT = 2019
+MIN_YEAR_DEFAULT = 2015
+# Chronological split boundaries (train < VAL_START <= calibrate < HOLDOUT_START <= holdout).
+# Move these forward as new fights accumulate, or the newest fights only ever
+# land in the holdout and the model never learns from them.
+VAL_START_DEFAULT = '2026-01-01'
+HOLDOUT_START_DEFAULT = '2026-07-01'
 
 
 def connect_db():
@@ -983,11 +991,13 @@ def bootstrap_confidence_interval(y_true, y_probs, n_bootstrap=1000, seed=42):
     }
 
 
-def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
+def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15,
+                      val_start=VAL_START_DEFAULT, holdout_start=HOLDOUT_START_DEFAULT):
     """
-    Date-based chronological split: train on pre-2024, calibrate on 2024,
-    hold out 2025+. Falls back to percentage-based split if there are fewer
-    than 50 fights in either the calibration or holdout year windows.
+    Date-based chronological split: train before val_start, calibrate on
+    [val_start, holdout_start), hold out holdout_start onwards. Falls back to a
+    percentage-based split if there are fewer than 50 fights in either the
+    calibration or holdout window.
 
     Using date cutoffs instead of percentage fractions ensures the calibrator
     is trained on fights temporally close to the evaluation period, preventing
@@ -1001,10 +1011,10 @@ def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
     )
     fights['fight_date'] = pd.to_datetime(fights['fight_date'])
 
-    train_ids   = set(fights[fights['fight_date'] <  '2025-07-01']['fight_id'])
-    val_ids     = set(fights[(fights['fight_date'] >= '2025-07-01') &
-                              (fights['fight_date'] <  '2026-01-01')]['fight_id'])
-    holdout_ids = set(fights[fights['fight_date'] >= '2026-01-01']['fight_id'])
+    train_ids   = set(fights[fights['fight_date'] <  val_start]['fight_id'])
+    val_ids     = set(fights[(fights['fight_date'] >= val_start) &
+                              (fights['fight_date'] <  holdout_start)]['fight_id'])
+    holdout_ids = set(fights[fights['fight_date'] >= holdout_start]['fight_id'])
 
     # Fall back to percentage split if any window is too small
     if len(val_ids) < 50 or len(holdout_ids) < 50:
@@ -1304,7 +1314,7 @@ def analyze_feature_importance(model, X_test, y_test, feature_cols):
 # =============================================================================
 
 def save_model(model, scaler, feature_cols, metrics, winsorize_bounds, 
-               dropped_features, min_year, median_values):
+               dropped_features, min_year, median_values, input_format):
     """
     Save model with versioning and full metadata.
     """
@@ -1328,6 +1338,8 @@ def save_model(model, scaler, feature_cols, metrics, winsorize_bounds,
             'dropped_features': dropped_features,
             'min_year': min_year,
             'median_values': median_values,
+            # How serving must prepare inputs; see model_loader.INPUT_FORMATS.
+            'input_format': input_format,
         }, f)
     print(f"   Model saved: {model_path}")
 
@@ -1343,12 +1355,15 @@ def save_model(model, scaler, feature_cols, metrics, winsorize_bounds,
             'dropped_features': dropped_features,
             'min_year': min_year,
             'median_values': median_values,
+            # How serving must prepare inputs; see model_loader.INPUT_FORMATS.
+            'input_format': input_format,
         }, f)
     print(f"   Latest symlink: {latest_path}")
 
     # Save training info JSON (comprehensive metadata for reproducibility)
     info = {
         'model_version': model_version,
+        'input_format': input_format,
         'model_filename': model_filename,
         'feature_columns': feature_cols,
         'n_features': len(feature_cols),
@@ -1403,7 +1418,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m ml.train_model_v3                  # Default (2019+ data)
+  python -m ml.train_model_v3                  # Default (2015+ data)
   python -m ml.train_model_v3 --min-year 2020  # Only 2020+ data
   python -m ml.train_model_v3 --no-filter      # All historical data
         """
@@ -1414,6 +1429,12 @@ Examples:
                         help='Disable temporal filtering (not recommended)')
     parser.add_argument('--diagnose-holdout', action='store_true',
                         help='Print extra holdout diagnostics and sample predictions')
+    parser.add_argument('--val-start', default=VAL_START_DEFAULT,
+                        help=f'First date of the calibration window (default: {VAL_START_DEFAULT})')
+    parser.add_argument('--select-by-val-auc', action='store_true',
+                        help='Pick the model family by validation AUC instead of shipping XGBoost')
+    parser.add_argument('--holdout-start', default=HOLDOUT_START_DEFAULT,
+                        help=f'First date of the holdout window (default: {HOLDOUT_START_DEFAULT})')
     args = parser.parse_args()
 
     min_year = None if args.no_filter else args.min_year
@@ -1451,7 +1472,8 @@ Examples:
     print("=" * 60)
 
     features_df = features_df.sort_values('fight_date').reset_index(drop=True)
-    train_df, val_df, holdout_df = split_by_fight_id(features_df)
+    train_df, val_df, holdout_df = split_by_fight_id(
+        features_df, val_start=args.val_start, holdout_start=args.holdout_start)
 
     train_ids = set(train_df['fight_id'].unique())
     val_ids = set(val_df['fight_id'].unique())
@@ -1646,26 +1668,39 @@ Examples:
         print(f"   {r['name']:<40} {r['test_acc']:>8.3f} {r['test_auc']:>8.3f} "
               f"{brier:>8.4f} {gap:>+6.3f}")
 
-    # Select best model by validation AUC
-    best_result = max(results, key=lambda x: x['test_auc'])
+    # Ship XGBoost unless --select-by-val-auc. A single ~400-fight validation
+    # window is too noisy to choose between model families: on clean data it
+    # picked Random Forest, while a 1,170-fight walk-forward (2025-01..2026-10)
+    # put XGBoost ahead of LR on log loss in 100% of bootstraps.
+    xgb_results = [r for r in results if 'XGBoost' in r['name']]
+    if xgb_results and not args.select_by_val_auc:
+        best_result = xgb_results[0]
+    else:
+        best_result = max(results, key=lambda x: x['test_auc'])
     best_name = best_result['name']
     print(f"\n   Best model: {best_name} (AUC={best_result['test_auc']:.3f})")
 
     # =========================================================================
-    # 11. RETRAIN BEST MODEL ON TRAIN+VAL, EVALUATE ON HOLDOUT
+    # 11. FIT FINAL MODEL ON TRAIN, CALIBRATE ON VAL, EVALUATE ON HOLDOUT
+    #
+    # The calibrator must only see predictions on fights the base model did
+    # NOT train on. Refitting on train+val and then calibrating on val (the
+    # previous behaviour) calibrated on in-sample predictions, which made the
+    # probabilities overconfident: walk-forward log loss 0.689 vs 0.662 clean,
+    # barely better than ELO alone (0.693).
     # =========================================================================
     print("\n" + "=" * 60)
-    print(f"RETRAINING BEST MODEL ON TRAIN+VAL DATA")
+    print(f"FITTING FINAL MODEL ON TRAIN, CALIBRATING ON VAL")
     print("=" * 60)
     print(f"   Model: {best_name}")
-    print(f"   Train+Val: {len(y_trainval)} samples")
+    print(f"   Train: {len(y_train)} samples | Calibration (val): {len(y_val)} samples")
 
     # Determine which data format to use based on best model
     is_xgb = 'XGBoost' in best_name
     is_lr = 'Logistic' in best_name
 
     if is_xgb and HAS_XGBOOST:
-        # Retrain XGBoost on train+val with NaN support
+        # Refit XGBoost on train only (NaN support), at the early-stopped size
         final_model = xgb.XGBClassifier(
             n_estimators=best_result.get('best_iteration', 200),
             max_depth=4,
@@ -1677,20 +1712,23 @@ Examples:
             colsample_bytree=0.7,
             random_state=42,
         )
-        final_model.fit(X_trainval_raw, y_trainval)
+        final_model.fit(X_train_raw, y_train)
 
-        # Calibrate on the validation portion (manual isotonic, sklearn 1.6+ compatible)
+        # Calibrate on the held-out validation window (IsotonicCalibrator
+        # defaults to sigmoid / Platt scaling)
         calibrated_final = IsotonicCalibrator(final_model)
         calibrated_final.fit(X_val_raw, y_val)
 
         X_holdout_eval = X_holdout_raw
+        input_format = 'raw'
     elif is_lr:
-        # Retrain LR on scaled data
+        # Refit LR on scaled train data only
         final_base = clone(best_result['base_model'])
-        final_base.fit(X_trainval_scaled, y_trainval)
+        final_base.fit(X_train_scaled, y_train)
         calibrated_final = IsotonicCalibrator(final_base)
         calibrated_final.fit(X_val_scaled, y_val)
         X_holdout_eval = X_holdout_scaled
+        input_format = 'scaled'
     else:
         # RF or ensemble - use imputed data
         if 'Stacking' in best_name:
@@ -1718,10 +1756,11 @@ Examples:
             calibrated_final.fit(X_trainval_imputed, y_trainval)
         else:
             final_base = clone(best_result['base_model'])
-            final_base.fit(X_trainval_imputed, y_trainval)
+            final_base.fit(X_train_imputed, y_train)
             calibrated_final = IsotonicCalibrator(final_base)
             calibrated_final.fit(X_val_imputed, y_val)
         X_holdout_eval = X_holdout_imputed
+        input_format = 'imputed'
 
     # =========================================================================
     # 12. HOLDOUT EVALUATION
@@ -1847,6 +1886,7 @@ Examples:
         dropped_features=dropped_features,
         min_year=min_year,
         median_values=median_values,
+        input_format=input_format,
     )
 
     # =========================================================================

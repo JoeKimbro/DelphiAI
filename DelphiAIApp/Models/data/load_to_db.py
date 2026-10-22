@@ -547,11 +547,27 @@ def load_fights(conn, fighter_url_to_id, dry_run=False):
         else:
             rows_without_url.append(t)
 
+    # fights.csv has one row per fighter per fight (each fighter's page), but
+    # Fights is unique on FightURL. Keep exactly one perspective per fight —
+    # the winner's when there is one, so the choice is stable across loads.
+    by_url = {}
+    for t in rows_with_url:
+        fight_url, result = t[12], t[8]
+        if fight_url not in by_url or (result == 'win' and by_url[fight_url][8] != 'win'):
+            by_url[fight_url] = t
+    rows_with_url = list(by_url.values())
+
     COLS = """FighterID, FighterURL, FighterName, OpponentID, OpponentURL, OpponentName,
               WinnerID, WinnerName, Result, Date, EventName, EventURL, FightURL,
               Method, MethodDetail, Round, Time, Knockdowns, SigStrikes, Takedowns,
               SubAttempts, IsTitleFight, Source, ScrapedAt"""
+    # FighterID must be updated with the rest of the row. Leaving it out mixed
+    # perspectives: the old FighterID stayed while OpponentID/URL/names came
+    # from the other fighter's row, so ~half of all fights had
+    # FighterID == OpponentID (self-vs-self training rows, corrupt
+    # FighterHistoricalFeatures).
     UPDATE_SET = """
+        FighterID = EXCLUDED.FighterID,
         FighterURL = EXCLUDED.FighterURL, FighterName = EXCLUDED.FighterName,
         OpponentID = EXCLUDED.OpponentID, OpponentURL = EXCLUDED.OpponentURL,
         OpponentName = EXCLUDED.OpponentName, WinnerID = EXCLUDED.WinnerID,
@@ -589,8 +605,39 @@ def load_fights(conn, fighter_url_to_id, dry_run=False):
             print(f"      {ex}")
 
 
-def load_elo_history(conn, fighter_url_to_id, dry_run=False):
-    """Load elo_history.csv into EloHistory table (incremental: only new dates)."""
+def _refresh_history_rows(cursor, table, cols, rows):
+    """Overwrite rows matched on (FighterID, FightDate) and insert the rest.
+
+    Used by --refresh-history so corrected history (e.g. after a fights.csv
+    fix) replaces stale values without deleting anything. These tables have no
+    unique key, so this is an UPDATE ... FROM a staging table followed by an
+    INSERT of unmatched rows, rather than ON CONFLICT.
+    """
+    col_list = ", ".join(cols)
+    cursor.execute(f"CREATE TEMP TABLE _refresh_stage ON COMMIT DROP AS SELECT {col_list} FROM {table} LIMIT 0")
+    execute_values(cursor, f"INSERT INTO _refresh_stage ({col_list}) VALUES %s", rows, page_size=500)
+    set_list = ", ".join(f"{c} = s.{c}" for c in cols if c not in ("FighterID", "FightDate"))
+    cursor.execute(f"""
+        UPDATE {table} t SET {set_list}
+        FROM _refresh_stage s
+        WHERE t.FighterID = s.FighterID AND t.FightDate = s.FightDate
+    """)
+    updated = cursor.rowcount
+    cursor.execute(f"""
+        INSERT INTO {table} ({col_list})
+        SELECT {col_list} FROM _refresh_stage s
+        WHERE NOT EXISTS (SELECT 1 FROM {table} t
+                          WHERE t.FighterID = s.FighterID AND t.FightDate = s.FightDate)
+    """)
+    return updated, cursor.rowcount
+
+
+def load_elo_history(conn, fighter_url_to_id, dry_run=False, refresh=False):
+    """Load elo_history.csv into EloHistory table.
+
+    Incremental by default (only dates after the latest loaded); refresh=True
+    rewrites every row from the CSV instead.
+    """
     csv_path = CSV_FILES['elo_history']
 
     if not csv_path.exists():
@@ -602,7 +649,7 @@ def load_elo_history(conn, fighter_url_to_id, dry_run=False):
     # Incremental load: skip dates already in the table
     cursor = conn.cursor()
     cursor.execute("SELECT MAX(fightdate) FROM elohistory")
-    max_date = cursor.fetchone()[0]
+    max_date = None if refresh else cursor.fetchone()[0]
     cursor.close()
     if max_date is not None:
         df['fight_date'] = pd.to_datetime(df['fight_date'], errors='coerce')
@@ -644,6 +691,15 @@ def load_elo_history(conn, fighter_url_to_id, dry_run=False):
         ))
 
     cursor = conn.cursor()
+    if refresh:
+        updated, inserted = _refresh_history_rows(cursor, "EloHistory", [
+            "FighterID", "FighterURL", "FightDate", "OpponentID", "OpponentURL",
+            "EloBeforeFight", "OpponentEloBeforeFight", "EloAfterFight", "EloChange",
+            "Result", "Method", "ExpectedWinProb", "EloSource", "CalculatedAt"], rows)
+        conn.commit()
+        cursor.close()
+        print(f"   [OK] ELO History refresh: {updated} updated, {inserted} inserted, {skipped} skipped")
+        return
     execute_values(cursor, """
         INSERT INTO EloHistory (
             FighterID, FighterURL, FightDate, OpponentID, OpponentURL,
@@ -884,8 +940,12 @@ def load_matchup_features(conn, fighter_url_to_id, dry_run=False):
     print(f"   [OK] Matchup Features: {len(rows)} upserted, {skipped} skipped")
 
 
-def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False):
-    """Load point_in_time_stats.csv into PointInTimeStats table (incremental: only new dates)."""
+def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False, refresh=False):
+    """Load point_in_time_stats.csv into PointInTimeStats table.
+
+    Incremental by default (only dates after the latest loaded); refresh=True
+    rewrites every row from the CSV instead.
+    """
     csv_path = CSV_FILES['point_in_time_stats']
 
     if not csv_path.exists():
@@ -897,7 +957,7 @@ def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False):
     # Incremental load: skip dates already in the table
     cursor = conn.cursor()
     cursor.execute("SELECT MAX(fightdate) FROM pointintimestats")
-    max_date = cursor.fetchone()[0]
+    max_date = None if refresh else cursor.fetchone()[0]
     cursor.close()
     if max_date is not None:
         df['fight_date'] = pd.to_datetime(df['fight_date'], errors='coerce')
@@ -937,6 +997,16 @@ def load_point_in_time_stats(conn, fighter_url_to_id, dry_run=False):
         ))
 
     cursor = conn.cursor()
+    if refresh:
+        updated, inserted = _refresh_history_rows(cursor, "PointInTimeStats", [
+            "FighterID", "FighterURL", "FightDate",
+            "FightsBefore", "WinsBefore", "LossesBefore", "WinRateBefore",
+            "PIT_SLpM", "PIT_StrAcc", "PIT_TDAvg", "PIT_SubAvg", "PIT_KDRate",
+            "RecentWinRate", "AvgFightTime", "FinishRate", "HasPriorData", "CalculatedAt"], rows)
+        conn.commit()
+        cursor.close()
+        print(f"   [OK] Point-in-Time Stats refresh: {updated} updated, {inserted} inserted, {skipped} skipped")
+        return
     execute_values(cursor, """
         INSERT INTO PointInTimeStats (
             FighterID, FighterURL, FightDate,
@@ -1004,6 +1074,8 @@ def main():
     parser.add_argument('--ml-only', action='store_true', help='Load only ML feature tables')
     parser.add_argument('--clear', action='store_true', help='Clear tables before loading')
     parser.add_argument('--dry-run', action='store_true', help='Preview without inserting')
+    parser.add_argument('--refresh-history', action='store_true',
+                        help='Rewrite all ELO history / PIT rows from the CSVs (not just new dates)')
     args = parser.parse_args()
     
     print("\n" + "=" * 50)
@@ -1052,11 +1124,11 @@ def main():
         # Load ML feature tables
         if not args.fighters_only and not args.core_only:
             print("\n[ML] Loading ML feature tables...\n")
-            load_elo_history(conn, fighter_url_to_id, args.dry_run)
+            load_elo_history(conn, fighter_url_to_id, args.dry_run, refresh=args.refresh_history)
             load_pre_ufc_career(conn, fighter_url_to_id, args.dry_run)
             load_opponent_quality(conn, fighter_url_to_id, args.dry_run)
             load_matchup_features(conn, fighter_url_to_id, args.dry_run)
-            load_point_in_time_stats(conn, fighter_url_to_id, args.dry_run)
+            load_point_in_time_stats(conn, fighter_url_to_id, args.dry_run, refresh=args.refresh_history)
         
         # Show summary
         if not args.dry_run:

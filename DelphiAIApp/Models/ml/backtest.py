@@ -58,7 +58,10 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+# DATABASE_URL takes priority (CI/production), matching load_to_db.py;
+# individual DB_* vars are the local-dev fallback.
+_DATABASE_URL = os.getenv('DATABASE_URL', '')
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -402,12 +405,12 @@ def _predict_single_fight(conn, f1_data, f2_data, is_title=False):
     try:
         from ml.predict_fight import (
             elo_to_probability, _get_ml_predictor, predict_method,
-            recalibrate_probabilities,
+            recalibrate_probabilities, blend_ml_with_elo,
         )
     except (ModuleNotFoundError, ImportError):
         from predict_fight import (
             elo_to_probability, _get_ml_predictor, predict_method,
-            recalibrate_probabilities,
+            recalibrate_probabilities, blend_ml_with_elo,
         )
 
     f1_elo = f1_data['elo']
@@ -456,13 +459,10 @@ def _predict_single_fight(conn, f1_data, f2_data, is_title=False):
                     sym_error = abs(fwd_prob + rev_prob - 1.0)
                     corrected = (fwd_prob + (1.0 - rev_prob)) / 2.0
 
-                    # Mirror predict_card: tolerate moderate drift with reduced ML weight.
-                    if sym_error <= 0.60:
-                        missing_ratio = nan_count / total_features
-                        missing_penalty = min(0.35, missing_ratio * 0.50)
-                        ml_weight = 0.50 - missing_penalty - max(0.0, sym_error - 0.20) * 0.60
-                        ml_weight = max(0.15, min(0.50, ml_weight))
-                        blended = ml_weight * corrected + (1 - ml_weight) * elo_prob_f1
+                    blend = blend_ml_with_elo(corrected, elo_prob_f1, nan_count,
+                                              total_features, sym_error)
+                    if blend is not None:
+                        blended, ml_weight = blend
                         blended = max(0.10, min(0.90, blended))
                         adj_prob_f1 = blended
                         ml_used = True
