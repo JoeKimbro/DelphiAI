@@ -4,10 +4,12 @@ Weekly Update Pipeline
 Runs all update steps in the correct order after Saturday fight cards:
   1. Scrape latest data from UFC.com / UFCStats
   2. Validate scraped CSVs
-  3. Load data to database (upsert)
-  4. Recalculate ELO ratings
-  5. Re-populate fighter styles + style matchup records
-  6. Update adjusted ELOs (inactivity penalties)
+  3. Recalculate ELO ratings (writes elo_*.csv, career_stats.csv)
+  4. Recalculate point-in-time stats (writes point_in_time_stats.csv)
+  5. Load data to database (upsert) — after 3-4 so ELO/PIT CSVs reach the DB
+  6. Rebuild FighterHistoricalFeatures (reads Fights + EloHistory from the DB)
+  7. Re-populate fighter styles + style matchup records
+  8. Update adjusted ELOs (inactivity penalties)
 
 Usage:
     python -m ml.weekly_update                  # Full update (scrape + everything)
@@ -136,17 +138,30 @@ Examples:
                    f"python validate_data.py --fix",
                    DATA_DIR))
     
-    step_num += 1
-    steps.append((step_num, "Load to Database",
-                   f"python load_to_db.py",
-                   DATA_DIR))
-    
+    # ELO and point-in-time stats only write CSVs, so they must run before the
+    # DB load or their output never reaches the database (CI discards the CSVs).
     if not args.skip_elo:
         step_num += 1
         steps.append((step_num, "Recalculate ELO Ratings",
                        f"python features.py",
                        DATA_DIR))
-    
+
+    step_num += 1
+    steps.append((step_num, "Recalculate Point-in-Time Stats",
+                   f"python calculate_point_in_time_stats.py",
+                   DATA_DIR))
+
+    step_num += 1
+    steps.append((step_num, "Load to Database",
+                   f"python load_to_db.py",
+                   DATA_DIR))
+
+    # Reads Fights + EloHistory from the DB, so it runs after the load.
+    step_num += 1
+    steps.append((step_num, "Rebuild Historical Features",
+                   f"python build_historical_features.py",
+                   DATA_DIR))
+
     step_num += 1
     steps.append((step_num, "Update Fighter Styles",
                    f"python -m ml.populate_styles",
