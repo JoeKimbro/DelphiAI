@@ -19,7 +19,10 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+# DATABASE_URL takes priority (CI/production), matching load_to_db.py;
+# individual DB_* vars are the local-dev fallback.
+_DATABASE_URL = os.getenv('DATABASE_URL', '')
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),

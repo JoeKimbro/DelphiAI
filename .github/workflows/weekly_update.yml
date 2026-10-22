@@ -27,6 +27,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
 
+    permissions:
+      contents: read
+      actions: read
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -68,6 +72,26 @@ jobs:
       - name: Apply migrations
         run: yoyo apply --batch --database "$DATABASE_URL" DelphiAIApp/Models/migrations
 
+      # data/output is the working dataset (ELO and PIT stats are recomputed from
+      # fights.csv), so carry it between runs instead of restarting from the
+      # committed snapshot each time.
+      - name: Restore latest data snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OUT=DelphiAIApp/Models/data/output
+          IDS=$( { gh run list -R "$GITHUB_REPOSITORY" --workflow weekly_update.yml --status success -L 5 --json databaseId,createdAt -q '.[] | "\(.createdAt) \(.databaseId)"' || true
+                   gh run list -R "$GITHUB_REPOSITORY" --workflow quarterly_full_scrape.yml --status success -L 5 --json databaseId,createdAt -q '.[] | "\(.createdAt) \(.databaseId)"' || true; } | sort -r | awk '{print $2}')
+          for id in $IDS; do
+            rm -rf /tmp/data-output
+            if gh run download "$id" -R "$GITHUB_REPOSITORY" -n data-output -D /tmp/data-output 2>/dev/null; then
+              cp -f /tmp/data-output/* "$OUT"/
+              echo "Restored $OUT from run $id"
+              exit 0
+            fi
+          done
+          echo "No previous data snapshot found; using committed CSVs"
+
       - name: Run weekly update
         working-directory: DelphiAIApp/Models
         env:
@@ -80,6 +104,15 @@ jobs:
           else
             python -m ml.weekly_update --incremental --lookback-days "$LOOKBACK_DAYS"
           fi
+
+      - name: Save data snapshot
+        uses: actions/upload-artifact@v7
+        with:
+          name: data-output
+          path: |
+            DelphiAIApp/Models/data/output/*.csv
+            DelphiAIApp/Models/data/output/*.json
+          retention-days: 90
 
       - name: Prefetch predictions for top 4 upcoming events
         working-directory: DelphiAIApp/Models

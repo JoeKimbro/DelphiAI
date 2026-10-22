@@ -17,6 +17,15 @@ from datetime import datetime, timedelta
 from pathlib import Path
 import json
 import logging
+import sys
+
+# Import once at module level: importing inside a per-fighter method appended to
+# sys.path on every call, making each lookup slower (minutes on Windows).
+try:
+    from ml.style_classifier import classify_style_from_dict
+except ModuleNotFoundError:
+    sys.path.insert(0, str(Path(__file__).parent.parent / 'ml'))
+    from style_classifier import classify_style_from_dict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -542,12 +551,6 @@ class EnhancedEloSystem(BaseEloSystem):
         Uses canonical classifier from ml.style_classifier.
         Returns: 'striker', 'wrestler', 'grappler', or 'balanced'
         """
-        try:
-            from ml.style_classifier import classify_style_from_dict
-        except ModuleNotFoundError:
-            import sys
-            sys.path.insert(0, str(Path(__file__).parent.parent / 'ml'))
-            from style_classifier import classify_style_from_dict
         return classify_style_from_dict(fighter_row)
     
     def get_age_factor(self, fighter_url, fight_date):
