@@ -824,11 +824,18 @@ class TestBlendMlWithElo(unittest.TestCase):
         self.assertAlmostEqual(w, self.pf.ML_WEIGHT_MAX)
         self.assertAlmostEqual(prob, w * 0.70 + (1 - w) * 0.50)
 
-    def test_penalties_reduce_weight_but_not_below_min(self):
+    def test_penalties_reduce_weight(self):
         _, w_missing = self.pf.blend_ml_with_elo(0.7, 0.5, nan_count=10, total_features=20, sym_error=0.0)
-        self.assertLess(w_missing, self.pf.ML_WEIGHT_MAX)
-        _, w_floor = self.pf.blend_ml_with_elo(0.7, 0.5, nan_count=20, total_features=20, sym_error=0.59)
-        self.assertAlmostEqual(w_floor, self.pf.ML_WEIGHT_MIN)
+        self.assertAlmostEqual(w_missing, self.pf.ML_WEIGHT_MAX - 0.25)
+        _, w_both = self.pf.blend_ml_with_elo(0.7, 0.5, nan_count=20, total_features=20, sym_error=0.59)
+        expected = max(self.pf.ML_WEIGHT_MIN, self.pf.ML_WEIGHT_MAX - 0.35 - (0.59 - 0.20) * 0.60)
+        self.assertAlmostEqual(w_both, expected)
+
+    def test_weight_never_below_min(self):
+        from unittest import mock
+        with mock.patch.object(self.pf, 'ML_WEIGHT_MAX', 0.30):
+            _, w = self.pf.blend_ml_with_elo(0.7, 0.5, nan_count=20, total_features=20, sym_error=0.59)
+        self.assertAlmostEqual(w, self.pf.ML_WEIGHT_MIN)
 
     def test_too_asymmetric_falls_back_to_elo(self):
         self.assertIsNone(self.pf.blend_ml_with_elo(0.7, 0.5, 0, 20, sym_error=0.61))
