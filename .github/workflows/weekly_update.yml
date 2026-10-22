@@ -46,6 +46,14 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
+      # Without the model, predictions fall back to ELO-only. No-op when the
+      # MODEL_URL secret is unset; MODEL_SHA256 (optional) pins the digest.
+      - name: Fetch model
+        env:
+          MODEL_URL: ${{ secrets.MODEL_URL }}
+          MODEL_SHA256: ${{ secrets.MODEL_SHA256 }}
+        run: python scripts/fetch_model.py
+
       - name: Export DB_* vars from DATABASE_URL
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
