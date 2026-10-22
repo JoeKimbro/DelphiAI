@@ -68,7 +68,10 @@ env_path = Path(__file__).parent.parent.parent.parent / '.env'
 if env_path.exists():
     load_dotenv(env_path)
 
-DB_CONFIG = {
+# DATABASE_URL takes priority (CI/production), matching load_to_db.py;
+# individual DB_* vars are the local-dev fallback.
+_DATABASE_URL = os.getenv('DATABASE_URL', '')
+DB_CONFIG = {'dsn': _DATABASE_URL} if _DATABASE_URL else {
     'host': os.getenv('DB_HOST', 'localhost'),
     'port': os.getenv('DB_PORT', '5433'),
     'dbname': os.getenv('DB_NAME', 'delphi_db'),
@@ -81,6 +84,11 @@ OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Temporal filter - only train on modern MMA
 MIN_YEAR_DEFAULT = 2019
+# Chronological split boundaries (train < VAL_START <= calibrate < HOLDOUT_START <= holdout).
+# Move these forward as new fights accumulate, or the newest fights only ever
+# land in the holdout and the model never learns from them.
+VAL_START_DEFAULT = '2026-01-01'
+HOLDOUT_START_DEFAULT = '2026-07-01'
 
 
 def connect_db():
@@ -983,11 +991,13 @@ def bootstrap_confidence_interval(y_true, y_probs, n_bootstrap=1000, seed=42):
     }
 
 
-def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
+def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15,
+                      val_start=VAL_START_DEFAULT, holdout_start=HOLDOUT_START_DEFAULT):
     """
-    Date-based chronological split: train on pre-2024, calibrate on 2024,
-    hold out 2025+. Falls back to percentage-based split if there are fewer
-    than 50 fights in either the calibration or holdout year windows.
+    Date-based chronological split: train before val_start, calibrate on
+    [val_start, holdout_start), hold out holdout_start onwards. Falls back to a
+    percentage-based split if there are fewer than 50 fights in either the
+    calibration or holdout window.
 
     Using date cutoffs instead of percentage fractions ensures the calibrator
     is trained on fights temporally close to the evaluation period, preventing
@@ -1001,10 +1011,10 @@ def split_by_fight_id(features_df, train_frac=0.70, val_frac=0.15):
     )
     fights['fight_date'] = pd.to_datetime(fights['fight_date'])
 
-    train_ids   = set(fights[fights['fight_date'] <  '2025-07-01']['fight_id'])
-    val_ids     = set(fights[(fights['fight_date'] >= '2025-07-01') &
-                              (fights['fight_date'] <  '2026-01-01')]['fight_id'])
-    holdout_ids = set(fights[fights['fight_date'] >= '2026-01-01']['fight_id'])
+    train_ids   = set(fights[fights['fight_date'] <  val_start]['fight_id'])
+    val_ids     = set(fights[(fights['fight_date'] >= val_start) &
+                              (fights['fight_date'] <  holdout_start)]['fight_id'])
+    holdout_ids = set(fights[fights['fight_date'] >= holdout_start]['fight_id'])
 
     # Fall back to percentage split if any window is too small
     if len(val_ids) < 50 or len(holdout_ids) < 50:
@@ -1414,6 +1424,10 @@ Examples:
                         help='Disable temporal filtering (not recommended)')
     parser.add_argument('--diagnose-holdout', action='store_true',
                         help='Print extra holdout diagnostics and sample predictions')
+    parser.add_argument('--val-start', default=VAL_START_DEFAULT,
+                        help=f'First date of the calibration window (default: {VAL_START_DEFAULT})')
+    parser.add_argument('--holdout-start', default=HOLDOUT_START_DEFAULT,
+                        help=f'First date of the holdout window (default: {HOLDOUT_START_DEFAULT})')
     args = parser.parse_args()
 
     min_year = None if args.no_filter else args.min_year
@@ -1451,7 +1465,8 @@ Examples:
     print("=" * 60)
 
     features_df = features_df.sort_values('fight_date').reset_index(drop=True)
-    train_df, val_df, holdout_df = split_by_fight_id(features_df)
+    train_df, val_df, holdout_df = split_by_fight_id(
+        features_df, val_start=args.val_start, holdout_start=args.holdout_start)
 
     train_ids = set(train_df['fight_id'].unique())
     val_ids = set(val_df['fight_id'].unique())
