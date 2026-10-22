@@ -661,14 +661,14 @@ def predict_full_card(conn, fights, event_name='', event_date='',
         from ml.predict_fight import (
             get_fighter_data, calculate_elo_adjustments, elo_to_probability,
             analyze_matchup, _get_ml_predictor, predict_method,
-            recalibrate_probabilities,
+            recalibrate_probabilities, blend_ml_with_elo,
             predict_sig_strikes, predict_takedowns
         )
     except ModuleNotFoundError:
         from predict_fight import (
             get_fighter_data, calculate_elo_adjustments, elo_to_probability,
             analyze_matchup, _get_ml_predictor, predict_method,
-            recalibrate_probabilities,
+            recalibrate_probabilities, blend_ml_with_elo,
             predict_sig_strikes, predict_takedowns
         )
 
@@ -828,15 +828,11 @@ def predict_full_card(conn, fights, event_name='', event_date='',
                     sym_error = abs(fwd_prob + rev_prob - 1.0)
                     corrected = (fwd_prob + (1.0 - rev_prob)) / 2.0
                     
-                    # Graduated blending: allow moderate symmetry drift with lower ML weight.
-                    if sym_error <= 0.60:
-                        # Start from feature-quality weight (by missing ratio), then discount for symmetry error.
-                        missing_ratio = nan_count / total_features
-                        missing_penalty = min(0.35, missing_ratio * 0.50)
-                        ml_weight = 0.50 - missing_penalty - max(0.0, sym_error - 0.20) * 0.60
-                        ml_weight = max(0.15, min(0.50, ml_weight))
-                        blended = ml_weight * corrected + (1 - ml_weight) * elo_prob_f1
-                        
+                    blend = blend_ml_with_elo(corrected, elo_prob_f1, nan_count,
+                                              total_features, sym_error)
+                    if blend is not None:
+                        blended, ml_weight = blend
+
                         # Injury/ring-rust shifts
                         f1_pen = f1_adj['inactivity_penalty'] + f1_adj['injury_penalty']
                         f2_pen = f2_adj['inactivity_penalty'] + f2_adj['injury_penalty']

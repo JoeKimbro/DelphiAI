@@ -101,6 +101,28 @@ class IsotonicCalibrator(ClassifierMixin, BaseEstimator):
 
 ARTIFACTS_DIR = Path(__file__).parent / 'artifacts'
 
+# How a model's inputs were prepared at training time (saved as 'input_format'):
+#   'raw'     - winsorized, NaN kept, unscaled (XGBoost handles NaN natively)
+#   'imputed' - winsorized, NaN -> training median, unscaled (RF, stacking)
+#   'scaled'  - winsorized, NaN -> training median, then StandardScaler (LR)
+INPUT_FORMATS = ('raw', 'imputed', 'scaled')
+
+
+def _infer_input_format(model):
+    """Input format for artifacts saved before 'input_format' was recorded.
+
+    Training always saved the scaler, so serving used to scale every model;
+    for XGBoost that sends standardized values into splits learned on raw
+    values (holdout AUC 0.70 -> 0.60).
+    """
+    base = getattr(model, 'base_estimator', model)
+    name = type(base).__name__
+    if name == 'XGBClassifier':
+        return 'raw'
+    if name == 'LogisticRegression':
+        return 'scaled'
+    return 'imputed'
+
 # All 22 possible features V3 can produce (before correlation dropping).
 # The model's actual feature_cols may be a subset if correlation analysis dropped some.
 ALL_V3_FEATURES = [
@@ -516,6 +538,7 @@ class MLPredictor:
         self.version = None
         self.winsorize_bounds = None
         self.median_values = None
+        self.input_format = None
         self.loaded = False
         self._load_error = None
 
@@ -607,6 +630,7 @@ class MLPredictor:
             self.version = data.get('version', 'unknown')
             self.winsorize_bounds = data.get('winsorize_bounds', {})
             self.median_values = data.get('median_values', {})
+            self.input_format = data.get('input_format') or _infer_input_format(self.model)
             self.loaded = True
 
             # Validate feature columns are a subset of known features
@@ -635,13 +659,17 @@ class MLPredictor:
         Apply the same preprocessing used during training:
         1. Select only the features the model expects (in EXACT order from training)
         2. Winsorize to training bounds
-        3. Impute missing with training medians
-        4. Scale if scaler was used
-        
-        IMPORTANT: Always impute NaN because the model is wrapped in 
-        CalibratedClassifierCV which uses sklearn internals that cannot handle NaN,
-        even when the base model is XGBoost.
+        3. Impute missing with training medians (not for 'raw' models)
+        4. Scale (only for 'scaled' models)
+
+        Must match the model's input_format exactly: XGBoost is trained on raw
+        values with NaN kept, so imputing or scaling its inputs moves them to
+        the wrong side of its learned splits.
         """
+        # Predictors built without _load_model keep the old impute+scale behaviour.
+        input_format = getattr(self, 'input_format', None) or 'scaled'
+        impute = input_format != 'raw'
+        scale = input_format == 'scaled'
         # Build array in the EXACT order the model expects
         values = []
         for col in self.feature_cols:
@@ -655,7 +683,7 @@ class MLPredictor:
                 val = max(bounds['lower'], min(bounds['upper'], val))
 
             # Impute NaN with training median
-            if np.isnan(val):
+            if impute and np.isnan(val):
                 if col not in self.median_values:
                     print(f"[ML WARNING] Feature '{col}' not in median_values; falling back to 0.0")
                 val = self.median_values.get(col, 0.0)
@@ -664,8 +692,7 @@ class MLPredictor:
 
         X = np.array(values, dtype=float).reshape(1, -1)
 
-        # Scale if scaler was saved with model
-        if self.scaler is not None:
+        if scale and self.scaler is not None:
             X = self.scaler.transform(X)
 
         return X

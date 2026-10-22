@@ -355,6 +355,28 @@ def elo_to_probability(elo_a, elo_b):
     return 1 / (1 + 10 ** (-diff / 400))
 
 
+# ML/ELO blend. Shared by predict_card (live) and backtest so they can't drift.
+ML_WEIGHT_MAX = 0.50
+ML_WEIGHT_MIN = 0.15
+MAX_SYM_ERROR = 0.60
+
+
+def blend_ml_with_elo(corrected, elo_prob, nan_count, total_features, sym_error):
+    """
+    Blend the symmetry-corrected ML probability with the ELO probability.
+
+    The ML weight starts at ML_WEIGHT_MAX and is reduced for missing features
+    and for forward/swapped asymmetry. Returns (blended_prob, ml_weight), or
+    None when the ML output is too asymmetric to use (caller falls back to ELO).
+    """
+    if sym_error > MAX_SYM_ERROR:
+        return None
+    missing_penalty = min(0.35, nan_count / max(total_features, 1) * 0.50)
+    ml_weight = ML_WEIGHT_MAX - missing_penalty - max(0.0, sym_error - 0.20) * 0.60
+    ml_weight = max(ML_WEIGHT_MIN, min(ML_WEIGHT_MAX, ml_weight))
+    return ml_weight * corrected + (1 - ml_weight) * elo_prob, ml_weight
+
+
 def recalibrate_probabilities(prob):
     """
     Apply live calibration to a post-blend probability.

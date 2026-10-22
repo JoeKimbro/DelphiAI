@@ -166,8 +166,8 @@ class TestNaNHandling(unittest.TestCase):
         self.assertFalse(np.isnan(features['elo_diff']),
                          "elo_diff should never be NaN")
 
-    def test_preprocessing_always_imputes_nan(self):
-        """Preprocessing MUST impute all NaN values because CalibratedClassifierCV can't handle them."""
+    def test_preprocessing_imputes_nan_for_non_raw_models(self):
+        """Non-'raw' models (LR/RF, and the legacy default) get NaN imputed with training medians."""
         from ml.model_loader import MLPredictor
 
         predictor = MLPredictor.__new__(MLPredictor)
@@ -203,6 +203,53 @@ class TestNaNHandling(unittest.TestCase):
         features_dict = {'elo_diff': np.nan}
         X = predictor._apply_preprocessing(features_dict)
         self.assertEqual(X[0, 0], 0.0)
+
+    def _predictor(self, input_format, scaler):
+        from ml.model_loader import MLPredictor
+        predictor = MLPredictor.__new__(MLPredictor)
+        predictor.model = None
+        predictor.scaler = scaler
+        predictor.feature_cols = ['elo_diff', 'age_diff']
+        predictor.winsorize_bounds = {'elo_diff': {'lower': -300, 'upper': 300}}
+        predictor.median_values = {'elo_diff': 50.0, 'age_diff': -1.0}
+        predictor.input_format = input_format
+        predictor.loaded = True
+        return predictor
+
+    def _fitted_scaler(self):
+        from sklearn.preprocessing import StandardScaler
+        return StandardScaler().fit(np.array([[0.0, 0.0], [200.0, 10.0]]))
+
+    def test_raw_models_keep_nan_and_skip_scaler(self):
+        """XGBoost ('raw') trains on unscaled values with NaN kept; serving must match."""
+        predictor = self._predictor('raw', self._fitted_scaler())
+        X = predictor._apply_preprocessing({'elo_diff': 900.0, 'age_diff': np.nan})
+        self.assertEqual(X[0, 0], 300.0, "still winsorized, but not scaled")
+        self.assertTrue(np.isnan(X[0, 1]), "NaN must reach XGBoost unimputed")
+
+    def test_imputed_models_skip_scaler(self):
+        predictor = self._predictor('imputed', self._fitted_scaler())
+        X = predictor._apply_preprocessing({'elo_diff': 100.0, 'age_diff': np.nan})
+        self.assertEqual(X[0].tolist(), [100.0, -1.0])
+
+    def test_scaled_models_impute_then_scale(self):
+        scaler = self._fitted_scaler()
+        predictor = self._predictor('scaled', scaler)
+        X = predictor._apply_preprocessing({'elo_diff': 100.0, 'age_diff': np.nan})
+        np.testing.assert_allclose(X, scaler.transform([[100.0, -1.0]]))
+
+    def test_input_format_inferred_for_legacy_artifacts(self):
+        """Artifacts saved before input_format existed get it from the model type."""
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.linear_model import LogisticRegression
+        from ml.model_loader import IsotonicCalibrator, _infer_input_format
+        self.assertEqual(_infer_input_format(IsotonicCalibrator(LogisticRegression())), 'scaled')
+        self.assertEqual(_infer_input_format(IsotonicCalibrator(RandomForestClassifier())), 'imputed')
+        try:
+            import xgboost as xgb
+        except ImportError:
+            return
+        self.assertEqual(_infer_input_format(IsotonicCalibrator(xgb.XGBClassifier())), 'raw')
 
 
 # ===========================================================================
@@ -764,6 +811,28 @@ class TestTrainingInfoMetadata(unittest.TestCase):
 # ===========================================================================
 # RUN ALL TESTS
 # ===========================================================================
+
+class TestBlendMlWithElo(unittest.TestCase):
+    """The shared ML/ELO blend used by predict_card (live) and backtest."""
+
+    def setUp(self):
+        from ml import predict_fight
+        self.pf = predict_fight
+
+    def test_full_weight_without_penalties(self):
+        prob, w = self.pf.blend_ml_with_elo(0.70, 0.50, nan_count=0, total_features=20, sym_error=0.0)
+        self.assertAlmostEqual(w, self.pf.ML_WEIGHT_MAX)
+        self.assertAlmostEqual(prob, w * 0.70 + (1 - w) * 0.50)
+
+    def test_penalties_reduce_weight_but_not_below_min(self):
+        _, w_missing = self.pf.blend_ml_with_elo(0.7, 0.5, nan_count=10, total_features=20, sym_error=0.0)
+        self.assertLess(w_missing, self.pf.ML_WEIGHT_MAX)
+        _, w_floor = self.pf.blend_ml_with_elo(0.7, 0.5, nan_count=20, total_features=20, sym_error=0.59)
+        self.assertAlmostEqual(w_floor, self.pf.ML_WEIGHT_MIN)
+
+    def test_too_asymmetric_falls_back_to_elo(self):
+        self.assertIsNone(self.pf.blend_ml_with_elo(0.7, 0.5, 0, 20, sym_error=0.61))
+
 
 def run_tests():
     """Run all tests and print summary."""

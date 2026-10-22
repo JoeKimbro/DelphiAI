@@ -547,11 +547,27 @@ def load_fights(conn, fighter_url_to_id, dry_run=False):
         else:
             rows_without_url.append(t)
 
+    # fights.csv has one row per fighter per fight (each fighter's page), but
+    # Fights is unique on FightURL. Keep exactly one perspective per fight —
+    # the winner's when there is one, so the choice is stable across loads.
+    by_url = {}
+    for t in rows_with_url:
+        fight_url, result = t[12], t[8]
+        if fight_url not in by_url or (result == 'win' and by_url[fight_url][8] != 'win'):
+            by_url[fight_url] = t
+    rows_with_url = list(by_url.values())
+
     COLS = """FighterID, FighterURL, FighterName, OpponentID, OpponentURL, OpponentName,
               WinnerID, WinnerName, Result, Date, EventName, EventURL, FightURL,
               Method, MethodDetail, Round, Time, Knockdowns, SigStrikes, Takedowns,
               SubAttempts, IsTitleFight, Source, ScrapedAt"""
+    # FighterID must be updated with the rest of the row. Leaving it out mixed
+    # perspectives: the old FighterID stayed while OpponentID/URL/names came
+    # from the other fighter's row, so ~half of all fights had
+    # FighterID == OpponentID (self-vs-self training rows, corrupt
+    # FighterHistoricalFeatures).
     UPDATE_SET = """
+        FighterID = EXCLUDED.FighterID,
         FighterURL = EXCLUDED.FighterURL, FighterName = EXCLUDED.FighterName,
         OpponentID = EXCLUDED.OpponentID, OpponentURL = EXCLUDED.OpponentURL,
         OpponentName = EXCLUDED.OpponentName, WinnerID = EXCLUDED.WinnerID,

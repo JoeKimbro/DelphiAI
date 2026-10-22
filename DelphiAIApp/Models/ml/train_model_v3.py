@@ -83,7 +83,7 @@ OUTPUT_DIR = Path(__file__).parent / 'artifacts'
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 # Temporal filter - only train on modern MMA
-MIN_YEAR_DEFAULT = 2019
+MIN_YEAR_DEFAULT = 2015
 # Chronological split boundaries (train < VAL_START <= calibrate < HOLDOUT_START <= holdout).
 # Move these forward as new fights accumulate, or the newest fights only ever
 # land in the holdout and the model never learns from them.
@@ -1314,7 +1314,7 @@ def analyze_feature_importance(model, X_test, y_test, feature_cols):
 # =============================================================================
 
 def save_model(model, scaler, feature_cols, metrics, winsorize_bounds, 
-               dropped_features, min_year, median_values):
+               dropped_features, min_year, median_values, input_format):
     """
     Save model with versioning and full metadata.
     """
@@ -1338,6 +1338,8 @@ def save_model(model, scaler, feature_cols, metrics, winsorize_bounds,
             'dropped_features': dropped_features,
             'min_year': min_year,
             'median_values': median_values,
+            # How serving must prepare inputs; see model_loader.INPUT_FORMATS.
+            'input_format': input_format,
         }, f)
     print(f"   Model saved: {model_path}")
 
@@ -1353,12 +1355,15 @@ def save_model(model, scaler, feature_cols, metrics, winsorize_bounds,
             'dropped_features': dropped_features,
             'min_year': min_year,
             'median_values': median_values,
+            # How serving must prepare inputs; see model_loader.INPUT_FORMATS.
+            'input_format': input_format,
         }, f)
     print(f"   Latest symlink: {latest_path}")
 
     # Save training info JSON (comprehensive metadata for reproducibility)
     info = {
         'model_version': model_version,
+        'input_format': input_format,
         'model_filename': model_filename,
         'feature_columns': feature_cols,
         'n_features': len(feature_cols),
@@ -1413,7 +1418,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m ml.train_model_v3                  # Default (2019+ data)
+  python -m ml.train_model_v3                  # Default (2015+ data)
   python -m ml.train_model_v3 --min-year 2020  # Only 2020+ data
   python -m ml.train_model_v3 --no-filter      # All historical data
         """
@@ -1667,20 +1672,26 @@ Examples:
     print(f"\n   Best model: {best_name} (AUC={best_result['test_auc']:.3f})")
 
     # =========================================================================
-    # 11. RETRAIN BEST MODEL ON TRAIN+VAL, EVALUATE ON HOLDOUT
+    # 11. FIT FINAL MODEL ON TRAIN, CALIBRATE ON VAL, EVALUATE ON HOLDOUT
+    #
+    # The calibrator must only see predictions on fights the base model did
+    # NOT train on. Refitting on train+val and then calibrating on val (the
+    # previous behaviour) calibrated on in-sample predictions, which made the
+    # probabilities overconfident: walk-forward log loss 0.689 vs 0.662 clean,
+    # barely better than ELO alone (0.693).
     # =========================================================================
     print("\n" + "=" * 60)
-    print(f"RETRAINING BEST MODEL ON TRAIN+VAL DATA")
+    print(f"FITTING FINAL MODEL ON TRAIN, CALIBRATING ON VAL")
     print("=" * 60)
     print(f"   Model: {best_name}")
-    print(f"   Train+Val: {len(y_trainval)} samples")
+    print(f"   Train: {len(y_train)} samples | Calibration (val): {len(y_val)} samples")
 
     # Determine which data format to use based on best model
     is_xgb = 'XGBoost' in best_name
     is_lr = 'Logistic' in best_name
 
     if is_xgb and HAS_XGBOOST:
-        # Retrain XGBoost on train+val with NaN support
+        # Refit XGBoost on train only (NaN support), at the early-stopped size
         final_model = xgb.XGBClassifier(
             n_estimators=best_result.get('best_iteration', 200),
             max_depth=4,
@@ -1692,20 +1703,23 @@ Examples:
             colsample_bytree=0.7,
             random_state=42,
         )
-        final_model.fit(X_trainval_raw, y_trainval)
+        final_model.fit(X_train_raw, y_train)
 
-        # Calibrate on the validation portion (manual isotonic, sklearn 1.6+ compatible)
+        # Calibrate on the held-out validation window (IsotonicCalibrator
+        # defaults to sigmoid / Platt scaling)
         calibrated_final = IsotonicCalibrator(final_model)
         calibrated_final.fit(X_val_raw, y_val)
 
         X_holdout_eval = X_holdout_raw
+        input_format = 'raw'
     elif is_lr:
-        # Retrain LR on scaled data
+        # Refit LR on scaled train data only
         final_base = clone(best_result['base_model'])
-        final_base.fit(X_trainval_scaled, y_trainval)
+        final_base.fit(X_train_scaled, y_train)
         calibrated_final = IsotonicCalibrator(final_base)
         calibrated_final.fit(X_val_scaled, y_val)
         X_holdout_eval = X_holdout_scaled
+        input_format = 'scaled'
     else:
         # RF or ensemble - use imputed data
         if 'Stacking' in best_name:
@@ -1733,10 +1747,11 @@ Examples:
             calibrated_final.fit(X_trainval_imputed, y_trainval)
         else:
             final_base = clone(best_result['base_model'])
-            final_base.fit(X_trainval_imputed, y_trainval)
+            final_base.fit(X_train_imputed, y_train)
             calibrated_final = IsotonicCalibrator(final_base)
             calibrated_final.fit(X_val_imputed, y_val)
         X_holdout_eval = X_holdout_imputed
+        input_format = 'imputed'
 
     # =========================================================================
     # 12. HOLDOUT EVALUATION
@@ -1862,6 +1877,7 @@ Examples:
         dropped_features=dropped_features,
         min_year=min_year,
         median_values=median_values,
+        input_format=input_format,
     )
 
     # =========================================================================
