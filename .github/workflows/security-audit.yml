@@ -17,7 +17,12 @@ jobs:
         with:
           node-version: "20"
       - run: npm ci
-      - name: npm audit (high+)
+      # Gate on what ships to production. Dev-only tooling is reported but not blocking:
+      # braces (GHSA-vfj7-8cjw-p6xm, via eslint-config-next) has no fixed release yet.
+      - name: npm audit (production deps, high+)
+        run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (all deps, report only)
+        continue-on-error: true
         run: npm audit --audit-level=high
 
   pip-audit:
@@ -31,4 +36,6 @@ jobs:
       - name: pip-audit
         # PYSEC-2026-160: twisted vuln fixed only in 26.4.0rc2 which conflicts with Scrapy 2.14.2
         # Ignore until Scrapy releases a compatible twisted fix
-        run: pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-160 --ignore-vuln PYSEC-2017-83
+        # CVE-2026-106454: ReDoS in twisted.mail IMAP server (LIST/LSUB wildcards). No fixed
+        # release yet; we never run an IMAP server, and twisted is scraper-only (not in the API image).
+        run: pip-audit -r requirements.txt --ignore-vuln PYSEC-2026-160 --ignore-vuln PYSEC-2017-83 --ignore-vuln CVE-2026-106454
