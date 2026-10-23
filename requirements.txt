@@ -4,28 +4,28 @@
 # packages that break the Linux container build.
 
 # --- Web API ---
-fastapi==0.141.1
-uvicorn[standard]==0.52.4
-starlette==1.6.0
-pydantic==2.13.5
+fastapi==0.150.0
+uvicorn[standard]==0.54.0
+starlette==1.9.0
+pydantic==2.14.1
 
 # --- Database ---
-psycopg2-binary==2.9.12
-python-dotenv==1.2.3
+psycopg2-binary==2.9.13
+python-dotenv==1.2.4
 yoyo-migrations==9.0.0
 
 # --- ML / prediction pipeline ---
 xgboost==3.4.1
-scikit-learn==1.9.0
-numpy==2.5.2
-pandas==3.0.5
+scikit-learn==1.9.1
+numpy==2.5.4
+pandas==3.0.6
 joblib==1.6.0
 
 # --- Live predict-time injury scrape (lightweight; no browser) ---
 requests==2.34.2
 beautifulsoup4==4.15.0
-lxml==6.1.2
+lxml==6.1.3
 
 # --- Bulk scraping pipeline (GitHub Actions cron, weekly_update) ---
-Scrapy==2.18.0
+Scrapy==2.19.0
 scrapy-playwright==0.0.48
