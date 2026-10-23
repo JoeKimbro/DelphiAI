@@ -42,6 +42,8 @@ PostgreSQL → Pandas → XGBoost → Probabilities
 └──────────────────────┘
 ## Quick Start
 
+> Setting up from a fresh clone? Follow **[SETUP.md](SETUP.md)**. It covers the database, data load, model, API, and dashboard end to end.
+
 ### 1. Install Python dependencies
 ```bash
 pip install -r requirements.txt
